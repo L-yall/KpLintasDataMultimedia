@@ -21,6 +21,14 @@ app.set('port', port);
 
 var server = http.createServer(app);
 
+// Inisialisasi Socket.IO
+var socketService = require('../services/socket');
+socketService.init(server);
+
+// Jalankan background sync PPPoE Mikrotik
+var syncService = require('../services/syncService');
+syncService.start();
+
 /**
  * Listen on provided port, on all network interfaces.
  */
