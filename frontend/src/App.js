@@ -13,6 +13,7 @@ import PaketPage from './pages/PaketPage';
 import MikrotikPage from './pages/MikrotikPage';
 import ReminderLogPage from './pages/ReminderLogPage';
 import PembayaranPage from './pages/PembayaranPage';
+import LaporanPage from './pages/LaporanPage';
 import CustomerLoginPage from './pages/CustomerLoginPage';
 import CustomerPortalPage from './pages/CustomerPortalPage';
 
@@ -182,6 +183,7 @@ function App() {
             <Route path="/dashboard/mikrotik" element={<MikrotikPage socket={socket} />} />
             <Route path="/dashboard/reminder-logs" element={<ReminderLogPage />} />
             <Route path="/dashboard/pembayaran" element={<PembayaranPage socket={socket} />} />
+            <Route path="/dashboard/laporan" element={<LaporanPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>

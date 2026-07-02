@@ -11,6 +11,7 @@ function Navbar() {
     '/dashboard/mikrotik': { title: 'Monitoring Mikrotik', subtitle: 'Status koneksi & active sessions' },
     '/dashboard/reminder-logs': { title: 'Log Reminder WhatsApp', subtitle: 'Riwayat pengiriman notifikasi jatuh tempo' },
     '/dashboard/pembayaran': { title: 'Persetujuan Pembayaran', subtitle: 'Verifikasi bukti transfer & aktifkan internet' },
+    '/dashboard/laporan': { title: 'Laporan Keuangan', subtitle: 'Ringkasan finansial, kelola pengeluaran & export Excel' },
   };
 
   var currentPage = pageTitles[location.pathname] || { title: 'Dashboard', subtitle: '' };

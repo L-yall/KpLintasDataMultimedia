@@ -16,6 +16,8 @@ var reminderRouter = require('./routes/reminder');
 var customerAuthRouter = require('./routes/customerAuth');
 var customerPortalRouter = require('./routes/customerPortal');
 var pembayaranRouter = require('./routes/pembayaran');
+var pengeluaranRouter = require('./routes/pengeluaran');
+var reportsRouter = require('./routes/reports');
 
 // Database Connection
 var db = require('./config/db');
@@ -49,6 +51,8 @@ app.use('/api/reminder', reminderRouter);
 app.use('/api/customer/auth', customerAuthRouter);
 app.use('/api/customer/portal', customerPortalRouter);
 app.use('/api/pembayaran', pembayaranRouter);
+app.use('/api/pengeluaran', pengeluaranRouter);
+app.use('/api/reports', reportsRouter);
 
 // Start Cron Service
 var cronService = require('./services/cronService');

@@ -14,12 +14,7 @@ function Sidebar({ admin, onLogout }) {
         { path: '/dashboard/mikrotik', icon: '🌐', label: 'Mikrotik' },
         { path: '/dashboard/reminder-logs', icon: '🔔', label: 'Log Reminder WA' },
         { path: '/dashboard/pembayaran', icon: '💰', label: 'Persetujuan Bayar' },
-      ]
-    },
-    {
-      section: 'Segera Hadir',
-      items: [
-        { path: '#', icon: '📄', label: 'Laporan', disabled: true },
+        { path: '/dashboard/laporan', icon: '📄', label: 'Laporan Keuangan' },
       ]
     }
   ];
