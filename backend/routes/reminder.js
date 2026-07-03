@@ -31,7 +31,7 @@ router.post('/trigger-cron', async function(req, res) {
     await CronService.checkAndSendReminders();
     res.json({
       success: true,
-      message: 'Proses pengecekan tagihan dan pengiriman reminder WhatsApp berhasil dijalankan!'
+      message: 'Proses pengecekan tagihan dan pengiriman reminder Email berhasil dijalankan!'
     });
   } catch (err) {
     res.status(500).json({

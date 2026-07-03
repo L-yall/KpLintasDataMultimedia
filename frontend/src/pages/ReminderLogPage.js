@@ -68,8 +68,8 @@ function ReminderLogPage() {
     <div>
       <div className="page-header">
         <div>
-          <h1>Log Reminder WA</h1>
-          <p>Riwayat pengiriman notifikasi reminder jatuh tempo WhatsApp ke pelanggan.</p>
+          <h1>Log Reminder Email</h1>
+          <p>Riwayat pengiriman notifikasi reminder jatuh tempo via Email ke pelanggan.</p>
         </div>
         <button 
           className="btn btn-primary" 
@@ -110,7 +110,7 @@ function ReminderLogPage() {
         ) : filteredLogs.length === 0 ? (
           <div className="table-empty">
             <div className="table-empty-icon">✉️</div>
-            <p>Belum ada riwayat pengiriman reminder WhatsApp.</p>
+            <p>Belum ada riwayat pengiriman reminder Email.</p>
           </div>
         ) : (
           <table className="data-table">
@@ -118,7 +118,7 @@ function ReminderLogPage() {
               <tr>
                 <th>No</th>
                 <th>Nama Pelanggan</th>
-                <th>No HP / WhatsApp</th>
+                <th>Email</th>
                 <th>Waktu Kirim</th>
                 <th>Status</th>
                 <th>Pesan</th>
@@ -154,12 +154,12 @@ function ReminderLogPage() {
         )}
       </div>
 
-      {/* Modal for viewing WhatsApp Message Body */}
+      {/* Modal for viewing Email Message Body */}
       {messageModal && (
         <div className="modal-overlay" onClick={function() { setMessageModal(null); }}>
           <div className="modal" style={{ maxWidth: '460px' }}>
             <div className="modal-header">
-              <h2>Isi Pesan WhatsApp</h2>
+              <h2>Isi Pesan Email</h2>
               <button className="modal-close" onClick={function() { setMessageModal(null); }}>✕</button>
             </div>
             <div className="modal-body" style={{ whiteSpace: 'pre-line', fontFamily: 'monospace', background: 'var(--bg-secondary)', padding: '20px', borderRadius: '8px', margin: '20px', border: '1px solid var(--border-color)' }}>

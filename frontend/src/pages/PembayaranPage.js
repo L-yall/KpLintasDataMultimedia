@@ -266,7 +266,7 @@ function PembayaranPage({ socket }) {
         >
           <form onSubmit={handleReject} style={{ padding: '10px 0' }}>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '14px' }}>
-              Berikan alasan penolakan. Alasan ini akan otomatis dikirimkan ke WhatsApp pelanggan agar mereka bisa mengunggah bukti yang valid.
+              Berikan alasan penolakan. Alasan ini akan otomatis dikirimkan ke Email pelanggan agar mereka bisa mengunggah bukti yang valid.
             </p>
             <div className="form-group">
               <label>Alasan Penolakan Bukti *</label>

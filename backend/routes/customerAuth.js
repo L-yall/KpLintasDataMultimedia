@@ -3,43 +3,21 @@ var router = express.Router();
 var jwt = require('jsonwebtoken');
 var Pelanggan = require('../models/Pelanggan');
 var Otp = require('../models/Otp');
-var WhatsAppService = require('../services/whatsapp');
+var EmailService = require('../services/emailService');
 
-// Helper to format/clean phone numbers for flexible matching
-function getPhoneFormats(phone) {
-  var cleaned = phone.replace(/[^0-9]/g, '');
-  var formats = [phone, cleaned];
-  
-  if (cleaned.startsWith('0')) {
-    formats.push('62' + cleaned.substring(1));
-    formats.push('+' + cleaned);
-    formats.push('+62' + cleaned.substring(1));
-  } else if (cleaned.startsWith('62')) {
-    formats.push('0' + cleaned.substring(2));
-    formats.push('+' + cleaned);
-    formats.push('+' + '0' + cleaned.substring(2));
-  }
-  
-  return [...new Set(formats)];
-}
-
-/* POST /api/customer/auth/request-otp - Request OTP via WhatsApp */
+/* POST /api/customer/auth/request-otp - Request OTP via Email */
 router.post('/request-otp', function(req, res) {
-  var { no_hp } = req.body;
+  var { email } = req.body;
 
-  if (!no_hp) {
-    return res.status(400).json({ success: false, message: 'Nomor HP wajib diisi.' });
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email wajib diisi.' });
   }
 
-  // Get various representations of the phone number to match whatever is in DB
-  var formats = getPhoneFormats(no_hp);
-  
-  // Search in database
-  var placeholders = formats.map(() => '?').join(', ');
-  var sql = `SELECT * FROM pelanggan WHERE no_hp IN (${placeholders}) LIMIT 1`;
-
+  // Search customer by email in database
   var db = require('../config/db');
-  db.query(sql, formats, function(err, results) {
+  var sql = 'SELECT * FROM pelanggan WHERE email = ? LIMIT 1';
+
+  db.query(sql, [email], function(err, results) {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error', error: err.message });
     }
@@ -47,7 +25,7 @@ router.post('/request-otp', function(req, res) {
     if (results.length === 0) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Nomor HP tidak terdaftar. Silakan hubungi admin ESP Lintas Data.' 
+        message: 'Email tidak terdaftar. Silakan hubungi admin ESP Lintas Data.' 
       });
     }
 
@@ -55,31 +33,29 @@ router.post('/request-otp', function(req, res) {
     // Generate random 6 digit OTP
     var otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store OTP in database
-    Otp.createOtp(customer.no_hp, otpCode, async function(otpErr) {
+    // Store OTP in database (using email as identifier)
+    Otp.createOtp(customer.email, otpCode, async function(otpErr) {
       if (otpErr) {
         return res.status(500).json({ success: false, message: 'Gagal membuat kode verifikasi.' });
       }
 
-      // Send OTP via WhatsApp
-      var message = `Halo ${customer.nama},\n\n` +
-        `Kode OTP Anda untuk masuk ke Portal ESP Lintas Data adalah:\n` +
-        `*${otpCode}*\n\n` +
-        `Kode ini berlaku selama 5 menit. Jangan bagikan kode ini kepada siapapun.`;
-
-      var sendRes = await WhatsAppService.sendWhatsApp(customer.no_hp, message);
+      // Send OTP via Email
+      var sendRes = await EmailService.sendOtpEmail(customer.email, {
+        nama: customer.nama,
+        otp: otpCode
+      });
 
       if (sendRes.success) {
         res.json({ 
           success: true, 
-          message: 'Kode OTP telah dikirim melalui WhatsApp!', 
-          phone: customer.no_hp 
+          message: 'Kode OTP telah dikirim ke Email Anda!', 
+          email: customer.email 
         });
       } else {
-        // Fallback info in response if WA fails
+        // Fallback info in response if email fails
         res.status(500).json({ 
           success: false, 
-          message: 'Gagal mengirim WhatsApp. Cek log server jika menggunakan sandbox mode.' 
+          message: 'Gagal mengirim Email OTP. Silakan coba lagi nanti.' 
         });
       }
     });
@@ -88,20 +64,17 @@ router.post('/request-otp', function(req, res) {
 
 /* POST /api/customer/auth/verify-otp - Verify OTP and login */
 router.post('/verify-otp', function(req, res) {
-  var { no_hp, otp } = req.body;
+  var { email, otp } = req.body;
 
-  if (!no_hp || !otp) {
-    return res.status(400).json({ success: false, message: 'Nomor HP dan OTP wajib diisi.' });
+  if (!email || !otp) {
+    return res.status(400).json({ success: false, message: 'Email dan OTP wajib diisi.' });
   }
 
-  var formats = getPhoneFormats(no_hp);
-  
-  // Find customer
-  var placeholders = formats.map(() => '?').join(', ');
-  var sql = `SELECT * FROM pelanggan WHERE no_hp IN (${placeholders}) LIMIT 1`;
-
+  // Find customer by email
   var db = require('../config/db');
-  db.query(sql, formats, function(err, results) {
+  var sql = 'SELECT * FROM pelanggan WHERE email = ? LIMIT 1';
+
+  db.query(sql, [email], function(err, results) {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error' });
     }
@@ -112,8 +85,8 @@ router.post('/verify-otp', function(req, res) {
 
     var customer = results[0];
 
-    // Verify OTP
-    Otp.verifyOtp(customer.no_hp, otp, function(verifyErr, otpRecord) {
+    // Verify OTP using email
+    Otp.verifyOtp(customer.email, otp, function(verifyErr, otpRecord) {
       if (verifyErr) {
         return res.status(500).json({ success: false, message: 'Database error' });
       }
@@ -126,7 +99,7 @@ router.post('/verify-otp', function(req, res) {
       var token = jwt.sign(
         { 
           id_pelanggan: customer.id_pelanggan, 
-          no_hp: customer.no_hp,
+          email: customer.email,
           role: 'customer' 
         },
         process.env.JWT_SECRET,
@@ -141,6 +114,7 @@ router.post('/verify-otp', function(req, res) {
           customer: {
             id_pelanggan: customer.id_pelanggan,
             nama: customer.nama,
+            email: customer.email,
             no_hp: customer.no_hp,
             paket: customer.paket
           }

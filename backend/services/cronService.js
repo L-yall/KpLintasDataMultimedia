@@ -2,7 +2,7 @@ var cron = require('node-cron');
 var Tagihan = require('../models/Tagihan');
 var Pelanggan = require('../models/Pelanggan');
 var ReminderLog = require('../models/ReminderLog');
-var WhatsAppService = require('./whatsapp');
+var EmailService = require('./emailService');
 var SocketService = require('./socket');
 
 // Helper to calculate difference in days between two dates
@@ -15,7 +15,7 @@ function getDaysDifference(date1, date2) {
 
 var CronService = {
   start: function() {
-    console.log('Daily Cron Job for billing status & WA reminder initialized.');
+    console.log('Daily Cron Job for billing status & Email reminder initialized.');
     
     // Schedule to run every day at 07:00 AM
     cron.schedule('0 7 * * *', () => {
@@ -43,12 +43,12 @@ var CronService = {
         var daysDiff = getDaysDifference(dueDate, today);
         
         var newStatus = 'hijau';
-        var shouldSendWA = false;
+        var shouldSendReminder = false;
 
         if (daysDiff < 0) {
           // Overdue / Late
           newStatus = 'merah';
-          shouldSendWA = true; // DITAMBAHKAN: Agar WA tetap dikirim setiap hari saat menunggak
+          shouldSendReminder = true; // DITAMBAHKAN: Agar Email tetap dikirim setiap hari saat menunggak
 
           if (bill.status !== 'terlambat') {
             Tagihan.updateStatus(bill.id_tagihan, 'terlambat', function(err) {
@@ -58,7 +58,7 @@ var CronService = {
         } else if (daysDiff >= 0 && daysDiff <= 3) {
           // Due in 0 to 3 days (diperbaiki agar hari-H atau 0 hari juga terdeteksi)
           newStatus = 'kuning';
-          shouldSendWA = true;
+          shouldSendReminder = true;
         } else {
           // Far from due date
           newStatus = 'hijau';
@@ -82,10 +82,10 @@ var CronService = {
           });
         }
 
-        // 2. Send WhatsApp Reminder if shouldSendWA is true
-        if (shouldSendWA) {
-          // Mengirimkan data daysDiff agar pesan WA bisa dibedakan
-          await this.processWAReminder(bill, daysDiff);
+        // 2. Send Email Reminder if shouldSendReminder is true
+        if (shouldSendReminder) {
+          // Mengirimkan data daysDiff agar pesan email bisa dibedakan
+          await this.processEmailReminder(bill, daysDiff);
         }
       }
       
@@ -93,10 +93,10 @@ var CronService = {
     });
   },
 
-  processWAReminder: async function(bill, daysDiff) {
+  processEmailReminder: async function(bill, daysDiff) {
     var idPelanggan = bill.id_pelanggan;
     var name = bill.nama;
-    var phone = bill.no_hp;
+    var email = bill.email;
     var nominal = Number(bill.nominal).toLocaleString('id-ID');
     var dueDateString = new Date(bill.due_date).toLocaleDateString('id-ID', {
       day: 'numeric',
@@ -104,7 +104,13 @@ var CronService = {
       year: 'numeric'
     });
     var periode = bill.periode;
-    var paymentUrl = `${process.env.PAYMENT_PORTAL_URL || 'http://localhost:3001/bayar'}/${phone}`;
+    var paymentUrl = `${process.env.PAYMENT_PORTAL_URL || 'http://localhost:3001/bayar'}`;
+
+    // Check if customer has email
+    if (!email) {
+      console.log(`[Cron Service] Pelanggan ${name} tidak memiliki email. Skipping reminder.`);
+      return;
+    }
 
     return new Promise((resolve) => {
       // Fungsi ini akan mengecek tabel reminder_log
@@ -117,12 +123,12 @@ var CronService = {
 
         // Mencegah spam jika cron tereksekusi 2x di hari yang sama
         if (alreadySent) {
-          console.log(`[Cron Service] Reminder already sent today to ${name} (${phone}). Skipping.`);
+          console.log(`[Cron Service] Reminder already sent today to ${name} (${email}). Skipping.`);
           resolve();
           return;
         }
 
-        // Menyusun isi pesan secara dinamis
+        // Menyusun isi pesan secara dinamis (untuk logging)
         var message = `Halo ${name},\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n`;
 
         if (daysDiff < 0) {
@@ -135,8 +141,14 @@ var CronService = {
 
         message += `Silakan lakukan pembayaran dan konfirmasi melalui portal kami:\n${paymentUrl}\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.`;
 
-        // Send via Fonnte API
-        var result = await WhatsAppService.sendWhatsApp(phone, message);
+        // Send via Email
+        var result = await EmailService.sendReminderEmail(email, {
+          nama: name,
+          periode: periode,
+          nominal: nominal,
+          dueDateString: dueDateString,
+          paymentUrl: paymentUrl
+        });
 
         // Record in reminder_log dengan datetime (Terkirim masuk database)
         ReminderLog.create({

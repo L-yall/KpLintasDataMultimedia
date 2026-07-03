@@ -12,7 +12,7 @@ function Sidebar({ admin, onLogout }) {
         { path: '/dashboard/pelanggan', icon: '👥', label: 'Pelanggan' },
         { path: '/dashboard/paket', icon: '📦', label: 'Paket Layanan' },
         { path: '/dashboard/mikrotik', icon: '🌐', label: 'Mikrotik' },
-        { path: '/dashboard/reminder-logs', icon: '🔔', label: 'Log Reminder WA' },
+        { path: '/dashboard/reminder-logs', icon: '🔔', label: 'Log Reminder Email' },
         { path: '/dashboard/pembayaran', icon: '💰', label: 'Persetujuan Bayar' },
         { path: '/dashboard/laporan', icon: '📄', label: 'Laporan Keuangan' },
       ]

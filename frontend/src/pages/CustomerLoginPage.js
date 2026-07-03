@@ -3,8 +3,8 @@ import axios from 'axios';
 import { useParams } from 'react-router-dom';
 
 function CustomerLoginPage({ onLogin }) {
-  var { phone } = useParams();
-  var [noHp, setNoHp] = useState(phone ? decodeURIComponent(phone) : '');
+  var { userEmail } = useParams();
+  var [email, setEmail] = useState(userEmail ? decodeURIComponent(userEmail) : '');
   var [otp, setOtp] = useState('');
   var [step, setStep] = useState(1); // 1: input phone, 2: input OTP
   var [error, setError] = useState('');
@@ -18,7 +18,7 @@ function CustomerLoginPage({ onLogin }) {
 
     try {
       var response = await axios.post('http://localhost:3000/api/customer/auth/request-otp', {
-        no_hp: noHp
+        email: email
       });
 
       if (response.data.success) {
@@ -26,7 +26,7 @@ function CustomerLoginPage({ onLogin }) {
         setStep(2);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Gagal mengirim OTP. Pastikan nomor HP Anda terdaftar.');
+      setError(err.response?.data?.message || 'Gagal mengirim OTP. Pastikan email Anda terdaftar.');
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,7 @@ function CustomerLoginPage({ onLogin }) {
 
     try {
       var response = await axios.post('http://localhost:3000/api/customer/auth/verify-otp', {
-        no_hp: noHp,
+        email: email,
         otp: otp
       });
 
@@ -76,12 +76,12 @@ function CustomerLoginPage({ onLogin }) {
           {step === 1 ? (
             <form className="login-form" onSubmit={handleRequestOtp}>
               <div className="form-group">
-                <label>Nomor HP / WhatsApp Pelanggan</label>
+                <label>Email Pelanggan</label>
                 <input
-                  type="text"
-                  placeholder="Contoh: 08123456789"
-                  value={noHp}
-                  onChange={function(e) { setNoHp(e.target.value); }}
+                  type="email"
+                  placeholder="Contoh: user@email.com"
+                  value={email}
+                  onChange={function(e) { setEmail(e.target.value); }}
                   required
                   autoFocus
                 />
@@ -91,7 +91,7 @@ function CustomerLoginPage({ onLogin }) {
                 className="btn btn-primary" 
                 disabled={loading}
               >
-                {loading ? '⏳ Memproses...' : '💬 Kirim OTP via WA'}
+                {loading ? '⏳ Memproses...' : '📧 Kirim OTP via Email'}
               </button>
             </form>
           ) : (

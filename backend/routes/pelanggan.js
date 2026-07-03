@@ -62,7 +62,7 @@ router.get('/:id', function(req, res) {
 
 /* POST /api/pelanggan - Tambah pelanggan baru */
 router.post('/', function(req, res) {
-  var { nama, alamat, no_hp, pppoe_username, paket, due_date } = req.body;
+  var { nama, alamat, no_hp, email, pppoe_username, paket, due_date } = req.body;
 
   if (!nama || !no_hp) {
     return res.status(400).json({ success: false, message: 'Nama dan nomor HP harus diisi.' });
@@ -82,6 +82,7 @@ router.post('/', function(req, res) {
       nama: nama,
       alamat: alamat,
       no_hp: no_hp,
+      email: email,
       pppoe_username: pppoe_username,
       paket: paket,
       due_date: due_date

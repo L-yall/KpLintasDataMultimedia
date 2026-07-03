@@ -16,6 +16,7 @@ function PelangganPage({ socket }) {
     nama: '',
     alamat: '',
     no_hp: '',
+    email: '',
     paket: '',
     pppoe_username: '',
     due_date: ''
@@ -88,7 +89,7 @@ function PelangganPage({ socket }) {
 
   function openAddModal() {
     setFormData({
-      nama: '', alamat: '', no_hp: '', paket: '', pppoe_username: '', due_date: ''
+      nama: '', alamat: '', no_hp: '', email: '', paket: '', pppoe_username: '', due_date: ''
     });
     setFormError('');
     setEditMode(false);
@@ -102,6 +103,7 @@ function PelangganPage({ socket }) {
       nama: item.nama || '',
       alamat: item.alamat || '',
       no_hp: item.no_hp || '',
+      email: item.email || '',
       paket: item.paket || '',
       pppoe_username: item.pppoe_username || '',
       due_date: item.due_date ? item.due_date.split('T')[0] : ''
@@ -156,6 +158,7 @@ function PelangganPage({ socket }) {
     return (
       (item.nama && item.nama.toLowerCase().includes(q)) ||
       (item.no_hp && item.no_hp.includes(q)) ||
+      (item.email && item.email.toLowerCase().includes(q)) ||
       (item.pppoe_username && item.pppoe_username.toLowerCase().includes(q)) ||
       (item.paket && item.paket.toLowerCase().includes(q))
     );
@@ -253,7 +256,7 @@ function PelangganPage({ socket }) {
               <tr>
                 <th>No</th>
                 <th>Nama</th>
-                <th>No HP</th>
+                <th>Kontak (HP/Email)</th>
                 <th>Paket</th>
                 <th>Harga</th>
                 <th>PPPoE Username</th>
@@ -278,7 +281,10 @@ function PelangganPage({ socket }) {
                         </div>
                       )}
                     </td>
-                    <td>{item.no_hp}</td>
+                    <td>
+                      <div>📱 {item.no_hp}</div>
+                      {item.email && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>📧 {item.email}</div>}
+                    </td>
                     <td>{item.paket || <span style={{ color: 'var(--text-muted)' }}>-</span>}</td>
                     <td>{item.harga ? 'Rp ' + Number(item.harga).toLocaleString('id-ID') : <span style={{ color: 'var(--text-muted)' }}>-</span>}</td>
                     <td>
@@ -380,6 +386,16 @@ function PelangganPage({ socket }) {
               value={formData.no_hp}
               onChange={handleChange}
               required
+            />
+          </div>
+          <div className="form-group">
+            <label>Email Pelanggan</label>
+            <input
+              type="email"
+              name="email"
+              placeholder="email@example.com"
+              value={formData.email}
+              onChange={handleChange}
             />
           </div>
           <div className="form-group">

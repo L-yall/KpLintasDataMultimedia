@@ -9,7 +9,7 @@ function Navbar() {
     '/dashboard/pelanggan': { title: 'Data Pelanggan', subtitle: 'Kelola data pelanggan ISP' },
     '/dashboard/paket': { title: 'Paket Layanan', subtitle: 'Kelola paket internet' },
     '/dashboard/mikrotik': { title: 'Monitoring Mikrotik', subtitle: 'Status koneksi & active sessions' },
-    '/dashboard/reminder-logs': { title: 'Log Reminder WhatsApp', subtitle: 'Riwayat pengiriman notifikasi jatuh tempo' },
+    '/dashboard/reminder-logs': { title: 'Log Reminder Email', subtitle: 'Riwayat pengiriman notifikasi jatuh tempo' },
     '/dashboard/pembayaran': { title: 'Persetujuan Pembayaran', subtitle: 'Verifikasi bukti transfer & aktifkan internet' },
     '/dashboard/laporan': { title: 'Laporan Keuangan', subtitle: 'Ringkasan finansial, kelola pengeluaran & export Excel' },
   };

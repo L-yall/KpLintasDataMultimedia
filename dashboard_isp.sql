@@ -131,17 +131,18 @@ CREATE TABLE `pelanggan` (
   `status_tagihan` enum('hijau','kuning','merah','abu_abu') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'hijau',
   `due_date` date NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `email` varchar(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `pelanggan`
 --
 
-INSERT INTO `pelanggan` (`id_pelanggan`, `nama`, `alamat`, `no_hp`, `pppoe_username`, `pppoe_status`, `paket`, `status_tagihan`, `due_date`, `created_at`, `updated_at`) VALUES
-(2, 'pelanggan 1', 'Intiland Tower 11th Floor 3A\nJl. Panglima Sudirman 101-103\nSurabaya, Jawa Timur Indonesia 60271', '+6288989588135', 'pelanggan 1', 'inactive', 'Paket Platinum', 'hijau', '2026-08-01', '2026-07-01 11:28:27', '2026-07-02 11:43:30'),
-(3, 'Satya', 'sjajdsakjdsa', '+62 851-8200-1676', 'pelanggan 2', 'inactive', 'Paket Gold', 'hijau', '2026-06-30', '2026-07-01 15:40:33', '2026-07-02 11:35:04'),
-(4, 'Niken ', 'adjjskadsj', '+62 896-7763-1704', 'pelanggan 3', 'inactive', 'Paket Platinum', 'hijau', '2026-07-15', '2026-07-01 15:41:21', '2026-07-02 11:35:04');
+INSERT INTO `pelanggan` (`id_pelanggan`, `nama`, `alamat`, `no_hp`, `pppoe_username`, `pppoe_status`, `paket`, `status_tagihan`, `due_date`, `created_at`, `updated_at`, `email`) VALUES
+(2, 'pelanggan 1', 'Intiland Tower 11th Floor 3A\nJl. Panglima Sudirman 101-103\nSurabaya, Jawa Timur Indonesia 60271', '+6288989588135', 'pelanggan 1', 'inactive', 'Paket Platinum', 'hijau', '2026-08-01', '2026-07-01 11:28:27', '2026-07-02 11:43:30', 'rassyhvre@gmail.com'),
+(3, 'Satya', 'sjajdsakjdsa', '+62 851-8200-1676', 'pelanggan 2', 'inactive', 'Paket Gold', 'hijau', '2026-06-30', '2026-07-01 15:40:33', '2026-07-02 11:35:04', 'namaprojek.testing@gmail.com'),
+(4, 'Niken ', 'adjjskadsj', '+62 896-7763-1704', 'pelanggan 3', 'inactive', 'Paket Platinum', 'hijau', '2026-07-15', '2026-07-01 15:41:21', '2026-07-02 11:35:04', 'rahmatillahkurniawan@gmail.com');
 
 -- --------------------------------------------------------
 

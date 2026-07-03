@@ -4,7 +4,7 @@ var Pembayaran = require('../models/Pembayaran');
 var Tagihan = require('../models/Tagihan');
 var Pelanggan = require('../models/Pelanggan');
 var MikrotikService = require('../services/mikrotik');
-var WhatsAppService = require('../services/whatsapp');
+var EmailService = require('../services/emailService');
 var SocketService = require('../services/socket');
 var verifyToken = require('../middleware/auth');
 
@@ -100,19 +100,23 @@ router.post('/:id/approve', function(req, res) {
               }
             }
 
-            // 6. Send WhatsApp confirmation of approval
-            var dueDateFormatted = newDueDate.toLocaleDateString('id-ID', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            });
-            var message = `Halo ${payment.nama},\n\n` +
-              `Pembayaran tagihan internet Anda sebesar Rp ${Number(payment.nominal).toLocaleString('id-ID')} untuk periode ${payment.periode} telah *DISETUJUI* oleh Admin.\n\n` +
-              `Layanan internet Anda telah aktif kembali. Batas jatuh tempo tagihan Anda berikutnya diperpanjang hingga:\n` +
-              `*${dueDateFormatted}*\n\n` +
-              `Terima kasih telah berlangganan di ESP Lintas Data Multimedia.`;
+            // 6. Send Email confirmation of approval
+            if (payment.email) {
+              var dueDateFormatted = newDueDate.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+              });
 
-            await WhatsAppService.sendWhatsApp(payment.no_hp, message);
+              await EmailService.sendPaymentApprovedEmail(payment.email, {
+                nama: payment.nama,
+                periode: payment.periode,
+                nominal: Number(payment.nominal).toLocaleString('id-ID'),
+                dueDateFormatted: dueDateFormatted
+              });
+            } else {
+              console.log('[Pembayaran] Pelanggan tidak memiliki email, notifikasi dilewati.');
+            }
 
             // 7. Broadcast websocket updates to all clients
             SocketService.broadcast('pelanggan_updated', {
@@ -180,17 +184,21 @@ router.post('/:id/reject', function(req, res) {
             console.error('Gagal memperbarui status pelanggan:', pelangganErr.message);
           }
 
-          // 4. Send WhatsApp notification to customer with rejection reason
-          var nominal = Number(payment.nominal).toLocaleString('id-ID');
-          var message = `Halo ${payment.nama},\n\n` +
-            `Bukti transfer pembayaran internet Anda sebesar Rp ${nominal} untuk periode ${payment.periode} *DITOLAK* oleh Admin.\n\n` +
-            `*Alasan Penolakan*:\n` +
-            `_"${alasan_tolak}"_\n\n` +
-            `Silakan login kembali ke portal pembayaran dan upload bukti transfer yang benar:\n` +
-            `${process.env.PAYMENT_PORTAL_URL || 'http://localhost:3001/bayar'}/${payment.no_hp}\n\n` +
-            `Terima kasih.`;
+          // 4. Send Email notification to customer with rejection reason
+          if (payment.email) {
+            var nominal = Number(payment.nominal).toLocaleString('id-ID');
+            var paymentUrl = `${process.env.PAYMENT_PORTAL_URL || 'http://localhost:3001/bayar'}`;
 
-          await WhatsAppService.sendWhatsApp(payment.no_hp, message);
+            await EmailService.sendPaymentRejectedEmail(payment.email, {
+              nama: payment.nama,
+              periode: payment.periode,
+              nominal: nominal,
+              alasan_tolak: alasan_tolak,
+              paymentUrl: paymentUrl
+            });
+          } else {
+            console.log('[Pembayaran] Pelanggan tidak memiliki email, notifikasi penolakan dilewati.');
+          }
 
           // 5. Broadcast status updates
           SocketService.broadcast('pelanggan_updated', {
@@ -200,7 +208,7 @@ router.post('/:id/reject', function(req, res) {
 
           res.json({
             success: true,
-            message: 'Pembayaran ditolak. Notifikasi penolakan telah dikirim ke WhatsApp pelanggan.'
+            message: 'Pembayaran ditolak. Notifikasi penolakan telah dikirim ke Email pelanggan.'
           });
         });
       });

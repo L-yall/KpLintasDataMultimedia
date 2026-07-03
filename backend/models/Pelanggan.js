@@ -33,8 +33,8 @@ var Pelanggan = {
   create: function(data, callback) {
     var sql = `
       INSERT INTO pelanggan 
-      (nama, alamat, no_hp, pppoe_username, paket, due_date) 
-      VALUES (?, ?, ?, ?, ?, ?)
+      (nama, alamat, no_hp, pppoe_username, paket, due_date, email) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     var values = [
       data.nama,
@@ -42,7 +42,8 @@ var Pelanggan = {
       data.no_hp,
       data.pppoe_username || '',
       data.paket || '',
-      data.due_date || null
+      data.due_date || null,
+      data.email || null
     ];
     db.query(sql, values, function(err, result) {
       if (err) return callback(err, null);
@@ -63,6 +64,7 @@ var Pelanggan = {
     if (data.status_tagihan !== undefined) { fields.push('status_tagihan = ?'); values.push(data.status_tagihan); }
     if (data.due_date !== undefined) { fields.push('due_date = ?'); values.push(data.due_date); }
     if (data.pppoe_status !== undefined) { fields.push('pppoe_status = ?'); values.push(data.pppoe_status); }
+    if (data.email !== undefined) { fields.push('email = ?'); values.push(data.email); }
 
     if (fields.length === 0) {
       return callback(new Error('Tidak ada data yang diubah'), null);
@@ -89,6 +91,15 @@ var Pelanggan = {
   findByNoHp: function(no_hp, callback) {
     var sql = 'SELECT * FROM pelanggan WHERE no_hp = ?';
     db.query(sql, [no_hp], function(err, results) {
+      if (err) return callback(err, null);
+      callback(null, results[0] || null);
+    });
+  },
+
+  // Cari berdasarkan Email
+  findByEmail: function(email, callback) {
+    var sql = 'SELECT * FROM pelanggan WHERE email = ?';
+    db.query(sql, [email], function(err, results) {
       if (err) return callback(err, null);
       callback(null, results[0] || null);
     });

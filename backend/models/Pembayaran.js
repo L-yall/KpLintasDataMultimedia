@@ -4,7 +4,7 @@ var Pembayaran = {
   // Ambil semua pembayaran yang pending verifikasi
   getAllPending: function(callback) {
     var sql = `
-      SELECT pem.*, t.periode, t.nominal, t.due_date, p.id_pelanggan, p.nama, p.no_hp, p.pppoe_username 
+      SELECT pem.*, t.periode, t.nominal, t.due_date, p.id_pelanggan, p.nama, p.no_hp, p.email, p.pppoe_username 
       FROM pembayaran pem 
       JOIN tagihan t ON pem.id_tagihan = t.id_tagihan 
       JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan 
@@ -20,7 +20,7 @@ var Pembayaran = {
   // Ambil detail pembayaran berdasarkan ID
   getById: function(id, callback) {
     var sql = `
-      SELECT pem.*, t.id_pelanggan, t.periode, t.nominal, t.due_date, p.nama, p.no_hp, p.pppoe_username 
+      SELECT pem.*, t.id_pelanggan, t.periode, t.nominal, t.due_date, p.nama, p.no_hp, p.email, p.pppoe_username 
       FROM pembayaran pem 
       JOIN tagihan t ON pem.id_tagihan = t.id_tagihan 
       JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan 
