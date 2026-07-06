@@ -1,4 +1,5 @@
 import React from 'react';
+import TemplateIcon from './TemplateIcon';
 
 function Modal({ isOpen, onClose, title, children, footer }) {
   if (!isOpen) return null;
@@ -14,7 +15,7 @@ function Modal({ isOpen, onClose, title, children, footer }) {
       <div className="modal">
         <div className="modal-header">
           <h2>{title}</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose}><TemplateIcon name="close" size={16} /></button>
         </div>
         <div className="modal-body">
           {children}

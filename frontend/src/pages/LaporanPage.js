@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Modal from '../components/Modal';
+import TemplateIcon from '../components/TemplateIcon';
 
 function LaporanPage() {
   var today = new Date();
@@ -174,7 +175,7 @@ function LaporanPage() {
             style={{ width: '160px', padding: '10px', fontSize: '0.9rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
           />
           <button className="btn btn-primary" onClick={handleExportExcel} disabled={loading}>
-            📥 Export Excel
+            <TemplateIcon name="document" size={16} style={{ marginRight: '6px' }} /> Export Excel
           </button>
         </div>
       </div>
@@ -182,7 +183,7 @@ function LaporanPage() {
       {/* Summary Cards */}
       <div className="dashboard-stats" style={{ marginBottom: '24px' }}>
         <div className="stat-card">
-          <div className="stat-icon hijau">📈</div>
+          <div className="stat-icon hijau"><TemplateIcon name="chart-up" size={20} /></div>
           <div className="stat-info">
             <span className="stat-label">Total Pemasukan</span>
             <h3>{loading ? '...' : formatUang(summary.total_pemasukan)}</h3>
@@ -191,7 +192,7 @@ function LaporanPage() {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon merah">📉</div>
+          <div className="stat-icon merah"><TemplateIcon name="chart-down" size={20} /></div>
           <div className="stat-info">
             <span className="stat-label">Total Pengeluaran</span>
             <h3>{loading ? '...' : formatUang(summary.total_pengeluaran)}</h3>
@@ -200,7 +201,7 @@ function LaporanPage() {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'rgba(56, 189, 248, 0.1)', color: 'var(--primary-light)' }}>💰</div>
+          <div className="stat-icon" style={{ background: 'rgba(56, 189, 248, 0.1)', color: 'var(--primary-light)' }}><TemplateIcon name="money" size={20} /></div>
           <div className="stat-info">
             <span className="stat-label">Laba Bersih (Profit)</span>
             <h3 style={{ color: summary.laba_bersih >= 0 ? 'var(--primary-light)' : 'var(--danger)' }}>
@@ -217,9 +218,9 @@ function LaporanPage() {
         {/* Section Pengeluaran (CRUD) */}
         <div className="table-container animate-fadeIn">
           <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3>💸 Pengeluaran Operasional ({expenses.length})</h3>
+            <h3><TemplateIcon name="money" size={18} style={{ marginRight: '8px' }} /> Pengeluaran Operasional ({expenses.length})</h3>
             <button className="btn btn-primary btn-sm" onClick={function() { resetForm(); setShowAddModal(true); }}>
-              ➕ Catat Pengeluaran
+              <TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Catat Pengeluaran
             </button>
           </div>
 
@@ -227,7 +228,7 @@ function LaporanPage() {
             <div style={{ padding: '30px' }}><div className="skeleton skeleton-text" /></div>
           ) : expenses.length === 0 ? (
             <div className="table-empty">
-              <div className="table-empty-icon">💸</div>
+              <div className="table-empty-icon"><TemplateIcon name="money" size={28} /></div>
               <p>Belum ada pengeluaran operasional yang dicatat pada bulan ini.</p>
             </div>
           ) : (
@@ -263,8 +264,8 @@ function LaporanPage() {
                       <td style={{ fontSize: '0.85rem' }}>{item.nama_admin || '-'}</td>
                       <td>
                         <div className="table-actions">
-                          <button className="btn btn-secondary btn-sm" onClick={function() { handleOpenEdit(item); }}>✍️ Edit</button>
-                          <button className="btn btn-danger btn-sm" onClick={function() { handleDeleteExpense(item.id_pengeluaran); }}>🗑️ Hapus</button>
+                          <button className="btn btn-secondary btn-sm" onClick={function() { handleOpenEdit(item); }}><TemplateIcon name="edit" size={14} style={{ marginRight: '6px' }} /> Edit</button>
+                          <button className="btn btn-danger btn-sm" onClick={function() { handleDeleteExpense(item.id_pengeluaran); }}><TemplateIcon name="trash" size={14} style={{ marginRight: '6px' }} /> Hapus</button>
                         </div>
                       </td>
                     </tr>
@@ -278,14 +279,14 @@ function LaporanPage() {
         {/* Section Pemasukan */}
         <div className="table-container animate-fadeIn" style={{ animationDelay: '0.1s' }}>
           <div className="table-header">
-            <h3>📈 Pemasukan Real-Time ({incomes.length})</h3>
+            <h3><TemplateIcon name="chart-up" size={18} style={{ marginRight: '8px' }} /> Pemasukan Real-Time ({incomes.length})</h3>
           </div>
 
           {loading ? (
             <div style={{ padding: '30px' }}><div className="skeleton skeleton-text" /></div>
           ) : incomes.length === 0 ? (
             <div className="table-empty">
-              <div className="table-empty-icon">📈</div>
+              <div className="table-empty-icon"><TemplateIcon name="chart-up" size={28} /></div>
               <p>Belum ada tagihan lunas yang tercatat pada bulan ini.</p>
             </div>
           ) : (
@@ -325,12 +326,12 @@ function LaporanPage() {
         <Modal
           isOpen={showAddModal}
           onClose={function() { setShowAddModal(false); resetForm(); }}
-          title="➕ Catat Pengeluaran Baru"
+          title={<><TemplateIcon name="plus" size={16} style={{ marginRight: '8px' }} /> Catat Pengeluaran Baru</>}
           footer={
             <>
               <button className="btn btn-secondary" onClick={function() { setShowAddModal(false); resetForm(); }} disabled={actionLoading}>Batal</button>
               <button className="btn btn-primary" onClick={handleAddExpense} disabled={actionLoading || !kategori || !nominal || !tanggal}>
-                {actionLoading ? '⏳ Menyimpan...' : '✓ Simpan Pengeluaran'}
+                {actionLoading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Menyimpan...</> : <><TemplateIcon name="check" size={16} style={{ marginRight: '6px' }} /> Simpan Pengeluaran</>}
               </button>
             </>
           }
@@ -395,12 +396,12 @@ function LaporanPage() {
         <Modal
           isOpen={showEditModal}
           onClose={function() { setShowEditModal(false); resetForm(); }}
-          title="✍️ Edit Data Pengeluaran"
+          title={<><TemplateIcon name="edit" size={16} style={{ marginRight: '8px' }} /> Edit Data Pengeluaran</>}
           footer={
             <>
               <button className="btn btn-secondary" onClick={function() { setShowEditModal(false); resetForm(); }} disabled={actionLoading}>Batal</button>
               <button className="btn btn-primary" onClick={handleEditExpense} disabled={actionLoading || !kategori || !nominal || !tanggal}>
-                {actionLoading ? '⏳ Menyimpan...' : '✓ Simpan Perubahan'}
+                {actionLoading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Menyimpan...</> : <><TemplateIcon name="check" size={16} style={{ marginRight: '6px' }} /> Simpan Perubahan</>}
               </button>
             </>
           }

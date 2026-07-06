@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
+import TemplateIcon from '../components/TemplateIcon';
 
 function CustomerLoginPage({ onLogin }) {
   var { userEmail } = useParams();
@@ -61,12 +62,12 @@ function CustomerLoginPage({ onLogin }) {
       <div className="login-container">
         <div className="login-card">
           <div className="login-logo">
-            <div className="login-logo-icon">🔑</div>
+            <div className="login-logo-icon"><TemplateIcon name="key" size={28} /></div>
             <h1>Portal Pembayaran</h1>
             <p>ESP Lintas Data Multimedia</p>
           </div>
 
-          {error && <div className="login-error">⚠️ {error}</div>}
+          {error && <div className="login-error"><TemplateIcon name="alert" size={16} style={{ marginRight: '6px' }} /> {error}</div>}
           {successMsg && !error && (
             <div className="status-badge hijau" style={{ width: '100%', padding: '10px', borderRadius: '8px', marginBottom: '16px', display: 'block', textAlign: 'center' }}>
               {successMsg}
@@ -91,7 +92,7 @@ function CustomerLoginPage({ onLogin }) {
                 className="btn btn-primary" 
                 disabled={loading}
               >
-                {loading ? '⏳ Memproses...' : '📧 Kirim OTP via Email'}
+                {loading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Memproses...</> : <><TemplateIcon name="mail" size={16} style={{ marginRight: '6px' }} /> Kirim OTP via Email</>}
               </button>
             </form>
           ) : (
@@ -115,7 +116,7 @@ function CustomerLoginPage({ onLogin }) {
                 disabled={loading}
                 style={{ marginBottom: '10px' }}
               >
-                {loading ? '⏳ Memverifikasi...' : '🔐 Masuk'}
+                {loading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Memverifikasi...</> : <><TemplateIcon name="shield" size={16} style={{ marginRight: '6px' }} /> Masuk</>}
               </button>
               <button 
                 type="button" 

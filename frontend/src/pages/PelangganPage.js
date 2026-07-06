@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
+import TemplateIcon from '../components/TemplateIcon';
 
 function PelangganPage({ socket }) {
   var [pelanggan, setPelanggan] = useState([]);
@@ -209,17 +210,17 @@ function PelangganPage({ socket }) {
           <p>Kelola seluruh data pelanggan ISP ESP Lintas Data.</p>
         </div>
         <button id="btn-tambah-pelanggan" className="btn btn-primary" onClick={openAddModal}>
-          ➕ Tambah Pelanggan
+          <TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Tambah Pelanggan
         </button>
       </div>
 
       <div className="table-container animate-fadeIn">
         <div className="table-header">
-          <h3>👥 Daftar Pelanggan ({filteredPelanggan.length})</h3>
+          <h3><TemplateIcon name="users" size={18} style={{ marginRight: '8px' }} /> Daftar Pelanggan ({filteredPelanggan.length})</h3>
           <div className="table-header-actions">
             <input
               type="text"
-              placeholder="🔍 Cari nama, HP, PPPoE..."
+              placeholder="Cari nama, HP, PPPoE..."
               value={searchQuery}
               onChange={function(e) { setSearchQuery(e.target.value); }}
               style={{ width: '280px' }}
@@ -242,11 +243,11 @@ function PelangganPage({ socket }) {
           </div>
         ) : filteredPelanggan.length === 0 ? (
           <div className="table-empty">
-            <div className="table-empty-icon">👥</div>
+            <div className="table-empty-icon"><TemplateIcon name="users" size={28} /></div>
             <p>{searchQuery ? 'Tidak ada pelanggan yang cocok dengan pencarian.' : 'Belum ada data pelanggan.'}</p>
             {!searchQuery && (
               <button className="btn btn-primary btn-sm" onClick={openAddModal} style={{ marginTop: '16px' }}>
-                ➕ Tambah Pelanggan Pertama
+                <TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Tambah Pelanggan Pertama
               </button>
             )}
           </div>
@@ -277,13 +278,13 @@ function PelangganPage({ socket }) {
                       <div style={{ fontWeight: 600 }}>{item.nama}</div>
                       {item.alamat && (
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          📍 {item.alamat.length > 30 ? item.alamat.substring(0, 30) + '...' : item.alamat}
+                          <TemplateIcon name="router" size={13} style={{ marginRight: '6px' }} /> {item.alamat.length > 30 ? item.alamat.substring(0, 30) + '...' : item.alamat}
                         </div>
                       )}
                     </td>
                     <td>
-                      <div>📱 {item.no_hp}</div>
-                      {item.email && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>📧 {item.email}</div>}
+                      <div><TemplateIcon name="router" size={13} style={{ marginRight: '6px' }} /> {item.no_hp}</div>
+                      {item.email && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}><TemplateIcon name="mail" size={13} style={{ marginRight: '6px' }} /> {item.email}</div>}
                     </td>
                     <td>{item.paket || <span style={{ color: 'var(--text-muted)' }}>-</span>}</td>
                     <td>{item.harga ? 'Rp ' + Number(item.harga).toLocaleString('id-ID') : <span style={{ color: 'var(--text-muted)' }}>-</span>}</td>
@@ -327,14 +328,14 @@ function PelangganPage({ socket }) {
                           onClick={function() { openEditModal(item); }}
                           title="Edit"
                         >
-                          ✏️
+                          <TemplateIcon name="edit" size={14} />
                         </button>
                         <button 
                           className="btn btn-danger btn-sm"
                           onClick={function() { setDeleteConfirm(item.id_pelanggan); }}
                           title="Hapus"
                         >
-                          🗑️
+                          <TemplateIcon name="trash" size={14} />
                         </button>
                       </div>
                     </td>
@@ -350,19 +351,19 @@ function PelangganPage({ socket }) {
       <Modal
         isOpen={showModal}
         onClose={function() { setShowModal(false); }}
-        title={editMode ? '✏️ Edit Pelanggan' : '➕ Tambah Pelanggan Baru'}
+        title={editMode ? <><TemplateIcon name="edit" size={16} style={{ marginRight: '8px' }} /> Edit Pelanggan</> : <><TemplateIcon name="plus" size={16} style={{ marginRight: '8px' }} /> Tambah Pelanggan Baru</>}
         footer={
           <>
             <button className="btn btn-secondary" onClick={function() { setShowModal(false); }}>Batal</button>
             <button className="btn btn-primary" onClick={handleSubmit}>
-              {editMode ? '💾 Simpan Perubahan' : '➕ Tambah Pelanggan'}
+              {editMode ? <><TemplateIcon name="check" size={16} style={{ marginRight: '6px' }} /> Simpan Perubahan</> : <><TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Tambah Pelanggan</>}
             </button>
           </>
         }
       >
         {formError && (
           <div className="login-error" style={{ marginBottom: '16px' }}>
-            ⚠️ {formError}
+            <TemplateIcon name="alert" size={16} style={{ marginRight: '6px' }} /> {formError}
           </div>
         )}
         <form onSubmit={handleSubmit}>
@@ -462,12 +463,12 @@ function PelangganPage({ socket }) {
       <Modal
         isOpen={deleteConfirm !== null}
         onClose={function() { setDeleteConfirm(null); }}
-        title="🗑️ Konfirmasi Hapus"
+        title={<><TemplateIcon name="trash" size={16} style={{ marginRight: '8px' }} /> Konfirmasi Hapus</>}
         footer={
           <>
             <button className="btn btn-secondary" onClick={function() { setDeleteConfirm(null); }}>Batal</button>
             <button className="btn btn-danger" onClick={function() { handleDelete(deleteConfirm); }}>
-              🗑️ Ya, Hapus
+              <TemplateIcon name="trash" size={14} style={{ marginRight: '6px' }} /> Ya, Hapus
             </button>
           </>
         }

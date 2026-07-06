@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Modal from '../components/Modal';
+import TemplateIcon from '../components/TemplateIcon';
 
 function PembayaranPage({ socket }) {
   var [pendingPayments, setPendingPayments] = useState([]);
@@ -119,13 +120,13 @@ function PembayaranPage({ socket }) {
 
       {successMsg && (
         <div className="status-badge hijau animate-fadeIn" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}>
-          🔔 {successMsg}
+          <TemplateIcon name="bell" size={16} style={{ marginRight: '8px' }} /> {successMsg}
         </div>
       )}
 
       <div className="table-container animate-fadeIn">
         <div className="table-header">
-          <h3>📥 Antrean Verifikasi ({pendingPayments.length})</h3>
+          <h3><TemplateIcon name="document" size={18} style={{ marginRight: '8px' }} /> Antrean Verifikasi ({pendingPayments.length})</h3>
         </div>
 
         {loading ? (
@@ -136,7 +137,7 @@ function PembayaranPage({ socket }) {
           </div>
         ) : pendingPayments.length === 0 ? (
           <div className="table-empty">
-            <div className="table-empty-icon">✅</div>
+            <div className="table-empty-icon"><TemplateIcon name="check" size={28} /></div>
             <p>Tidak ada pengajuan pembayaran pending saat ini. Semua bersih!</p>
           </div>
         ) : (
@@ -170,7 +171,7 @@ function PembayaranPage({ socket }) {
                         className="btn btn-secondary btn-sm"
                         onClick={function() { setViewBukti(item); }}
                       >
-                        🖼️ Lihat Bukti
+                        <TemplateIcon name="camera" size={14} style={{ marginRight: '6px' }} /> Lihat Bukti
                       </button>
                     </td>
                     <td>
@@ -180,14 +181,14 @@ function PembayaranPage({ socket }) {
                           onClick={function() { handleApprove(item.id_pembayaran); }}
                           disabled={actionLoading}
                         >
-                          ✓ Terima
+                          <TemplateIcon name="check" size={14} style={{ marginRight: '6px' }} /> Terima
                         </button>
                         <button 
                           className="btn btn-danger btn-sm"
                           onClick={function() { setRejectTarget(item); }}
                           disabled={actionLoading}
                         >
-                          ✕ Tolak
+                          <TemplateIcon name="close" size={14} style={{ marginRight: '6px' }} /> Tolak
                         </button>
                       </div>
                     </td>
@@ -204,7 +205,7 @@ function PembayaranPage({ socket }) {
         <Modal
           isOpen={viewBukti !== null}
           onClose={function() { setViewBukti(null); }}
-          title={`🖼️ Bukti Transfer - ${viewBukti.nama}`}
+          title={<><TemplateIcon name="camera" size={16} style={{ marginRight: '8px' }} /> Bukti Transfer - {viewBukti.nama}</>}
           footer={
             <>
               <button className="btn btn-secondary" onClick={function() { setViewBukti(null); }}>Batal</button>
@@ -213,14 +214,14 @@ function PembayaranPage({ socket }) {
                 onClick={function() { setRejectTarget(viewBukti); }}
                 disabled={actionLoading}
               >
-                ✕ Tolak
+                <TemplateIcon name="close" size={14} style={{ marginRight: '6px' }} /> Tolak
               </button>
               <button 
                 className="btn btn-primary" 
                 onClick={function() { handleApprove(viewBukti.id_pembayaran); }}
                 disabled={actionLoading}
               >
-                ✓ Terima Pembayaran
+                <TemplateIcon name="check" size={14} style={{ marginRight: '6px' }} /> Terima Pembayaran
               </button>
             </>
           }
@@ -245,7 +246,7 @@ function PembayaranPage({ socket }) {
         <Modal
           isOpen={rejectTarget !== null}
           onClose={function() { setRejectTarget(null); setAlasanTolak(''); }}
-          title={`✕ Tolak Pembayaran - ${rejectTarget.nama}`}
+          title={<><TemplateIcon name="close" size={16} style={{ marginRight: '8px' }} /> Tolak Pembayaran - {rejectTarget.nama}</>}
           footer={
             <>
               <button 
@@ -259,7 +260,7 @@ function PembayaranPage({ socket }) {
                 onClick={handleReject}
                 disabled={actionLoading || !alasanTolak}
               >
-                {actionLoading ? '⏳ Mengirim...' : '✕ Tolak Bukti Transfer'}
+                {actionLoading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Mengirim...</> : <><TemplateIcon name="close" size={16} style={{ marginRight: '6px' }} /> Tolak Bukti Transfer</>}
               </button>
             </>
           }

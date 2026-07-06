@@ -6,6 +6,7 @@ import './App.css';
 
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Nav';
+import TemplateIcon from './components/TemplateIcon';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import PelangganPage from './pages/PelangganPage';
@@ -131,7 +132,7 @@ function App() {
         color: 'var(--text-primary)',
         fontSize: '1.2rem'
       }}>
-        ⏳ Memuat...
+        <TemplateIcon name="loading" size={20} style={{ marginRight: '8px' }} /> Memuat...
       </div>
     );
   }

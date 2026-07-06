@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import TemplateIcon from '../components/TemplateIcon';
 
 function LoginPage({ onLogin }) {
   var [username, setUsername] = useState('');
@@ -37,20 +38,20 @@ function LoginPage({ onLogin }) {
       <div className="login-container">
         <div className="login-card">
           <div className="login-logo">
-            <div className="login-logo-icon">🌐</div>
+            <div className="login-logo-icon"><TemplateIcon name="globe" size={28} /></div>
             <h1>ESP Lintas Data</h1>
             <p>Dashboard Monitoring ISP</p>
           </div>
 
           {error && (
             <div className="login-error">
-              ⚠️ {error}
+              <TemplateIcon name="alert" size={16} style={{ marginRight: '6px' }} /> {error}
             </div>
           )}
 
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>👤 Username</label>
+              <label><TemplateIcon name="users" size={14} style={{ marginRight: '6px' }} /> Username</label>
               <input
                 id="login-username"
                 type="text"
@@ -62,7 +63,7 @@ function LoginPage({ onLogin }) {
               />
             </div>
             <div className="form-group">
-              <label>🔒 Password</label>
+              <label><TemplateIcon name="lock" size={14} style={{ marginRight: '6px' }} /> Password</label>
               <input
                 id="login-password"
                 type="password"
@@ -78,7 +79,7 @@ function LoginPage({ onLogin }) {
               className="btn btn-primary" 
               disabled={loading}
             >
-              {loading ? '⏳ Memproses...' : '🔐 Masuk ke Dashboard'}
+              {loading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Memproses...</> : <><TemplateIcon name="shield" size={16} style={{ marginRight: '6px' }} /> Masuk ke Dashboard</>}
             </button>
           </form>
         </div>

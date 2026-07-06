@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import MikrotikStatus from '../components/MikrotikStatus';
+import TemplateIcon from '../components/TemplateIcon';
 
 function MikrotikPage({ socket }) {
   var [status, setStatus] = useState({ online: false, error: 'Memuat...' });
@@ -73,7 +74,7 @@ function MikrotikPage({ socket }) {
           <p>Pantau status koneksi router dan active sessions PPPoE secara real-time.</p>
         </div>
         <button className="btn btn-secondary" onClick={refreshActive} disabled={loading}>
-          🔄 Refresh Data
+          <TemplateIcon name="refresh" size={16} style={{ marginRight: '6px' }} /> Refresh Data
         </button>
       </div>
 
@@ -87,13 +88,13 @@ function MikrotikPage({ socket }) {
           className={'btn btn-sm ' + (activeTab === 'unregistered' ? 'btn-primary' : 'btn-secondary')}
           onClick={function() { setActiveTab('unregistered'); }}
         >
-          ⚠️ Belum Terdaftar ({unregistered.length})
+          <TemplateIcon name="alert" size={16} style={{ marginRight: '6px' }} /> Belum Terdaftar ({unregistered.length})
         </button>
         <button 
           className={'btn btn-sm ' + (activeTab === 'active' ? 'btn-primary' : 'btn-secondary')}
           onClick={function() { setActiveTab('active'); }}
         >
-          📡 Active Connections ({activeConns.length})
+          <TemplateIcon name="router" size={16} style={{ marginRight: '6px' }} /> Active Connections ({activeConns.length})
         </button>
       </div>
 
@@ -119,7 +120,7 @@ function MikrotikPage({ socket }) {
 
             {unregistered.length === 0 ? (
               <div className="table-empty">
-                <div className="table-empty-icon">✅</div>
+                <div className="table-empty-icon"><TemplateIcon name="check" size={28} /></div>
                 <p>Semua PPPoE yang aktif di router sudah terdaftar di database pelanggan.</p>
               </div>
             ) : (
@@ -171,7 +172,7 @@ function MikrotikPage({ socket }) {
 
             {activeConns.length === 0 ? (
               <div className="table-empty">
-                <div className="table-empty-icon">📡</div>
+                <div className="table-empty-icon"><TemplateIcon name="router" size={28} /></div>
                 <p>Tidak ada sesi PPPoE yang aktif saat ini.</p>
               </div>
             ) : (

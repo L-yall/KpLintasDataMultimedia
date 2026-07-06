@@ -1,4 +1,5 @@
 import React from 'react';
+import TemplateIcon from './TemplateIcon';
 
 function MikrotikStatus({ status }) {
   var isOnline = status && status.online;
@@ -32,9 +33,9 @@ function MikrotikStatus({ status }) {
         </div>
         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
           {isOnline ? (
-            <span>🟢 Online ({status.board} - v{status.version})</span>
+            <span><TemplateIcon name="router" size={14} style={{ marginRight: '6px' }} /> Online ({status.board} - v{status.version})</span>
           ) : (
-            <span>🔴 Offline ({status.error || 'Router tidak terjangkau'})</span>
+            <span><TemplateIcon name="alert" size={14} style={{ marginRight: '6px' }} /> Offline ({status.error || 'Router tidak terjangkau'})</span>
           )}
         </div>
       </div>

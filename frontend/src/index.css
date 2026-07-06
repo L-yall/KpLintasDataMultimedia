@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
 
 /* ============================================
    ESP Lintas Data Multimedia - Design System
@@ -6,49 +6,49 @@
 
 :root {
   /* Primary Colors */
-  --primary: #6366f1;
-  --primary-light: #818cf8;
-  --primary-dark: #4f46e5;
-  --primary-glow: rgba(99, 102, 241, 0.15);
+  --primary: #006876;
+  --primary-light: #14a3b8;
+  --primary-dark: #004e5a;
+  --primary-glow: rgba(0, 104, 118, 0.12);
 
-  /* Background Colors (Dark Theme) */
-  --bg-primary: #0f0f1a;
-  --bg-secondary: #161625;
-  --bg-tertiary: #1e1e32;
-  --bg-card: #1a1a2e;
-  --bg-card-hover: #222240;
-  --bg-input: #1e1e32;
+  /* Background Colors */
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #f3f4f5;
+  --bg-tertiary: #edeeef;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fbfc;
+  --bg-input: #ffffff;
 
   /* Text Colors */
-  --text-primary: #f1f1f8;
-  --text-secondary: #a0a0b8;
-  --text-muted: #6b6b80;
-  --text-inverse: #0f0f1a;
+  --text-primary: #191c1d;
+  --text-secondary: #3d494b;
+  --text-muted: #6d797c;
+  --text-inverse: #ffffff;
 
   /* Status Colors */
-  --status-hijau: #22c55e;
-  --status-hijau-bg: rgba(34, 197, 94, 0.12);
-  --status-kuning: #f59e0b;
-  --status-kuning-bg: rgba(245, 158, 11, 0.12);
-  --status-merah: #ef4444;
-  --status-merah-bg: rgba(239, 68, 68, 0.12);
-  --status-abu: #6b7280;
-  --status-abu-bg: rgba(107, 114, 128, 0.12);
+  --status-hijau: #0f9d5b;
+  --status-hijau-bg: rgba(15, 157, 91, 0.12);
+  --status-kuning: #b7791f;
+  --status-kuning-bg: rgba(183, 121, 31, 0.12);
+  --status-merah: #ba1a1a;
+  --status-merah-bg: rgba(186, 26, 26, 0.12);
+  --status-abu: #6d797c;
+  --status-abu-bg: rgba(109, 121, 124, 0.12);
 
   /* Accent Colors */
-  --accent-cyan: #06b6d4;
-  --accent-purple: #a855f7;
-  --accent-pink: #ec4899;
+  --accent-cyan: #61d6ec;
+  --accent-purple: #286292;
+  --accent-pink: #8d969e;
 
   /* Borders */
-  --border-color: rgba(255, 255, 255, 0.06);
-  --border-color-light: rgba(255, 255, 255, 0.1);
+  --border-color: #e1e3e4;
+  --border-color-light: #dee2e6;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.2);
+  --shadow-sm: 0 1px 3px rgba(25, 28, 29, 0.08);
+  --shadow-md: 0 10px 24px rgba(25, 28, 29, 0.08);
+  --shadow-lg: 0 18px 36px rgba(25, 28, 29, 0.12);
+  --shadow-glow: 0 0 18px rgba(0, 104, 118, 0.12);
 
   /* Radius */
   --radius-sm: 6px;
@@ -71,7 +71,9 @@
    Global Reset & Base
    ============================================ */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -83,7 +85,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Hanken Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
@@ -128,21 +130,45 @@ a:hover {
    Utility Classes
    ============================================ */
 
-.text-hijau { color: var(--status-hijau); }
-.text-kuning { color: var(--status-kuning); }
-.text-merah { color: var(--status-merah); }
-.text-abu { color: var(--status-abu); }
+.text-hijau {
+  color: var(--status-hijau);
+}
 
-.bg-hijau { background-color: var(--status-hijau-bg); }
-.bg-kuning { background-color: var(--status-kuning-bg); }
-.bg-merah { background-color: var(--status-merah-bg); }
-.bg-abu { background-color: var(--status-abu-bg); }
+.text-kuning {
+  color: var(--status-kuning);
+}
+
+.text-merah {
+  color: var(--status-merah);
+}
+
+.text-abu {
+  color: var(--status-abu);
+}
+
+.bg-hijau {
+  background-color: var(--status-hijau-bg);
+}
+
+.bg-kuning {
+  background-color: var(--status-kuning-bg);
+}
+
+.bg-merah {
+  background-color: var(--status-merah-bg);
+}
+
+.bg-abu {
+  background-color: var(--status-abu-bg);
+}
 
 /* ============================================
    Form Elements
    ============================================ */
 
-input, select, textarea {
+input,
+select,
+textarea {
   font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
   color: var(--text-primary);
@@ -155,12 +181,15 @@ input, select, textarea {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--text-muted);
 }
 
@@ -290,33 +319,73 @@ label {
    ============================================ */
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .animate-fadeIn {
@@ -328,7 +397,18 @@ label {
 }
 
 /* Staggered animations for lists */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
+.stagger-1 {
+  animation-delay: 0.05s;
+}
+
+.stagger-2 {
+  animation-delay: 0.1s;
+}
+
+.stagger-3 {
+  animation-delay: 0.15s;
+}
+
+.stagger-4 {
+  animation-delay: 0.2s;
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import TemplateIcon from '../components/TemplateIcon';
 
 function ReminderLogPage() {
   var [logs, setLogs] = useState([]);
@@ -76,17 +77,17 @@ function ReminderLogPage() {
           onClick={handleTriggerCron} 
           disabled={triggering}
         >
-          🚀 {triggering ? 'Memproses...' : 'Kirim Reminder Sekarang'}
+          <TemplateIcon name="refresh" size={16} style={{ marginRight: '6px' }} /> {triggering ? 'Memproses...' : 'Kirim Reminder Sekarang'}
         </button>
       </div>
 
       <div className="table-container animate-fadeIn">
         <div className="table-header">
-          <h3>💬 Riwayat Pengiriman ({filteredLogs.length})</h3>
+          <h3><TemplateIcon name="mail" size={18} style={{ marginRight: '8px' }} /> Riwayat Pengiriman ({filteredLogs.length})</h3>
           <div className="table-header-actions">
             <input
               type="text"
-              placeholder="🔍 Cari nama, HP..."
+              placeholder="Cari nama, HP..."
               value={searchQuery}
               onChange={function(e) { setSearchQuery(e.target.value); }}
               style={{ width: '280px' }}
@@ -109,7 +110,7 @@ function ReminderLogPage() {
           </div>
         ) : filteredLogs.length === 0 ? (
           <div className="table-empty">
-            <div className="table-empty-icon">✉️</div>
+            <div className="table-empty-icon"><TemplateIcon name="mail" size={28} /></div>
             <p>Belum ada riwayat pengiriman reminder Email.</p>
           </div>
         ) : (
@@ -143,7 +144,7 @@ function ReminderLogPage() {
                         className="btn btn-secondary btn-sm"
                         onClick={function() { setMessageModal(log.pesan); }}
                       >
-                        👁️ Lihat Isi Pesan
+                        <TemplateIcon name="document" size={14} style={{ marginRight: '6px' }} /> Lihat Isi Pesan
                       </button>
                     </td>
                   </tr>
@@ -160,7 +161,7 @@ function ReminderLogPage() {
           <div className="modal" style={{ maxWidth: '460px' }}>
             <div className="modal-header">
               <h2>Isi Pesan Email</h2>
-              <button className="modal-close" onClick={function() { setMessageModal(null); }}>✕</button>
+              <button className="modal-close" onClick={function() { setMessageModal(null); }}><TemplateIcon name="close" size={16} /></button>
             </div>
             <div className="modal-body" style={{ whiteSpace: 'pre-line', fontFamily: 'monospace', background: 'var(--bg-secondary)', padding: '20px', borderRadius: '8px', margin: '20px', border: '1px solid var(--border-color)' }}>
               {messageModal}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Modal from '../components/Modal';
+import TemplateIcon from '../components/TemplateIcon';
 
 function PaketPage() {
   var [paketList, setPaketList] = useState([]);
@@ -108,7 +109,7 @@ function PaketPage() {
           <p>Kelola paket internet yang ditawarkan ke pelanggan.</p>
         </div>
         <button id="btn-tambah-paket" className="btn btn-primary" onClick={openAddModal}>
-          ➕ Tambah Paket
+          <TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Tambah Paket
         </button>
       </div>
 
@@ -127,10 +128,10 @@ function PaketPage() {
         </div>
       ) : paketList.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '48px' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '12px', opacity: 0.3 }}>📦</div>
+          <div style={{ fontSize: '3rem', marginBottom: '12px', opacity: 0.3 }}><TemplateIcon name="package" size={48} /></div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Belum ada paket layanan.</p>
           <button className="btn btn-primary btn-sm" onClick={openAddModal} style={{ marginTop: '16px' }}>
-            ➕ Tambah Paket Pertama
+            <TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Tambah Paket Pertama
           </button>
         </div>
       ) : (
@@ -188,7 +189,7 @@ function PaketPage() {
                     justifyContent: 'center',
                     fontSize: '1.3rem'
                   }}>
-                    📦
+                    <TemplateIcon name="package" size={20} color="white" />
                   </div>
                 </div>
 
@@ -217,7 +218,7 @@ function PaketPage() {
                     marginBottom: '8px',
                     fontSize: '0.85rem'
                   }}>
-                    ⚡ Kecepatan: <strong>{paket.kecepatan}</strong>
+                    <TemplateIcon name="router" size={15} style={{ marginRight: '6px' }} /> Kecepatan: <strong>{paket.kecepatan}</strong>
                   </div>
                 )}
 
@@ -229,10 +230,10 @@ function PaketPage() {
 
                 <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                   <button className="btn btn-secondary btn-sm" onClick={function() { openEditModal(paket); }} style={{ flex: 1 }}>
-                    ✏️ Edit
+                    <TemplateIcon name="edit" size={14} style={{ marginRight: '6px' }} /> Edit
                   </button>
                   <button className="btn btn-danger btn-sm" onClick={function() { setDeleteConfirm(paket.id); }}>
-                    🗑️
+                    <TemplateIcon name="trash" size={14} />
                   </button>
                 </div>
               </div>
@@ -245,19 +246,19 @@ function PaketPage() {
       <Modal
         isOpen={showModal}
         onClose={function() { setShowModal(false); }}
-        title={editMode ? '✏️ Edit Paket Layanan' : '➕ Tambah Paket Baru'}
+        title={editMode ? <><TemplateIcon name="edit" size={16} style={{ marginRight: '8px' }} /> Edit Paket Layanan</> : <><TemplateIcon name="plus" size={16} style={{ marginRight: '8px' }} /> Tambah Paket Baru</>}
         footer={
           <>
             <button className="btn btn-secondary" onClick={function() { setShowModal(false); }}>Batal</button>
             <button className="btn btn-primary" onClick={handleSubmit}>
-              {editMode ? '💾 Simpan Perubahan' : '➕ Tambah Paket'}
+              {editMode ? <><TemplateIcon name="check" size={16} style={{ marginRight: '6px' }} /> Simpan Perubahan</> : <><TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Tambah Paket</>}
             </button>
           </>
         }
       >
         {formError && (
           <div className="login-error" style={{ marginBottom: '16px' }}>
-            ⚠️ {formError}
+            <TemplateIcon name="alert" size={16} style={{ marginRight: '6px' }} /> {formError}
           </div>
         )}
         <form onSubmit={handleSubmit}>
@@ -312,12 +313,12 @@ function PaketPage() {
       <Modal
         isOpen={deleteConfirm !== null}
         onClose={function() { setDeleteConfirm(null); }}
-        title="🗑️ Konfirmasi Hapus Paket"
+        title={<><TemplateIcon name="trash" size={16} style={{ marginRight: '8px' }} /> Konfirmasi Hapus Paket</>}
         footer={
           <>
             <button className="btn btn-secondary" onClick={function() { setDeleteConfirm(null); }}>Batal</button>
             <button className="btn btn-danger" onClick={function() { handleDelete(deleteConfirm); }}>
-              🗑️ Ya, Hapus
+              <TemplateIcon name="trash" size={14} style={{ marginRight: '6px' }} /> Ya, Hapus
             </button>
           </>
         }

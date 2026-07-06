@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
+import TemplateIcon from './TemplateIcon';
 
 function Navbar() {
   var location = useLocation();
@@ -24,7 +25,7 @@ function Navbar() {
       </div>
       <div className="topbar-actions">
         <div className="topbar-search">
-          <span className="topbar-search-icon">🔍</span>
+          <span className="topbar-search-icon"><TemplateIcon name="search" size={16} /></span>
           <input type="text" placeholder="Cari pelanggan..." />
         </div>
       </div>

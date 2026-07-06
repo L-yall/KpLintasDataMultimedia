@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import TemplateIcon from '../components/TemplateIcon';
 
 function CustomerPortalPage({ onLogout }) {
   var [billing, setBilling] = useState(null);
@@ -75,7 +76,7 @@ function CustomerPortalPage({ onLogout }) {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-        ⏳ Memuat tagihan Anda...
+        <TemplateIcon name="loading" size={20} style={{ marginRight: '8px' }} /> Memuat tagihan Anda...
       </div>
     );
   }
@@ -91,20 +92,20 @@ function CustomerPortalPage({ onLogout }) {
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ESP Lintas Data Multimedia</p>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={onLogout}>
-            🚪 Keluar
+            <TemplateIcon name="logout" size={16} style={{ marginRight: '6px' }} /> Keluar
           </button>
         </div>
 
         {message.text && (
           <div className={message.type === 'success' ? 'status-badge hijau' : 'login-error'} style={{ width: '100%', padding: '12px', borderRadius: '8px', marginBottom: '16px', display: 'block', textAlign: 'center' }}>
-            {message.type === 'success' ? '✅' : '⚠️'} {message.text}
+            {message.type === 'success' ? <TemplateIcon name="check" size={16} /> : <TemplateIcon name="alert" size={16} />} <span style={{ marginLeft: '8px' }}>{message.text}</span>
           </div>
         )}
 
         {/* Billing Info Card */}
         {!billing ? (
           <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎉</div>
+            <div style={{ fontSize: '3rem', marginBottom: '16px' }}><TemplateIcon name="check" size={56} color="var(--primary-light)" /></div>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '8px' }}>Semua Tagihan Lunas</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Terima kasih atas pembayaran Anda. Layanan internet Anda aktif.</p>
           </div>
@@ -133,7 +134,7 @@ function CustomerPortalPage({ onLogout }) {
             {/* Payment instructions */}
             {billing.status !== 'menunggu_verifikasi' && (
               <div className="card animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>🏦 Cara Pembayaran</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}><TemplateIcon name="money" size={18} style={{ marginRight: '8px' }} /> Cara Pembayaran</h3>
                 
                 {/* Bank Transfer */}
                 <div style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
@@ -160,12 +161,12 @@ function CustomerPortalPage({ onLogout }) {
             {/* Upload Payment Proof */}
             <div className="card animate-fadeIn" style={{ animationDelay: '0.2s' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>
-                {billing.status === 'menunggu_verifikasi' ? '📄 Bukti Transfer Anda' : '📤 Upload Bukti Transfer'}
+                {billing.status === 'menunggu_verifikasi' ? <><TemplateIcon name="document" size={18} style={{ marginRight: '8px' }} /> Bukti Transfer Anda</> : <><TemplateIcon name="upload" size={18} style={{ marginRight: '8px' }} /> Upload Bukti Transfer</>}
               </h3>
 
               {billing.status === 'menunggu_verifikasi' ? (
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '10px 0' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>⏳</div>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}><TemplateIcon name="loading" size={42} color="var(--primary-light)" /></div>
                   <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Pembayaran Sedang Diverifikasi Admin</p>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                     Admin sedang mencocokkan nominal transfer Anda. Internet Anda akan otomatis aktif setelah verifikasi disetujui.
@@ -175,7 +176,7 @@ function CustomerPortalPage({ onLogout }) {
                 <form onSubmit={handleUpload}>
                   <div className="form-group" style={{ marginBottom: '16px' }}>
                     <label style={{ display: 'block', padding: '16px', background: 'var(--bg-secondary)', border: '1px dashed var(--border-color-light)', borderRadius: '8px', textAlign: 'center', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '1.5rem', display: 'block', marginBottom: '4px' }}>📷</span>
+                      <span style={{ fontSize: '1.5rem', display: 'block', marginBottom: '4px' }}><TemplateIcon name="camera" size={28} /></span>
                       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)' }}>
                         {file ? 'Ganti File Gambar' : 'Pilih Foto / Screenshot Bukti'}
                       </span>
@@ -206,7 +207,7 @@ function CustomerPortalPage({ onLogout }) {
                     style={{ width: '100%', padding: '12px' }}
                     disabled={uploading || !file}
                   >
-                    {uploading ? '⏳ Mengunggah...' : '📤 Kirim Konfirmasi Pembayaran'}
+                    {uploading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Mengunggah...</> : <><TemplateIcon name="upload" size={16} style={{ marginRight: '6px' }} /> Kirim Konfirmasi Pembayaran</>}
                   </button>
                 </form>
               )}
