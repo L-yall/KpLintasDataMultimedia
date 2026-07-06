@@ -354,18 +354,18 @@
   transition: left var(--transition-normal);
 }
 
-.topbar-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
+  .topbar-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f8fafc;
+  }
 
-.topbar-title span {
-  color: var(--text-muted);
-  font-weight: 400;
-  font-size: 0.9rem;
-  margin-left: 8px;
-}
+  .topbar-title span {
+    color: #cbd5e1;
+    font-weight: 400;
+    font-size: 0.9rem;
+    margin-left: 8px;
+  }
 
 .topbar-actions {
   display: flex;

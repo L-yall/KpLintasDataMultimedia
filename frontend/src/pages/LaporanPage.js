@@ -6,31 +6,31 @@ import TemplateIcon from '../components/TemplateIcon';
 function LaporanPage() {
   var today = new Date();
   var defaultPeriode = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
-  
+
   var [periode, setPeriode] = useState(defaultPeriode);
   var [summary, setSummary] = useState({ total_pemasukan: 0, total_pengeluaran: 0, laba_bersih: 0 });
   var [incomes, setIncomes] = useState([]);
   var [expenses, setExpenses] = useState([]);
   var [loading, setLoading] = useState(true);
-  
+
   // Modals state for CRUD Expenses
   var [showAddModal, setShowAddModal] = useState(false);
   var [showEditModal, setShowEditModal] = useState(false);
   var [editTarget, setEditTarget] = useState(null);
-  
+
   // Form fields
   var [kategori, setKategori] = useState('');
   var [nominal, setNominal] = useState('');
   var [tipe, setTipe] = useState('tidak_fix');
   var [tanggal, setTanggal] = useState(today.toISOString().split('T')[0]);
   var [keterangan, setKeterangan] = useState('');
-  
+
   var [actionLoading, setActionLoading] = useState(false);
 
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
 
-  useEffect(function() {
+  useEffect(function () {
     fetchData();
   }, [periode]);
 
@@ -39,7 +39,7 @@ function LaporanPage() {
     try {
       var summaryRes = await axios.get(`http://localhost:3000/api/reports/summary?periode=${periode}`, { headers: headers });
       var detailsRes = await axios.get(`http://localhost:3000/api/reports/details?periode=${periode}`, { headers: headers });
-      
+
       if (summaryRes.data.success) {
         setSummary(summaryRes.data.data);
       }
@@ -138,9 +138,9 @@ function LaporanPage() {
         headers: headers,
         responseType: 'blob'
       });
-      
-      var blob = new Blob([response.data], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+
+      var blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
       var url = URL.createObjectURL(blob);
       var link = document.createElement('a');
@@ -168,10 +168,10 @@ function LaporanPage() {
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {/* Period Picker */}
-          <input 
-            type="month" 
+          <input
+            type="month"
             value={periode}
-            onChange={function(e) { setPeriode(e.target.value); }}
+            onChange={function (e) { setPeriode(e.target.value); }}
             style={{ width: '160px', padding: '10px', fontSize: '0.9rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
           />
           <button className="btn btn-primary" onClick={handleExportExcel} disabled={loading}>
@@ -214,12 +214,12 @@ function LaporanPage() {
 
       {/* Grid: Pemasukan & Pengeluaran */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px', width: '100%' }}>
-        
+
         {/* Section Pengeluaran (CRUD) */}
         <div className="table-container animate-fadeIn">
           <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3><TemplateIcon name="money" size={18} style={{ marginRight: '8px' }} /> Pengeluaran Operasional ({expenses.length})</h3>
-            <button className="btn btn-primary btn-sm" onClick={function() { resetForm(); setShowAddModal(true); }}>
+            <button className="btn btn-primary btn-sm" onClick={function () { resetForm(); setShowAddModal(true); }}>
               <TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Catat Pengeluaran
             </button>
           </div>
@@ -246,7 +246,7 @@ function LaporanPage() {
                 </tr>
               </thead>
               <tbody>
-                {expenses.map(function(item, idx) {
+                {expenses.map(function (item, idx) {
                   return (
                     <tr key={item.id_pengeluaran}>
                       <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
@@ -264,8 +264,8 @@ function LaporanPage() {
                       <td style={{ fontSize: '0.85rem' }}>{item.nama_admin || '-'}</td>
                       <td>
                         <div className="table-actions">
-                          <button className="btn btn-secondary btn-sm" onClick={function() { handleOpenEdit(item); }}><TemplateIcon name="edit" size={14} style={{ marginRight: '6px' }} /> Edit</button>
-                          <button className="btn btn-danger btn-sm" onClick={function() { handleDeleteExpense(item.id_pengeluaran); }}><TemplateIcon name="trash" size={14} style={{ marginRight: '6px' }} /> Hapus</button>
+                          <button className="btn btn-secondary btn-sm" onClick={function () { handleOpenEdit(item); }}><TemplateIcon name="edit" size={14} style={{ marginRight: '6px' }} /> Edit</button>
+                          <button className="btn btn-danger btn-sm" onClick={function () { handleDeleteExpense(item.id_pengeluaran); }}><TemplateIcon name="trash" size={14} style={{ marginRight: '6px' }} /> Hapus</button>
                         </div>
                       </td>
                     </tr>
@@ -302,7 +302,7 @@ function LaporanPage() {
                 </tr>
               </thead>
               <tbody>
-                {incomes.map(function(item, idx) {
+                {incomes.map(function (item, idx) {
                   return (
                     <tr key={item.id_tagihan}>
                       <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
@@ -325,11 +325,11 @@ function LaporanPage() {
       {showAddModal && (
         <Modal
           isOpen={showAddModal}
-          onClose={function() { setShowAddModal(false); resetForm(); }}
+          onClose={function () { setShowAddModal(false); resetForm(); }}
           title={<><TemplateIcon name="plus" size={16} style={{ marginRight: '8px' }} /> Catat Pengeluaran Baru</>}
           footer={
             <>
-              <button className="btn btn-secondary" onClick={function() { setShowAddModal(false); resetForm(); }} disabled={actionLoading}>Batal</button>
+              <button className="btn btn-secondary" onClick={function () { setShowAddModal(false); resetForm(); }} disabled={actionLoading}>Batal</button>
               <button className="btn btn-primary" onClick={handleAddExpense} disabled={actionLoading || !kategori || !nominal || !tanggal}>
                 {actionLoading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Menyimpan...</> : <><TemplateIcon name="check" size={16} style={{ marginRight: '6px' }} /> Simpan Pengeluaran</>}
               </button>
@@ -339,29 +339,29 @@ function LaporanPage() {
           <form onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div className="form-group">
               <label>Kategori Pengeluaran *</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Contoh: Sewa Bandwidth, Listrik PLN, Bensin Operasional"
                 value={kategori}
-                onChange={function(e) { setKategori(e.target.value); }}
+                onChange={function (e) { setKategori(e.target.value); }}
                 required
               />
             </div>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="form-group">
                 <label>Nominal (Rp) *</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   placeholder="0"
                   value={nominal}
-                  onChange={function(e) { setNominal(e.target.value); }}
+                  onChange={function (e) { setNominal(e.target.value); }}
                   required
                 />
               </div>
               <div className="form-group">
                 <label>Tipe Pengeluaran *</label>
-                <select value={tipe} onChange={function(e) { setTipe(e.target.value); }} required>
+                <select value={tipe} onChange={function (e) { setTipe(e.target.value); }} required>
                   <option value="tidak_fix">Tambahan (Tidak Fix)</option>
                   <option value="fix">Berkala (Fix Bulanan)</option>
                 </select>
@@ -370,21 +370,21 @@ function LaporanPage() {
 
             <div className="form-group">
               <label>Tanggal Pengeluaran *</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={tanggal}
-                onChange={function(e) { setTanggal(e.target.value); }}
+                onChange={function (e) { setTanggal(e.target.value); }}
                 required
               />
             </div>
 
             <div className="form-group">
               <label>Keterangan Tambahan</label>
-              <textarea 
-                rows="3" 
+              <textarea
+                rows="3"
                 placeholder="Tulis rincian pengeluaran di sini (opsional)..."
                 value={keterangan}
-                onChange={function(e) { setKeterangan(e.target.value); }}
+                onChange={function (e) { setKeterangan(e.target.value); }}
               />
             </div>
           </form>
@@ -395,11 +395,11 @@ function LaporanPage() {
       {showEditModal && (
         <Modal
           isOpen={showEditModal}
-          onClose={function() { setShowEditModal(false); resetForm(); }}
+          onClose={function () { setShowEditModal(false); resetForm(); }}
           title={<><TemplateIcon name="edit" size={16} style={{ marginRight: '8px' }} /> Edit Data Pengeluaran</>}
           footer={
             <>
-              <button className="btn btn-secondary" onClick={function() { setShowEditModal(false); resetForm(); }} disabled={actionLoading}>Batal</button>
+              <button className="btn btn-secondary" onClick={function () { setShowEditModal(false); resetForm(); }} disabled={actionLoading}>Batal</button>
               <button className="btn btn-primary" onClick={handleEditExpense} disabled={actionLoading || !kategori || !nominal || !tanggal}>
                 {actionLoading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Menyimpan...</> : <><TemplateIcon name="check" size={16} style={{ marginRight: '6px' }} /> Simpan Perubahan</>}
               </button>
@@ -409,27 +409,27 @@ function LaporanPage() {
           <form onSubmit={handleEditExpense} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div className="form-group">
               <label>Kategori Pengeluaran *</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={kategori}
-                onChange={function(e) { setKategori(e.target.value); }}
+                onChange={function (e) { setKategori(e.target.value); }}
                 required
               />
             </div>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="form-group">
                 <label>Nominal (Rp) *</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={nominal}
-                  onChange={function(e) { setNominal(e.target.value); }}
+                  onChange={function (e) { setNominal(e.target.value); }}
                   required
                 />
               </div>
               <div className="form-group">
                 <label>Tipe Pengeluaran *</label>
-                <select value={tipe} onChange={function(e) { setTipe(e.target.value); }} required>
+                <select value={tipe} onChange={function (e) { setTipe(e.target.value); }} required>
                   <option value="tidak_fix">Tambahan (Tidak Fix)</option>
                   <option value="fix">Berkala (Fix Bulanan)</option>
                 </select>
@@ -438,20 +438,20 @@ function LaporanPage() {
 
             <div className="form-group">
               <label>Tanggal Pengeluaran *</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={tanggal}
-                onChange={function(e) { setTanggal(e.target.value); }}
+                onChange={function (e) { setTanggal(e.target.value); }}
                 required
               />
             </div>
 
             <div className="form-group">
               <label>Keterangan Tambahan</label>
-              <textarea 
-                rows="3" 
+              <textarea
+                rows="3"
                 value={keterangan}
-                onChange={function(e) { setKeterangan(e.target.value); }}
+                onChange={function (e) { setKeterangan(e.target.value); }}
               />
             </div>
           </form>

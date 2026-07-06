@@ -21,7 +21,7 @@ function PaketPage() {
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
 
-  useEffect(function() {
+  useEffect(function () {
     fetchPaket();
   }, []);
 
@@ -116,7 +116,7 @@ function PaketPage() {
       {/* Card Grid Paket */}
       {loading ? (
         <div className="stats-grid">
-          {[1, 2, 3].map(function(i) {
+          {[1, 2, 3].map(function (i) {
             return (
               <div className="card" key={i}>
                 <div className="skeleton skeleton-text lg" style={{ marginBottom: '12px' }}></div>
@@ -136,12 +136,12 @@ function PaketPage() {
         </div>
       ) : (
         <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-          {paketList.map(function(paket, idx) {
+          {paketList.map(function (paket, idx) {
             return (
-              <div 
-                className="card animate-slideUp" 
-                key={paket.id} 
-                style={{ 
+              <div
+                className="card animate-slideUp"
+                key={paket.id}
+                style={{
                   animationDelay: (idx * 0.06) + 's',
                   opacity: paket.aktif ? 1 : 0.5,
                   position: 'relative',
@@ -167,9 +167,9 @@ function PaketPage() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                   <div>
-                    <div style={{ 
-                      fontSize: '0.75rem', 
-                      fontWeight: 600, 
+                    <div style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
                       color: 'var(--primary-light)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
@@ -193,9 +193,9 @@ function PaketPage() {
                   </div>
                 </div>
 
-                <div style={{ 
-                  fontSize: '1.8rem', 
-                  fontWeight: 800, 
+                <div style={{
+                  fontSize: '1.8rem',
+                  fontWeight: 800,
                   background: 'linear-gradient(135deg, var(--text-primary), var(--primary-light))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
@@ -208,9 +208,9 @@ function PaketPage() {
                 </div>
 
                 {paket.kecepatan && (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     gap: '8px',
                     padding: '8px 12px',
                     background: 'var(--bg-tertiary)',
@@ -229,10 +229,10 @@ function PaketPage() {
                 )}
 
                 <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
-                  <button className="btn btn-secondary btn-sm" onClick={function() { openEditModal(paket); }} style={{ flex: 1 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={function () { openEditModal(paket); }} style={{ flex: 1 }}>
                     <TemplateIcon name="edit" size={14} style={{ marginRight: '6px' }} /> Edit
                   </button>
-                  <button className="btn btn-danger btn-sm" onClick={function() { setDeleteConfirm(paket.id); }}>
+                  <button className="btn btn-danger btn-sm" onClick={function () { setDeleteConfirm(paket.id); }}>
                     <TemplateIcon name="trash" size={14} />
                   </button>
                 </div>
@@ -245,11 +245,11 @@ function PaketPage() {
       {/* Modal Tambah/Edit Paket */}
       <Modal
         isOpen={showModal}
-        onClose={function() { setShowModal(false); }}
+        onClose={function () { setShowModal(false); }}
         title={editMode ? <><TemplateIcon name="edit" size={16} style={{ marginRight: '8px' }} /> Edit Paket Layanan</> : <><TemplateIcon name="plus" size={16} style={{ marginRight: '8px' }} /> Tambah Paket Baru</>}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={function() { setShowModal(false); }}>Batal</button>
+            <button className="btn btn-secondary" onClick={function () { setShowModal(false); }}>Batal</button>
             <button className="btn btn-primary" onClick={handleSubmit}>
               {editMode ? <><TemplateIcon name="check" size={16} style={{ marginRight: '6px' }} /> Simpan Perubahan</> : <><TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Tambah Paket</>}
             </button>
@@ -312,12 +312,12 @@ function PaketPage() {
       {/* Modal Konfirmasi Hapus */}
       <Modal
         isOpen={deleteConfirm !== null}
-        onClose={function() { setDeleteConfirm(null); }}
+        onClose={function () { setDeleteConfirm(null); }}
         title={<><TemplateIcon name="trash" size={16} style={{ marginRight: '8px' }} /> Konfirmasi Hapus Paket</>}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={function() { setDeleteConfirm(null); }}>Batal</button>
-            <button className="btn btn-danger" onClick={function() { handleDelete(deleteConfirm); }}>
+            <button className="btn btn-secondary" onClick={function () { setDeleteConfirm(null); }}>Batal</button>
+            <button className="btn btn-danger" onClick={function () { handleDelete(deleteConfirm); }}>
               <TemplateIcon name="trash" size={14} style={{ marginRight: '6px' }} /> Ya, Hapus
             </button>
           </>

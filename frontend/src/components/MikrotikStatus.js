@@ -3,7 +3,7 @@ import TemplateIcon from './TemplateIcon';
 
 function MikrotikStatus({ status }) {
   var isOnline = status && status.online;
-  
+
   return (
     <div className="card animate-fadeIn" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px' }}>
       <div style={{

@@ -14,7 +14,7 @@ function CustomerPortalPage({ onLogout }) {
   var token = localStorage.getItem('customer_token');
   var headers = { Authorization: 'Bearer ' + token };
 
-  useEffect(function() {
+  useEffect(function () {
     fetchBilling();
   }, []);
 
@@ -86,7 +86,7 @@ function CustomerPortalPage({ onLogout }) {
   return (
     <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', color: 'var(--text-primary)', padding: '24px 16px' }}>
       <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-        
+
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
           <div>
@@ -110,7 +110,7 @@ function CustomerPortalPage({ onLogout }) {
           <div className="login-error animate-fadeIn" style={{ width: '100%', padding: '16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '0.88rem' }}>
             <TemplateIcon name="alert" size={18} color="var(--text-danger)" />
             <div style={{ textAlign: 'left' }}>
-              <strong>Pembayaran Ditolak Admin!</strong> Bukti pembayaran periode <strong>{lastPayment.periode}</strong> ditolak. <br/>Alasan: <em>"{lastPayment.alasan_tolak}"</em>. Silakan upload ulang bukti pembayaran yang valid.
+              <strong>Pembayaran Ditolak Admin!</strong> Bukti pembayaran periode <strong>{lastPayment.periode}</strong> ditolak. <br />Alasan: <em>"{lastPayment.alasan_tolak}"</em>. Silakan upload ulang bukti pembayaran yang valid.
             </div>
           </div>
         )}
@@ -134,11 +134,11 @@ function CustomerPortalPage({ onLogout }) {
                   {billing.status === 'menunggu_verifikasi' ? 'Verifikasi Pending' : (billing.status_tagihan === 'kuning' ? 'Jatuh Tempo' : (billing.status_tagihan === 'merah' ? 'Menunggak' : 'Belum Bayar'))}
                 </span>
               </div>
-              
+
               <div style={{ fontSize: '2.2rem', fontWeight: 800, margin: '8px 0', background: 'linear-gradient(135deg, var(--text-primary), var(--primary-light))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Rp {Number(billing.nominal).toLocaleString('id-ID')}
               </div>
-              
+
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 Batas Jatuh Tempo: <strong>{new Date(billing.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
               </div>
@@ -148,7 +148,7 @@ function CustomerPortalPage({ onLogout }) {
             {billing.status !== 'menunggu_verifikasi' && (
               <div className="card animate-fadeIn" style={{ animationDelay: '0.1s' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}><TemplateIcon name="money" size={18} style={{ marginRight: '8px' }} /> Cara Pembayaran</h3>
-                
+
                 {/* Bank Transfer */}
                 <div style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank Mandiri</div>
@@ -160,9 +160,9 @@ function CustomerPortalPage({ onLogout }) {
                 <div style={{ textAlign: 'center', marginTop: '16px' }}>
                   <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '12px' }}>Atau Scan Kode QRIS di bawah:</div>
                   <div style={{ display: 'inline-block', padding: '10px', background: 'white', borderRadius: '12px', marginBottom: '8px' }}>
-                    <img 
-                      src="http://localhost:3000/images/qris.png" 
-                      alt="QRIS ESP Lintas Data" 
+                    <img
+                      src="http://localhost:3000/images/qris.png"
+                      alt="QRIS ESP Lintas Data"
                       style={{ width: '180px', height: '180px', display: 'block', objectFit: 'contain' }}
                     />
                   </div>
@@ -193,11 +193,11 @@ function CustomerPortalPage({ onLogout }) {
                       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)' }}>
                         {file ? 'Ganti File Gambar' : 'Pilih Foto / Screenshot Bukti'}
                       </span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleFileChange} 
-                        style={{ display: 'none' }} 
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
                         required
                       />
                     </label>
@@ -206,17 +206,17 @@ function CustomerPortalPage({ onLogout }) {
                   {preview && (
                     <div style={{ textAlign: 'center', marginBottom: '16px' }}>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Preview Bukti:</div>
-                      <img 
-                        src={preview} 
-                        alt="Preview Bukti Transfer" 
+                      <img
+                        src={preview}
+                        alt="Preview Bukti Transfer"
                         style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
                       />
                     </div>
                   )}
 
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary" 
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
                     style={{ width: '100%', padding: '12px' }}
                     disabled={uploading || !file}
                   >

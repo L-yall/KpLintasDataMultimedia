@@ -22,7 +22,7 @@ function App() {
   // Admin authentication state
   var [admin, setAdmin] = useState(null);
   var [token, setToken] = useState(null);
-  
+
   // Customer authentication state
   var [customer, setCustomer] = useState(null);
   var [customerToken, setCustomerToken] = useState(null);
@@ -34,7 +34,7 @@ function App() {
   var isCustomerRoute = window.location.pathname.startsWith('/portal') || window.location.pathname.startsWith('/bayar');
 
   // Load saved sessions
-  useEffect(function() {
+  useEffect(function () {
     var savedToken = localStorage.getItem('token');
     var savedAdmin = localStorage.getItem('admin');
     if (savedToken && savedAdmin) {
@@ -51,7 +51,7 @@ function App() {
       if (pathParts[1] === 'bayar' && pathParts[2]) {
         emailInUrl = decodeURIComponent(pathParts[2]).trim().toLowerCase();
       }
-      
+
       if (emailInUrl && custInfo.email && custInfo.email.trim().toLowerCase() !== emailInUrl) {
         console.warn('URL specifies different customer email than active session. Logging out.');
         localStorage.removeItem('customer_token');
@@ -66,12 +66,12 @@ function App() {
   }, []);
 
   // Axios interceptor to catch expired tokens (401 or 403) and log out automatically
-  useEffect(function() {
+  useEffect(function () {
     var interceptor = axios.interceptors.response.use(
-      function(response) {
+      function (response) {
         return response;
       },
-      function(error) {
+      function (error) {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           console.warn('Session expired or invalid. Logging out.');
           if (isCustomerRoute) {
@@ -84,23 +84,23 @@ function App() {
       }
     );
 
-    return function() {
+    return function () {
       axios.interceptors.response.eject(interceptor);
     };
   }, [isCustomerRoute]);
 
   // Admin socket manager
-  useEffect(function() {
+  useEffect(function () {
     if (token && !isCustomerRoute) {
       var newSocket = io('http://localhost:3000', {
         transports: ['websocket'],
         auth: { token: token }
       });
-      newSocket.on('connect', function() {
+      newSocket.on('connect', function () {
         console.log('Connected to WebSocket server as Admin');
       });
       setSocket(newSocket);
-      return function() {
+      return function () {
         newSocket.close();
       };
     } else {

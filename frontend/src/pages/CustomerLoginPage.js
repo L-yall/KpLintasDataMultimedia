@@ -82,14 +82,14 @@ function CustomerLoginPage({ onLogin }) {
                   type="email"
                   placeholder="Contoh: user@email.com"
                   value={email}
-                  onChange={function(e) { setEmail(e.target.value); }}
+                  onChange={function (e) { setEmail(e.target.value); }}
                   required
                   autoFocus
                 />
               </div>
-              <button 
-                type="submit" 
-                className="btn btn-primary" 
+              <button
+                type="submit"
+                className="btn btn-primary"
                 disabled={loading}
               >
                 {loading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Memproses...</> : <><TemplateIcon name="mail" size={16} style={{ marginRight: '6px' }} /> Kirim OTP via Email</>}
@@ -104,24 +104,24 @@ function CustomerLoginPage({ onLogin }) {
                   maxLength="6"
                   placeholder="******"
                   value={otp}
-                  onChange={function(e) { setOtp(e.target.value); }}
+                  onChange={function (e) { setOtp(e.target.value); }}
                   required
                   autoFocus
                   style={{ textAlign: 'center', fontSize: '1.4rem', letterSpacing: '4px', fontWeight: 'bold' }}
                 />
               </div>
-              <button 
-                type="submit" 
-                className="btn btn-primary" 
+              <button
+                type="submit"
+                className="btn btn-primary"
                 disabled={loading}
                 style={{ marginBottom: '10px' }}
               >
                 {loading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Memverifikasi...</> : <><TemplateIcon name="shield" size={16} style={{ marginRight: '6px' }} /> Masuk</>}
               </button>
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
-                onClick={function() { setStep(1); setError(''); setSuccessMsg(''); }}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={function () { setStep(1); setError(''); setSuccessMsg(''); }}
                 style={{ width: '100%' }}
               >
                 Kembali

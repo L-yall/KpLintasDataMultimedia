@@ -6,35 +6,36 @@ import TemplateIcon from '../components/TemplateIcon';
 function PembayaranPage({ socket }) {
   var [pendingPayments, setPendingPayments] = useState([]);
   var [loading, setLoading] = useState(true);
-  
+
   // Modals state
   var [viewBukti, setViewBukti] = useState(null); // holds payment object
   var [rejectTarget, setRejectTarget] = useState(null); // holds payment object
   var [alasanTolak, setAlasanTolak] = useState('');
   var [actionLoading, setActionLoading] = useState(false);
+  var [zoomScale, setZoomScale] = useState(1);
   var [successMsg, setSuccessMsg] = useState('');
 
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
 
-  useEffect(function() {
+  useEffect(function () {
     fetchPending();
 
     // Listen for new payments uploaded in real-time
     if (socket) {
-      socket.on('pembayaran_masuk', function(newPayment) {
+      socket.on('pembayaran_masuk', function (newPayment) {
         console.log('Ada pembayaran masuk baru:', newPayment);
         setSuccessMsg(`Notifikasi: Pembayaran baru masuk dari ${newPayment.nama_pelanggan}!`);
         fetchPending();
-        
+
         // Clear toast after 5s
-        setTimeout(function() {
+        setTimeout(function () {
           setSuccessMsg('');
         }, 5000);
       });
     }
 
-    return function() {
+    return function () {
       if (socket) {
         socket.off('pembayaran_masuk');
       }
@@ -97,6 +98,18 @@ function PembayaranPage({ socket }) {
     }
   }
 
+  function handleBuktiWheel(e) {
+    e.preventDefault();
+    setZoomScale(function (prev) {
+      var nextScale = prev - e.deltaY * 0.0012;
+      return Math.min(3, Math.max(1, nextScale));
+    });
+  }
+
+  function resetBuktiZoom() {
+    setZoomScale(1);
+  }
+
   function formatTanggal(dateStr) {
     if (!dateStr) return '-';
     var d = new Date(dateStr);
@@ -155,7 +168,7 @@ function PembayaranPage({ socket }) {
               </tr>
             </thead>
             <tbody>
-              {pendingPayments.map(function(item, idx) {
+              {pendingPayments.map(function (item, idx) {
                 return (
                   <tr key={item.id_pembayaran}>
                     <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
@@ -167,25 +180,25 @@ function PembayaranPage({ socket }) {
                     </td>
                     <td>{formatTanggal(item.tanggal_upload)}</td>
                     <td>
-                      <button 
+                      <button
                         className="btn btn-secondary btn-sm"
-                        onClick={function() { setViewBukti(item); }}
+                        onClick={function () { setZoomScale(1); setViewBukti(item); }}
                       >
                         <TemplateIcon name="camera" size={14} style={{ marginRight: '6px' }} /> Lihat Bukti
                       </button>
                     </td>
                     <td>
                       <div className="table-actions">
-                        <button 
+                        <button
                           className="btn btn-primary btn-sm"
-                          onClick={function() { handleApprove(item.id_pembayaran); }}
+                          onClick={function () { handleApprove(item.id_pembayaran); }}
                           disabled={actionLoading}
                         >
                           <TemplateIcon name="check" size={14} style={{ marginRight: '6px' }} /> Terima
                         </button>
-                        <button 
+                        <button
                           className="btn btn-danger btn-sm"
-                          onClick={function() { setRejectTarget(item); }}
+                          onClick={function () { setRejectTarget(item); }}
                           disabled={actionLoading}
                         >
                           <TemplateIcon name="close" size={14} style={{ marginRight: '6px' }} /> Tolak
@@ -204,21 +217,21 @@ function PembayaranPage({ socket }) {
       {viewBukti && (
         <Modal
           isOpen={viewBukti !== null}
-          onClose={function() { setViewBukti(null); }}
+          onClose={function () { resetBuktiZoom(); setViewBukti(null); }}
           title={<><TemplateIcon name="camera" size={16} style={{ marginRight: '8px' }} /> Bukti Transfer - {viewBukti.nama}</>}
           footer={
             <>
-              <button className="btn btn-secondary" onClick={function() { setViewBukti(null); }}>Batal</button>
-              <button 
-                className="btn btn-danger" 
-                onClick={function() { setRejectTarget(viewBukti); }}
+              <button className="btn btn-secondary" onClick={function () { setViewBukti(null); }}>Batal</button>
+              <button
+                className="btn btn-danger"
+                onClick={function () { setRejectTarget(viewBukti); }}
                 disabled={actionLoading}
               >
                 <TemplateIcon name="close" size={14} style={{ marginRight: '6px' }} /> Tolak
               </button>
-              <button 
-                className="btn btn-primary" 
-                onClick={function() { handleApprove(viewBukti.id_pembayaran); }}
+              <button
+                className="btn btn-primary"
+                onClick={function () { handleApprove(viewBukti.id_pembayaran); }}
                 disabled={actionLoading}
               >
                 <TemplateIcon name="check" size={14} style={{ marginRight: '6px' }} /> Terima Pembayaran
@@ -230,11 +243,16 @@ function PembayaranPage({ socket }) {
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '14px' }}>
               Tagihan: <strong>Rp {Number(viewBukti.nominal).toLocaleString('id-ID')}</strong> | Periode: <strong>{viewBukti.periode}</strong>
             </p>
-            <div style={{ background: '#000', borderRadius: '8px', padding: '8px', display: 'inline-block', border: '1px solid var(--border-color)', maxWidth: '100%' }}>
-              <img 
-                src={`http://localhost:3000${viewBukti.bukti_file}`} 
+            {/* <p className="image-zoom-hint">
+              Scroll mouse / trackpad untuk memperbesar atau memperkecil gambar bukti.
+            </p> */}
+            <div className="image-zoom-wrapper">
+              <img
+                src={`http://localhost:3000${viewBukti.bukti_file}`}
                 alt="Bukti Transfer Pelanggan"
-                style={{ maxWidth: '100%', maxHeight: '420px', display: 'block', objectFit: 'contain', margin: '0 auto' }}
+                className={zoomScale > 1 ? 'image-zoom-image zoomed' : 'image-zoom-image'}
+                onWheel={handleBuktiWheel}
+                style={{ transform: `scale(${zoomScale})`, transformOrigin: 'center center' }}
               />
             </div>
           </div>
@@ -245,18 +263,18 @@ function PembayaranPage({ socket }) {
       {rejectTarget && (
         <Modal
           isOpen={rejectTarget !== null}
-          onClose={function() { setRejectTarget(null); setAlasanTolak(''); }}
+          onClose={function () { setRejectTarget(null); setAlasanTolak(''); }}
           title={<><TemplateIcon name="close" size={16} style={{ marginRight: '8px' }} /> Tolak Pembayaran - {rejectTarget.nama}</>}
           footer={
             <>
-              <button 
-                className="btn btn-secondary" 
-                onClick={function() { setRejectTarget(null); setAlasanTolak(''); }}
+              <button
+                className="btn btn-secondary"
+                onClick={function () { setRejectTarget(null); setAlasanTolak(''); }}
               >
                 Batal
               </button>
-              <button 
-                className="btn btn-danger" 
+              <button
+                className="btn btn-danger"
                 onClick={handleReject}
                 disabled={actionLoading || !alasanTolak}
               >
@@ -275,7 +293,7 @@ function PembayaranPage({ socket }) {
                 rows="4"
                 placeholder="Contoh: Nominal transfer kurang, gambar bukti transfer buram/terpotong, atau bukti transfer bukan untuk transaksi ini."
                 value={alasanTolak}
-                onChange={function(e) { setAlasanTolak(e.target.value); }}
+                onChange={function (e) { setAlasanTolak(e.target.value); }}
                 required
                 autoFocus
               />

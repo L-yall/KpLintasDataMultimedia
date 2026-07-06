@@ -13,21 +13,21 @@ function MikrotikPage({ socket }) {
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
 
-  useEffect(function() {
+  useEffect(function () {
     fetchData();
 
     // Listen to real-time events from websocket
     if (socket) {
-      socket.on('mikrotik_ping', function(pingData) {
+      socket.on('mikrotik_ping', function (pingData) {
         setStatus(pingData);
       });
 
-      socket.on('pppoe_summary', function(summary) {
+      socket.on('pppoe_summary', function (summary) {
         setUnregistered(summary.unregistered_list || []);
       });
     }
 
-    return function() {
+    return function () {
       if (socket) {
         socket.off('mikrotik_ping');
         socket.off('pppoe_summary');
@@ -84,15 +84,15 @@ function MikrotikPage({ socket }) {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-        <button 
+        <button
           className={'btn btn-sm ' + (activeTab === 'unregistered' ? 'btn-primary' : 'btn-secondary')}
-          onClick={function() { setActiveTab('unregistered'); }}
+          onClick={function () { setActiveTab('unregistered'); }}
         >
           <TemplateIcon name="alert" size={16} style={{ marginRight: '6px' }} /> Belum Terdaftar ({unregistered.length})
         </button>
-        <button 
+        <button
           className={'btn btn-sm ' + (activeTab === 'active' ? 'btn-primary' : 'btn-secondary')}
-          onClick={function() { setActiveTab('active'); }}
+          onClick={function () { setActiveTab('active'); }}
         >
           <TemplateIcon name="router" size={16} style={{ marginRight: '6px' }} /> Active Connections ({activeConns.length})
         </button>
@@ -136,18 +136,18 @@ function MikrotikPage({ socket }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {unregistered.map(function(item, idx) {
+                  {unregistered.map(function (item, idx) {
                     return (
                       <tr key={idx}>
                         <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
                         <td>
-                          <code style={{ 
-                            background: 'var(--status-merah-bg)', 
+                          <code style={{
+                            background: 'var(--status-merah-bg)',
                             color: 'var(--status-merah)',
-                            padding: '2px 8px', 
+                            padding: '2px 8px',
                             borderRadius: '4px',
                             fontWeight: 600,
-                            fontSize: '0.85rem' 
+                            fontSize: '0.85rem'
                           }}>
                             {item.name}
                           </code>
@@ -187,7 +187,7 @@ function MikrotikPage({ socket }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeConns.map(function(item, idx) {
+                  {activeConns.map(function (item, idx) {
                     return (
                       <tr key={idx}>
                         <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>

@@ -12,7 +12,7 @@ function ReminderLogPage() {
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
 
-  useEffect(function() {
+  useEffect(function () {
     fetchLogs();
   }, []);
 
@@ -65,12 +65,12 @@ function ReminderLogPage() {
   }
 
   // Filter logs by search query
-  var filteredLogs = logs.filter(function(log) {
+  var filteredLogs = logs.filter(function (log) {
     if (!searchQuery) return true;
     var q = searchQuery.toLowerCase();
     return (
       (log.nama && log.nama.toLowerCase().includes(q)) ||
-      (log.no_hp && log.no_hp.includes(q)) ||
+      (log.email && log.email.toLowerCase().includes(q)) ||
       (log.status_kirim && log.status_kirim.toLowerCase().includes(q))
     );
   });
@@ -95,15 +95,15 @@ function ReminderLogPage() {
           <p>Riwayat pengiriman notifikasi reminder jatuh tempo via Email ke pelanggan.</p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button 
-            className="btn btn-danger" 
+          <button
+            className="btn btn-danger"
             onClick={handleClearAllLogs}
           >
             <TemplateIcon name="trash" size={16} style={{ marginRight: '6px' }} /> Bersihkan Semua Log
           </button>
-          <button 
-            className="btn btn-primary" 
-            onClick={handleTriggerCron} 
+          <button
+            className="btn btn-primary"
+            onClick={handleTriggerCron}
             disabled={triggering}
           >
             <TemplateIcon name="refresh" size={16} style={{ marginRight: '6px' }} /> {triggering ? 'Memproses...' : 'Kirim Reminder Sekarang'}
@@ -117,9 +117,9 @@ function ReminderLogPage() {
           <div className="table-header-actions">
             <input
               type="text"
-              placeholder="Cari nama, HP..."
+              placeholder="Cari nama,email..."
               value={searchQuery}
-              onChange={function(e) { setSearchQuery(e.target.value); }}
+              onChange={function (e) { setSearchQuery(e.target.value); }}
               style={{ width: '280px' }}
             />
           </div>
@@ -127,7 +127,7 @@ function ReminderLogPage() {
 
         {loading ? (
           <div style={{ padding: '40px' }}>
-            {[1, 2, 3].map(function(i) {
+            {[1, 2, 3].map(function (i) {
               return (
                 <div key={i} style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
                   <div className="skeleton" style={{ width: '30%', height: '16px' }}></div>
@@ -157,13 +157,13 @@ function ReminderLogPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredLogs.map(function(log, idx) {
+              {filteredLogs.map(function (log, idx) {
                 var isSuccess = log.status_kirim === 'terkirim';
                 return (
                   <tr key={log.id_reminder}>
                     <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
                     <td style={{ fontWeight: 600 }}>{log.nama || 'Pelanggan Dihapus'}</td>
-                    <td>{log.no_hp}</td>
+                    <td>{log.email}</td>
                     <td>{formatTanggal(log.tanggal_kirim)}</td>
                     <td>
                       <span className={'status-badge ' + (isSuccess ? 'hijau' : 'merah')}>
@@ -171,17 +171,17 @@ function ReminderLogPage() {
                       </span>
                     </td>
                     <td>
-                      <button 
+                      <button
                         className="btn btn-secondary btn-sm"
-                        onClick={function() { setMessageModal(log.pesan); }}
+                        onClick={function () { setMessageModal(log.pesan); }}
                       >
                         <TemplateIcon name="document" size={14} style={{ marginRight: '6px' }} /> Lihat Isi Pesan
                       </button>
                     </td>
                     <td>
-                      <button 
+                      <button
                         className="btn btn-danger btn-sm"
-                        onClick={function() { handleDeleteLog(log.id_reminder); }}
+                        onClick={function () { handleDeleteLog(log.id_reminder); }}
                         title="Hapus Log"
                       >
                         <TemplateIcon name="trash" size={14} />
@@ -197,17 +197,17 @@ function ReminderLogPage() {
 
       {/* Modal for viewing Email Message Body */}
       {messageModal && (
-        <div className="modal-overlay" onClick={function() { setMessageModal(null); }}>
+        <div className="modal-overlay" onClick={function () { setMessageModal(null); }}>
           <div className="modal" style={{ maxWidth: '460px' }}>
             <div className="modal-header">
               <h2>Isi Pesan Email</h2>
-              <button className="modal-close" onClick={function() { setMessageModal(null); }}><TemplateIcon name="close" size={16} /></button>
+              <button className="modal-close" onClick={function () { setMessageModal(null); }}><TemplateIcon name="close" size={16} /></button>
             </div>
             <div className="modal-body" style={{ whiteSpace: 'pre-line', fontFamily: 'monospace', background: 'var(--bg-secondary)', padding: '20px', borderRadius: '8px', margin: '20px', border: '1px solid var(--border-color)' }}>
               {messageModal}
             </div>
             <div className="modal-footer">
-              <button className="btn btn-primary btn-sm" onClick={function() { setMessageModal(null); }}>Tutup</button>
+              <button className="btn btn-primary btn-sm" onClick={function () { setMessageModal(null); }}>Tutup</button>
             </div>
           </div>
         </div>

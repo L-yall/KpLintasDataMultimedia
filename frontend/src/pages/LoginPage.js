@@ -57,7 +57,7 @@ function LoginPage({ onLogin }) {
                 type="text"
                 placeholder="Masukkan username"
                 value={username}
-                onChange={function(e) { setUsername(e.target.value); }}
+                onChange={function (e) { setUsername(e.target.value); }}
                 required
                 autoFocus
               />
@@ -69,14 +69,14 @@ function LoginPage({ onLogin }) {
                 type="password"
                 placeholder="Masukkan password"
                 value={password}
-                onChange={function(e) { setPassword(e.target.value); }}
+                onChange={function (e) { setPassword(e.target.value); }}
                 required
               />
             </div>
-            <button 
+            <button
               id="login-submit"
-              type="submit" 
-              className="btn btn-primary" 
+              type="submit"
+              className="btn btn-primary"
               disabled={loading}
             >
               {loading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Memproses...</> : <><TemplateIcon name="shield" size={16} style={{ marginRight: '6px' }} /> Masuk ke Dashboard</>}

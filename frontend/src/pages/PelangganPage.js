@@ -28,15 +28,15 @@ function PelangganPage({ socket }) {
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
 
-  useEffect(function() {
+  useEffect(function () {
     fetchPelanggan();
     fetchPaket();
     fetchPppoeSecrets();
 
     if (socket) {
-      socket.on('pelanggan_updated', function(data) {
-        setPelanggan(function(prevList) {
-          return prevList.map(function(p) {
+      socket.on('pelanggan_updated', function (data) {
+        setPelanggan(function (prevList) {
+          return prevList.map(function (p) {
             if (p.id_pelanggan === data.id_pelanggan) {
               return { ...p, pppoe_status: data.pppoe_status };
             }
@@ -46,7 +46,7 @@ function PelangganPage({ socket }) {
       });
     }
 
-    return function() {
+    return function () {
       if (socket) {
         socket.off('pelanggan_updated');
       }
@@ -153,7 +153,7 @@ function PelangganPage({ socket }) {
     }
   }
 
-  var filteredPelanggan = pelanggan.filter(function(item) {
+  var filteredPelanggan = pelanggan.filter(function (item) {
     if (!searchQuery) return true;
     var q = searchQuery.toLowerCase();
     return (
@@ -222,7 +222,7 @@ function PelangganPage({ socket }) {
               type="text"
               placeholder="Cari nama, HP, PPPoE..."
               value={searchQuery}
-              onChange={function(e) { setSearchQuery(e.target.value); }}
+              onChange={function (e) { setSearchQuery(e.target.value); }}
               style={{ width: '280px' }}
             />
           </div>
@@ -230,7 +230,7 @@ function PelangganPage({ socket }) {
 
         {loading ? (
           <div style={{ padding: '40px' }}>
-            {[1, 2, 3].map(function(i) {
+            {[1, 2, 3].map(function (i) {
               return (
                 <div key={i} style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
                   <div className="skeleton" style={{ width: '30%', height: '16px' }}></div>
@@ -267,7 +267,7 @@ function PelangganPage({ socket }) {
               </tr>
             </thead>
             <tbody>
-              {filteredPelanggan.map(function(item, idx) {
+              {filteredPelanggan.map(function (item, idx) {
                 // MEMANGGIL FUNGSI DINAMIS DI SINI
                 var statusTabel = hitungStatusDinamis(item.due_date, item.pppoe_status);
 
@@ -291,7 +291,7 @@ function PelangganPage({ socket }) {
                     <td>
                       {item.pppoe_username ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span 
+                          <span
                             style={{
                               width: '8px',
                               height: '8px',
@@ -299,12 +299,12 @@ function PelangganPage({ socket }) {
                               backgroundColor: item.pppoe_status === 'active' ? 'var(--status-hijau)' : 'var(--status-merah)',
                               boxShadow: item.pppoe_status === 'active' ? '0 0 6px var(--status-hijau)' : 'none',
                               display: 'inline-block'
-                            }} 
-                            title={item.pppoe_status === 'active' ? 'PPPoE Active / Online' : 'PPPoE Inactive / Offline'} 
+                            }}
+                            title={item.pppoe_status === 'active' ? 'PPPoE Active / Online' : 'PPPoE Inactive / Offline'}
                           />
-                          <code style={{ 
-                            background: 'var(--bg-tertiary)', 
-                            padding: '2px 8px', 
+                          <code style={{
+                            background: 'var(--bg-tertiary)',
+                            padding: '2px 8px',
                             borderRadius: '4px',
                             fontSize: '0.8rem',
                             color: item.pppoe_status === 'active' ? 'var(--text-primary)' : 'var(--text-secondary)'
@@ -317,22 +317,22 @@ function PelangganPage({ socket }) {
                       )}
                     </td>
                     <td>{formatTanggal(item.due_date)}</td>
-                    
+
                     {/* IMPLEMENTASI STATUS KE COMPONENT STATUS BADGE */}
                     <td><StatusBadge status={statusTabel} /></td>
-                    
+
                     <td>
                       <div className="table-actions">
-                        <button 
+                        <button
                           className="btn btn-secondary btn-sm"
-                          onClick={function() { openEditModal(item); }}
+                          onClick={function () { openEditModal(item); }}
                           title="Edit"
                         >
                           <TemplateIcon name="edit" size={14} />
                         </button>
-                        <button 
+                        <button
                           className="btn btn-danger btn-sm"
-                          onClick={function() { setDeleteConfirm(item.id_pelanggan); }}
+                          onClick={function () { setDeleteConfirm(item.id_pelanggan); }}
                           title="Hapus"
                         >
                           <TemplateIcon name="trash" size={14} />
@@ -350,11 +350,11 @@ function PelangganPage({ socket }) {
       {/* Modal Tambah/Edit Pelanggan */}
       <Modal
         isOpen={showModal}
-        onClose={function() { setShowModal(false); }}
+        onClose={function () { setShowModal(false); }}
         title={editMode ? <><TemplateIcon name="edit" size={16} style={{ marginRight: '8px' }} /> Edit Pelanggan</> : <><TemplateIcon name="plus" size={16} style={{ marginRight: '8px' }} /> Tambah Pelanggan Baru</>}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={function() { setShowModal(false); }}>Batal</button>
+            <button className="btn btn-secondary" onClick={function () { setShowModal(false); }}>Batal</button>
             <button className="btn btn-primary" onClick={handleSubmit}>
               {editMode ? <><TemplateIcon name="check" size={16} style={{ marginRight: '6px' }} /> Simpan Perubahan</> : <><TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Tambah Pelanggan</>}
             </button>
@@ -414,7 +414,7 @@ function PelangganPage({ socket }) {
               <label>Paket Layanan</label>
               <select name="paket" value={formData.paket} onChange={handleChange}>
                 <option value="">-- Pilih Paket --</option>
-                {paketList.map(function(p) {
+                {paketList.map(function (p) {
                   return (
                     <option key={p.id} value={p.nama_paket}>
                       {p.nama_paket} - Rp {Number(p.harga).toLocaleString('id-ID')}
@@ -438,7 +438,7 @@ function PelangganPage({ socket }) {
             {pppoeSecrets.length > 0 ? (
               <select name="pppoe_username" value={formData.pppoe_username} onChange={handleChange}>
                 <option value="">-- Pilih PPPoE Secret --</option>
-                {pppoeSecrets.map(function(secret) {
+                {pppoeSecrets.map(function (secret) {
                   return (
                     <option key={secret.name} value={secret.name}>
                       {secret.name} ({secret.profile || 'default'})
@@ -462,12 +462,12 @@ function PelangganPage({ socket }) {
       {/* Modal Konfirmasi Hapus */}
       <Modal
         isOpen={deleteConfirm !== null}
-        onClose={function() { setDeleteConfirm(null); }}
+        onClose={function () { setDeleteConfirm(null); }}
         title={<><TemplateIcon name="trash" size={16} style={{ marginRight: '8px' }} /> Konfirmasi Hapus</>}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={function() { setDeleteConfirm(null); }}>Batal</button>
-            <button className="btn btn-danger" onClick={function() { handleDelete(deleteConfirm); }}>
+            <button className="btn btn-secondary" onClick={function () { setDeleteConfirm(null); }}>Batal</button>
+            <button className="btn btn-danger" onClick={function () { handleDelete(deleteConfirm); }}>
               <TemplateIcon name="trash" size={14} style={{ marginRight: '6px' }} /> Ya, Hapus
             </button>
           </>
