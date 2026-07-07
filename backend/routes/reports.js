@@ -359,4 +359,73 @@ router.get('/export-excel', function(req, res) {
   });
 });
 
+/* GET /api/reports/yearly-chart - Get 12 months of financial data for line chart */
+router.get('/yearly-chart', function(req, res) {
+  var year = req.query.year;
+  if (!year) {
+    year = new Date().getFullYear();
+  }
+  year = parseInt(year, 10);
+
+  var incomeSql = `
+    SELECT 
+      MONTH(STR_TO_DATE(periode, '%Y-%m')) as bulan,
+      COALESCE(SUM(nominal), 0) as total
+    FROM tagihan
+    WHERE status = 'lunas' AND YEAR(STR_TO_DATE(periode, '%Y-%m')) = ?
+    GROUP BY bulan
+    ORDER BY bulan
+  `;
+
+  var expenseSql = `
+    SELECT 
+      MONTH(tanggal) as bulan,
+      COALESCE(SUM(nominal), 0) as total
+    FROM pengeluaran
+    WHERE YEAR(tanggal) = ?
+    GROUP BY bulan
+    ORDER BY bulan
+  `;
+
+  db.query(incomeSql, [year], function(err, incomeRows) {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Gagal mengambil data pemasukan tahunan.' });
+    }
+
+    db.query(expenseSql, [year], function(err, expenseRows) {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Gagal mengambil data pengeluaran tahunan.' });
+      }
+
+      // Build a map for quick lookup
+      var incomeMap = {};
+      incomeRows.forEach(function(r) { incomeMap[r.bulan] = parseFloat(r.total); });
+
+      var expenseMap = {};
+      expenseRows.forEach(function(r) { expenseMap[r.bulan] = parseFloat(r.total); });
+
+      // Build 12-month array
+      var months = [];
+      for (var m = 1; m <= 12; m++) {
+        var pemasukan = incomeMap[m] || 0;
+        var pengeluaran = expenseMap[m] || 0;
+        months.push({
+          bulan: m,
+          pemasukan: pemasukan,
+          pengeluaran: pengeluaran,
+          laba_bersih: pemasukan - pengeluaran
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          year: year,
+          months: months
+        }
+      });
+    });
+  });
+});
+
 module.exports = router;

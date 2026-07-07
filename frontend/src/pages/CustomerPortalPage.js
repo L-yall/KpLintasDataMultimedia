@@ -10,6 +10,7 @@ function CustomerPortalPage({ onLogout }) {
   var [preview, setPreview] = useState('');
   var [uploading, setUploading] = useState(false);
   var [message, setMessage] = useState({ type: '', text: '' });
+  var [paymentMethod, setPaymentMethod] = useState('qris');
 
   var token = localStorage.getItem('customer_token');
   var headers = { Authorization: 'Bearer ' + token };
@@ -72,6 +73,51 @@ function CustomerPortalPage({ onLogout }) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Gagal mengunggah bukti pembayaran.' });
     } finally {
       setUploading(false);
+    }
+  }
+
+  function renderPaymentDetail() {
+    switch (paymentMethod) {
+      case 'qris':
+        return (
+          <div style={{ textAlign: 'center', marginTop: '12px' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '12px' }}>Scan Kode QRIS di bawah:</div>
+            <div style={{ display: 'inline-block', padding: '10px', background: 'white', borderRadius: '5px', marginBottom: '8px' }}>
+              <img
+                src="http://localhost:3000/images/qris.png"
+                alt="QRIS ESP Lintas Data"
+                style={{ width: '180px', height: '180px', display: 'block', objectFit: 'contain' }}
+              />
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Support semua bank & e-wallet (Gopay, OVO, Dana, LinkAja)</div>
+          </div>
+        );
+      case 'bri':
+        return (
+          <div style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '5px', border: '1px solid var(--border-color)', marginTop: '12px' }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank BRI</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--primary-light)' }}>0346-01-001962-50-8</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>a/n ESP Lintas Data Multimedia</div>
+          </div>
+        );
+      case 'mandiri':
+        return (
+          <div style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '5px', border: '1px solid var(--border-color)', marginTop: '12px' }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank Mandiri</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--primary-light)' }}>131-00-1572912-3</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>a/n ESP Lintas Data Multimedia</div>
+          </div>
+        );
+      case 'bca':
+        return (
+          <div style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '5px', border: '1px solid var(--border-color)', marginTop: '12px' }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank BCA</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--primary-light)' }}>869-0577-888</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>a/n ESP Lintas Data Multimedia</div>
+          </div>
+        );
+      default:
+        return null;
     }
   }
 
@@ -147,27 +193,37 @@ function CustomerPortalPage({ onLogout }) {
             {/* Payment instructions */}
             {billing.status !== 'menunggu_verifikasi' && (
               <div className="card animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}><TemplateIcon name="money" size={18} style={{ marginRight: '8px' }} /> Cara Pembayaran</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}><TemplateIcon name="money" size={18} style={{ marginRight: '8px' }} /> Metode Pembayaran</h3>
 
-                {/* Bank Transfer */}
-                <div style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '5px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank Mandiri</div>
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--primary-light)' }}>131-00-1572912-3</div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>a/n ESP Lintas Data Multimedia</div>
+                {/* Payment Method Dropdown */}
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <select
+                    id="payment-method-select"
+                    value={paymentMethod}
+                    onChange={function (e) { setPaymentMethod(e.target.value); }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '5px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      outline: 'none',
+                      appearance: 'auto'
+                    }}
+                  >
+                    <option value="qris">QRIS</option>
+                    <option value="bri">Bank BRI</option>
+                    <option value="mandiri">Bank Mandiri</option>
+                    <option value="bca">Bank BCA</option>
+                  </select>
                 </div>
 
-                {/* QRIS */}
-                <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '12px' }}>Atau Scan Kode QRIS di bawah:</div>
-                  <div style={{ display: 'inline-block', padding: '10px', background: 'white', borderRadius: '5px', marginBottom: '8px' }}>
-                    <img
-                      src="http://localhost:3000/images/qris.png"
-                      alt="QRIS ESP Lintas Data"
-                      style={{ width: '180px', height: '180px', display: 'block', objectFit: 'contain' }}
-                    />
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Support semua bank & e-wallet (Gopay, OVO, Dana, LinkAja)</div>
-                </div>
+                {/* Payment Detail based on selected method */}
+                {renderPaymentDetail()}
               </div>
             )}
 

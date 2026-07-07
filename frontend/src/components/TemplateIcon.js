@@ -206,6 +206,14 @@ function TemplateIcon({ name, size = 18, color = 'currentColor', strokeWidth = 1
                     <path d="M14 3v4h4" />
                 </svg>
             );
+        case 'info':
+            return (
+                <svg {...commonProps}>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                </svg>
+            );
         case 'shield':
             return (
                 <svg {...commonProps}>

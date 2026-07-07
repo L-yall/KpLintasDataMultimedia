@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Modal from '../components/Modal';
 import TemplateIcon from '../components/TemplateIcon';
@@ -12,6 +12,8 @@ function LaporanPage() {
   var [incomes, setIncomes] = useState([]);
   var [expenses, setExpenses] = useState([]);
   var [loading, setLoading] = useState(true);
+  var [yearlyData, setYearlyData] = useState([]);
+  var [chartYear, setChartYear] = useState(today.getFullYear());
 
   // Modals state for CRUD Expenses
   var [showAddModal, setShowAddModal] = useState(false);
@@ -39,6 +41,8 @@ function LaporanPage() {
     try {
       var summaryRes = await axios.get(`http://localhost:3000/api/reports/summary?periode=${periode}`, { headers: headers });
       var detailsRes = await axios.get(`http://localhost:3000/api/reports/details?periode=${periode}`, { headers: headers });
+      var selectedYear = periode.split('-')[0];
+      var chartRes = await axios.get(`http://localhost:3000/api/reports/yearly-chart?year=${selectedYear}`, { headers: headers });
 
       if (summaryRes.data.success) {
         setSummary(summaryRes.data.data);
@@ -46,6 +50,10 @@ function LaporanPage() {
       if (detailsRes.data.success) {
         setIncomes(detailsRes.data.data.pemasukan_list);
         setExpenses(detailsRes.data.data.pengeluaran_list);
+      }
+      if (chartRes.data.success) {
+        setYearlyData(chartRes.data.data.months);
+        setChartYear(chartRes.data.data.year);
       }
     } catch (err) {
       console.error('Gagal memuat data laporan keuangan:', err);
@@ -212,6 +220,20 @@ function LaporanPage() {
         </div>
       </div>
 
+      {/* Financial Line Chart */}
+      <div className="table-container animate-fadeIn" style={{ marginBottom: '24px' }}>
+        <div className="table-header">
+          <h3><TemplateIcon name="chart-up" size={18} style={{ marginRight: '8px' }} /> Grafik Keuangan Bulanan — {chartYear}</h3>
+        </div>
+        <div style={{ padding: '24px 28px 20px' }}>
+          {loading ? (
+            <div style={{ padding: '30px' }}><div className="skeleton skeleton-text" /></div>
+          ) : (
+            <FinancialLineChart data={yearlyData} formatUang={formatUang} />
+          )}
+        </div>
+      </div>
+
       {/* Grid: Pemasukan & Pengeluaran */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px', width: '100%' }}>
 
@@ -278,8 +300,13 @@ function LaporanPage() {
 
         {/* Section Pemasukan */}
         <div className="table-container animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-          <div className="table-header">
+          <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3><TemplateIcon name="chart-up" size={18} style={{ marginRight: '8px' }} /> Pemasukan Real-Time ({incomes.length})</h3>
+            {incomes.length > 10 && (
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <TemplateIcon name="info" size={14} /> Gulir ke bawah untuk melihat semua data
+              </span>
+            )}
           </div>
 
           {loading ? (
@@ -290,32 +317,34 @@ function LaporanPage() {
               <p>Belum ada tagihan lunas yang tercatat pada bulan ini.</p>
             </div>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Nama Pelanggan</th>
-                  <th>Nomor HP</th>
-                  <th>Periode</th>
-                  <th>Nominal Pemasukan</th>
-                  <th>Tanggal Bayar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {incomes.map(function (item, idx) {
-                  return (
-                    <tr key={item.id_tagihan}>
-                      <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
-                      <td style={{ fontWeight: 600 }}>{item.nama}</td>
-                      <td>{item.no_hp}</td>
-                      <td><code>{item.periode}</code></td>
-                      <td style={{ fontWeight: 700, color: 'var(--success)' }}>{formatUang(item.nominal)}</td>
-                      <td>{new Date(item.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div style={{ maxHeight: incomes.length > 10 ? '520px' : 'none', overflowY: incomes.length > 10 ? 'auto' : 'visible' }}>
+              <table className="data-table">
+                <thead style={{ position: incomes.length > 10 ? 'sticky' : 'static', top: 0, zIndex: 2 }}>
+                  <tr>
+                    <th>No</th>
+                    <th>Nama Pelanggan</th>
+                    <th>Nomor HP</th>
+                    <th>Periode</th>
+                    <th>Nominal Pemasukan</th>
+                    <th>Tanggal Bayar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {incomes.map(function (item, idx) {
+                    return (
+                      <tr key={item.id_tagihan}>
+                        <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
+                        <td style={{ fontWeight: 600 }}>{item.nama}</td>
+                        <td>{item.no_hp}</td>
+                        <td><code>{item.periode}</code></td>
+                        <td style={{ fontWeight: 700, color: 'var(--success)' }}>{formatUang(item.nominal)}</td>
+                        <td>{new Date(item.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
@@ -458,6 +487,155 @@ function LaporanPage() {
         </Modal>
       )}
 
+    </div>
+  );
+}
+
+/* ============================================
+   Financial Line Chart Component
+   ============================================ */
+function FinancialLineChart({ data, formatUang }) {
+  var [tooltip, setTooltip] = useState(null);
+  var monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+  var W = 780, H = 320;
+  var padL = 80, padR = 30, padT = 20, padB = 40;
+  var chartW = W - padL - padR;
+  var chartH = H - padT - padB;
+
+  var maxVal = useMemo(function () {
+    var m = 0;
+    if (!data || data.length === 0) return 1;
+    data.forEach(function (d) {
+      var v = Math.max(Math.abs(d.pemasukan), Math.abs(d.pengeluaran), Math.abs(d.laba_bersih));
+      if (v > m) m = v;
+    });
+    return m || 1;
+  }, [data]);
+
+  var yTicks = useMemo(function () {
+    var steps = 5;
+    var stepSize = Math.ceil(maxVal / steps);
+    var magnitude = Math.pow(10, Math.floor(Math.log10(stepSize || 1)));
+    var rounded = Math.ceil(stepSize / magnitude) * magnitude;
+    var ticks = [];
+    for (var i = 0; i <= steps; i++) { ticks.push(i * rounded); }
+    return ticks;
+  }, [maxVal]);
+
+  var yMax = yTicks[yTicks.length - 1] || 1;
+
+  function getX(idx) { return padL + (idx / 11) * chartW; }
+  function getY(val) { return padT + chartH - (Math.abs(val) / yMax) * chartH; }
+
+  function buildPath(key) {
+    if (!data || data.length === 0) return '';
+    return data.map(function (d, i) {
+      return (i === 0 ? 'M' : 'L') + getX(i).toFixed(1) + ',' + getY(d[key]).toFixed(1);
+    }).join(' ');
+  }
+
+  var lines = [
+    { key: 'pemasukan', color: '#0f9d5b', label: 'Total Pemasukan' },
+    { key: 'pengeluaran', color: '#dc2626', label: 'Total Pengeluaran' },
+    { key: 'laba_bersih', color: '#2563eb', label: 'Laba Bersih' }
+  ];
+
+  function formatShort(val) {
+    if (val >= 1000000) return 'Rp ' + (val / 1000000).toFixed(1) + 'jt';
+    if (val >= 1000) return 'Rp ' + (val / 1000).toFixed(0) + 'rb';
+    return 'Rp ' + val;
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <style>{`
+        @keyframes drawLine { from { stroke-dashoffset: 2000; } to { stroke-dashoffset: 0; } }
+        .lc-path { stroke-dasharray: 2000; animation: drawLine 1.5s ease-out forwards; }
+        .lc-dot { transition: r 0.15s ease; cursor: pointer; }
+      `}</style>
+
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: '24px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {lines.map(function (l) {
+          return (
+            <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '28px', height: '3px', borderRadius: '2px', background: l.color }} />
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{l.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <svg viewBox={'0 0 ' + W + ' ' + H} style={{ width: '100%', height: 'auto' }}>
+        {/* Grid + Y labels */}
+        {yTicks.map(function (tick, i) {
+          var y = getY(tick);
+          return (
+            <g key={i}>
+              <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray={i === 0 ? '0' : '4,4'} />
+              <text x={padL - 10} y={y + 4} textAnchor="end" fontSize="11" fill="var(--text-muted)" fontFamily="Hanken Grotesk, sans-serif">{formatShort(tick)}</text>
+            </g>
+          );
+        })}
+
+        {/* X labels */}
+        {monthNames.map(function (name, i) {
+          var x = getX(i);
+          return (
+            <g key={i}>
+              <line x1={x} y1={padT} x2={x} y2={padT + chartH} stroke="var(--border-color-light)" strokeWidth="0.5" strokeDasharray="2,4" />
+              <text x={x} y={H - 10} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--text-muted)" fontFamily="Hanken Grotesk, sans-serif">{name}</text>
+            </g>
+          );
+        })}
+
+        {/* Area fills */}
+        {lines.map(function (l) {
+          if (!data || data.length === 0) return null;
+          var p = buildPath(l.key);
+          var baseY = getY(0);
+          return <path key={'a-' + l.key} d={p + ' L' + getX(data.length - 1) + ',' + baseY + ' L' + getX(0) + ',' + baseY + ' Z'} fill={l.color} fillOpacity="0.04" />;
+        })}
+
+        {/* Lines */}
+        {lines.map(function (l) {
+          return <path key={l.key} className="lc-path" d={buildPath(l.key)} fill="none" stroke={l.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />;
+        })}
+
+        {/* Dots */}
+        {lines.map(function (l) {
+          if (!data) return null;
+          return data.map(function (d, i) {
+            return <circle key={l.key + i} className="lc-dot" cx={getX(i)} cy={getY(d[l.key])} r={tooltip && tooltip.idx === i ? 5 : 3.5} fill={l.color} stroke="#fff" strokeWidth="2" opacity={tooltip && tooltip.idx === i ? 1 : 0.8} />;
+          });
+        })}
+
+        {/* Hit areas */}
+        {monthNames.map(function (_, i) {
+          var w = chartW / 12;
+          return <rect key={'h' + i} x={getX(i) - w / 2} y={padT} width={w} height={chartH} fill="transparent" onMouseEnter={function () { setTooltip({ idx: i, d: data[i] }); }} onMouseLeave={function () { setTooltip(null); }} style={{ cursor: 'pointer' }} />;
+        })}
+
+        {/* Tooltip line */}
+        {tooltip && <line x1={getX(tooltip.idx)} y1={padT} x2={getX(tooltip.idx)} y2={padT + chartH} stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="4,3" opacity="0.5" />}
+      </svg>
+
+      {/* Tooltip card */}
+      {tooltip && tooltip.d && (
+        <div style={{ position: 'absolute', left: Math.min(getX(tooltip.idx) / W * 100, 72) + '%', top: '20px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px 16px', boxShadow: 'var(--shadow-md)', fontSize: '0.82rem', zIndex: 10, minWidth: '180px', pointerEvents: 'none' }}>
+          <div style={{ fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)' }}>{monthNames[tooltip.idx]}</div>
+          {lines.map(function (l) {
+            return (
+              <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: l.color, flexShrink: 0 }} />
+                <span style={{ color: 'var(--text-secondary)' }}>{l.label}:</span>
+                <strong style={{ color: l.color, marginLeft: 'auto' }}>{formatUang(tooltip.d[l.key])}</strong>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
