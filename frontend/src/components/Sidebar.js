@@ -102,13 +102,12 @@ function Sidebar({ admin, onLogout }) {
     <aside className="sidebar">
       <div className="sidebar-brand">
         <div className="sidebar-brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2v20" />
-            <path d="M2 12h20" />
-            <path d="M4.9 4.9 19.1 19.1" />
-            <path d="M4.9 19.1 19.1 4.9" />
-          </svg>
+          <img
+            src={process.env.PUBLIC_URL + '/logo ldm.png'}
+            alt="Logo LDM"
+            className="sidebar-logo"
+            style={{ width: '40px', height: '40px', objectFit: 'contain' }}
+          />
         </div>
         <div className="sidebar-brand-text">
           <h2>ESP Lintas Data</h2>
