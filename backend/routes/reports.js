@@ -96,6 +96,8 @@ router.get('/details', function(req, res) {
     });
   });
 });
+
+/* GET /api/reports/export-excel - EXPORT TABEL ATAS-BAWAH DENGAN DETAIL LENGKAP */
 router.get('/export-excel', function (req, res) {
   var { periode } = req.query;
   if (!periode) {
@@ -105,16 +107,23 @@ router.get('/export-excel', function (req, res) {
     periode = y + '-' + (m < 10 ? '0' + m : m);
   }
 
+  // Menarik data lebih detail (Alamat, Paket, Username PPPoE)
   var incomeSql = `
-    SELECT t.*, p.nama, p.email, p.no_hp 
+    SELECT 
+      t.*, 
+      p.nama, p.email, p.no_hp, p.alamat, p.pppoe_username,
+      pk.nama_paket, pk.harga
     FROM tagihan t 
     JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan 
+    LEFT JOIN paket_layanan pk ON p.paket = pk.nama_paket
     WHERE t.status = 'lunas' AND t.periode = ?
     ORDER BY t.updated_at DESC
   `;
-
   db.query(incomeSql, [periode], function (err, incomes) {
-    if (err) return res.status(500).send('Gagal mengambil data pemasukan.');
+    if (err) {
+      console.error("Error SQL Pemasukan:", err);
+      return res.status(500).send('Gagal mengambil data pemasukan.');
+    }
 
     Pengeluaran.getAll(periode, async function (err, expenses) {
       if (err) return res.status(500).send('Gagal mengambil data pengeluaran.');
@@ -131,7 +140,7 @@ router.get('/export-excel', function (req, res) {
         const sheet = workbook.getWorksheet('Dashboard');
         if (!sheet) return res.status(500).send('Sheet "Dashboard" tidak ditemukan.');
 
-        // Tembakkan nilai Total (Font akan mengikuti template Excel)
+        // Tembakkan nilai Total
         sheet.getCell('B8').value = totalPemasukan;
         sheet.getCell('D8').value = totalPengeluaran;
         sheet.getCell('E8').value = labaBersih;
@@ -140,83 +149,99 @@ router.get('/export-excel', function (req, res) {
           top: { style: 'thin' }, bottom: { style: 'thin' },
           left: { style: 'thin' }, right: { style: 'thin' }
         };
-
-        // Variable khusus untuk Font Times New Roman
+        var alignCenter = { vertical: 'middle', horizontal: 'center', wrapText: true };
         var fontTNR = { name: 'Times New Roman', size: 11 };
-        var fontTNRBold = { name: 'Times New Roman', size: 11, bold: true };
         var fontTNRHeader = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
 
         // ==========================================
-        // TABEL DETAIL PEMASUKAN (Sisi Kiri)
+        // 1. TABEL DETAIL PEMASUKAN (Di Atas)
         // ==========================================
-        var incRow = 11; 
+        var currentRow = 11; 
         
-        sheet.getCell(`B${incRow}`).value = 'DETAIL PEMASUKAN (TAGIHAN LUNAS)';
-        sheet.getCell(`B${incRow}`).font = { name: 'Times New Roman', bold: true, size: 12, color: { argb: 'FF1F497D' } };
-        incRow++;
+        sheet.getCell(`B${currentRow}`).value = 'DETAIL PEMASUKAN (TAGIHAN LUNAS)';
+        sheet.getCell(`B${currentRow}`).font = { name: 'Times New Roman', bold: true, size: 12, color: { argb: 'FF1F497D' } };
+        currentRow++;
 
-        var incomeHeaders = ['Tanggal Bayar', 'Nama Pelanggan', 'Email Pelanggan', 'Nominal'];
+        var incomeHeaders = [
+          'No', 'Tanggal Bayar', 'Nama Pelanggan', 'Alamat', 
+          'Email', 'No. HP', 'Paket & Harga', 'Username PPPoE', 'Nominal'
+        ];
+        
         incomeHeaders.forEach((h, idx) => {
-          var cell = sheet.getCell(incRow, idx + 2); 
+          var cell = sheet.getCell(currentRow, idx + 2); // Mulai dari Kolom B
           cell.value = h;
           cell.font = fontTNRHeader;
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } }; 
           cell.border = borderThin;
+          cell.alignment = alignCenter;
         });
-        incRow++;
+        currentRow++;
 
-        incomes.forEach((item) => {
-          var row = sheet.getRow(incRow);
-          row.getCell(2).value = new Date(item.updated_at).toLocaleDateString('id-ID'); 
-          row.getCell(3).value = item.nama;                                             
-          row.getCell(4).value = item.email || '-';                                     
+        incomes.forEach((item, index) => {
+          var row = sheet.getRow(currentRow);
+          row.getCell(2).value = index + 1; 
+          row.getCell(3).value = new Date(item.updated_at).toLocaleDateString('id-ID'); 
+          row.getCell(4).value = item.nama;                                             
+          row.getCell(5).value = item.alamat || '-';
+          row.getCell(6).value = item.email || '-';
+          row.getCell(7).value = item.no_hp || '-';
           
-          var nominalCell = row.getCell(5);                                             
+          var hargaFormat = item.harga ? item.harga.toLocaleString('id-ID') : '0';
+          row.getCell(8).value = `${item.nama_paket || '-'} (Rp ${hargaFormat})`;
+          
+          row.getCell(9).value = item.pppoe_username || '-';
+
+          var nominalCell = row.getCell(10);                                             
           nominalCell.value = parseFloat(item.nominal);
           nominalCell.numFormat = '"Rp"#,##0'; 
           
-          // Terapkan Font Times New Roman ke setiap sel data
-          [2, 3, 4, 5].forEach(col => {
+          // Loop kolom B (2) sampai J (10)
+          for(let col = 2; col <= 10; col++) {
               row.getCell(col).border = borderThin;
               row.getCell(col).font = fontTNR;
-          });
-          incRow++;
+              row.getCell(col).alignment = alignCenter;
+          }
+          currentRow++;
         });
 
         // ==========================================
-        // TABEL DETAIL PENGELUARAN (Sisi Kanan)
+        // 2. TABEL DETAIL PENGELUARAN (Di Bawah Pemasukan)
         // ==========================================
-        var expRow = 11; 
+        currentRow += 2; 
         
-        sheet.getCell(`G${expRow}`).value = 'DETAIL PENGELUARAN OPERASIONAL';
-        sheet.getCell(`G${expRow}`).font = { name: 'Times New Roman', bold: true, size: 12, color: { argb: 'FFC65911' } };
-        expRow++;
+        sheet.getCell(`B${currentRow}`).value = 'DETAIL PENGELUARAN OPERASIONAL';
+        sheet.getCell(`B${currentRow}`).font = { name: 'Times New Roman', bold: true, size: 12, color: { argb: 'FFC65911' } };
+        currentRow++;
 
-        var expenseHeaders = ['Tanggal Pengeluaran', 'Keterangan / Tujuan', 'Nominal Pengeluaran'];
+        var expenseHeaders = ['No', 'Tanggal Pengeluaran', 'Kategori', 'Petugas', 'Nominal Pengeluaran'];
         expenseHeaders.forEach((h, idx) => {
-          var cell = sheet.getCell(expRow, idx + 7); 
+          var cell = sheet.getCell(currentRow, idx + 2); 
           cell.value = h;
           cell.font = fontTNRHeader;
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC65911' } }; 
           cell.border = borderThin;
+          cell.alignment = alignCenter;
         });
-        expRow++;
+        currentRow++;
 
-        expenses.forEach((item) => {
-          var row = sheet.getRow(expRow);
-          row.getCell(7).value = new Date(item.tanggal).toLocaleDateString('id-ID');     
-          row.getCell(8).value = item.keterangan || item.kategori;                       
+        expenses.forEach((item, index) => {
+          var row = sheet.getRow(currentRow);
+          row.getCell(2).value = index + 1; 
+          row.getCell(3).value = new Date(item.tanggal).toLocaleDateString('id-ID');     
+          row.getCell(4).value = item.kategori || '-';                  
+          row.getCell(5).value = item.nama_admin || '-'; 
           
-          var nominalCell = row.getCell(9);                                              
+          var nominalCell = row.getCell(6);                                              
           nominalCell.value = parseFloat(item.nominal);
           nominalCell.numFormat = '"Rp"#,##0'; 
 
-          // Terapkan Font Times New Roman ke setiap sel data
-          [7, 8, 9].forEach(col => {
+          // Loop kolom B (2) sampai F (6)
+          for(let col = 2; col <= 6; col++) {
               row.getCell(col).border = borderThin;
               row.getCell(col).font = fontTNR;
-          });
-          expRow++;
+              row.getCell(col).alignment = alignCenter;
+          }
+          currentRow++;
         });
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
