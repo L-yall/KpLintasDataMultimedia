@@ -10,14 +10,45 @@ function CustomerPortalPage({ onLogout }) {
   var [preview, setPreview] = useState('');
   var [uploading, setUploading] = useState(false);
   var [message, setMessage] = useState({ type: '', text: '' });
-  var [paymentMethod, setPaymentMethod] = useState('qris');
+  var [paymentMethod, setPaymentMethod] = useState('midtrans');
+  var [midtransClientKey, setMidtransClientKey] = useState('');
+  var [midtransLoading, setMidtransLoading] = useState(false);
 
   var token = localStorage.getItem('customer_token');
   var headers = { Authorization: 'Bearer ' + token };
 
   useEffect(function () {
     fetchBilling();
+    fetchMidtransConfig();
   }, []);
+
+  async function fetchMidtransConfig() {
+    try {
+      var response = await axios.get('http://localhost:3000/api/customer/portal/midtrans-config', { headers: headers });
+      if (response.data.success) {
+        var clientKey = response.data.clientKey;
+        setMidtransClientKey(clientKey);
+
+        // Dynamically load Midtrans Snap JS
+        var isSandbox = response.data.isSandbox;
+        var snapScriptUrl = isSandbox
+          ? 'https://app.sandbox.midtrans.com/snap/snap.js'
+          : 'https://app.midtrans.com/snap/snap.js';
+
+        var existingScript = document.getElementById('midtrans-snap-js');
+        if (!existingScript) {
+          var script = document.createElement('script');
+          script.src = snapScriptUrl;
+          script.id = 'midtrans-snap-js';
+          script.setAttribute('data-client-key', clientKey);
+          script.async = true;
+          document.body.appendChild(script);
+        }
+      }
+    } catch (err) {
+      console.error('Gagal mengambil konfigurasi Midtrans:', err);
+    }
+  }
 
   async function fetchBilling() {
     try {
@@ -76,8 +107,75 @@ function CustomerPortalPage({ onLogout }) {
     }
   }
 
+  async function handleMidtransPay() {
+    if (!billing || !billing.id_tagihan) return;
+    setMidtransLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      var response = await axios.post('http://localhost:3000/api/customer/portal/midtrans-token', {
+        id_tagihan: billing.id_tagihan
+      }, { headers: headers });
+
+      if (response.data.success) {
+        var snapToken = response.data.token;
+        
+        if (window.snap) {
+          window.snap.pay(snapToken, {
+            onSuccess: function (result) {
+              setMessage({ type: 'success', text: 'Pembayaran sukses! Layanan internet Anda sedang diaktifkan.' });
+              fetchBilling();
+            },
+            onPending: function (result) {
+              setMessage({ type: 'info', text: 'Pembayaran Anda sedang diproses. Silakan selesaikan pembayaran Anda.' });
+              fetchBilling();
+            },
+            onError: function (result) {
+              setMessage({ type: 'error', text: 'Pembayaran gagal. Silakan coba kembali atau gunakan metode lain.' });
+            },
+            onClose: function () {
+              console.log('Customer closed payment popup without finishing.');
+            }
+          });
+        } else {
+          // Fallback to redirect_url if snap popup fails to load
+          window.location.href = response.data.redirect_url;
+        }
+      }
+    } catch (err) {
+      console.error('Midtrans payment error:', err);
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Gagal memulai pembayaran online.' });
+    } finally {
+      setMidtransLoading(false);
+    }
+  }
+
   function renderPaymentDetail() {
     switch (paymentMethod) {
+      case 'midtrans':
+        return (
+          <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '5px', border: '1px solid var(--border-color)', marginTop: '12px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: 'var(--primary-light)' }}>
+              Pembayaran Online Otomatis (Midtrans)
+            </div>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '16px' }}>
+              Bayar menggunakan QRIS, GoPay, ShopeePay, Mandiri Billpayment, BCA/BRI Virtual Account, atau Kartu Kredit. Pembayaran akan terverifikasi secara instan dan internet Anda akan langsung aktif kembali.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '12px', fontWeight: 700 }}
+              onClick={handleMidtransPay}
+              disabled={midtransLoading}
+            >
+              {midtransLoading ? (
+                <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Menghubungkan...</>
+              ) : (
+                <><TemplateIcon name="money" size={16} style={{ marginRight: '6px' }} /> Bayar Sekarang</>
+              )}
+            </button>
+          </div>
+        );
       case 'qris':
         return (
           <div style={{ textAlign: 'center', marginTop: '12px' }}>
@@ -215,10 +313,11 @@ function CustomerPortalPage({ onLogout }) {
                       appearance: 'auto'
                     }}
                   >
-                    <option value="qris">QRIS</option>
-                    <option value="bri">Bank BRI</option>
-                    <option value="mandiri">Bank Mandiri</option>
-                    <option value="bca">Bank BCA</option>
+                    <option value="midtrans">Bayar Online Instan (QRIS, E-Wallet, VA Bank Transfer) - Otomatis</option>
+                    <option value="qris">Manual: QRIS</option>
+                    <option value="bri">Manual: Bank BRI</option>
+                    <option value="mandiri">Manual: Bank Mandiri</option>
+                    <option value="bca">Manual: Bank BCA</option>
                   </select>
                 </div>
 
@@ -228,59 +327,61 @@ function CustomerPortalPage({ onLogout }) {
             )}
 
             {/* Upload Payment Proof */}
-            <div className="card animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>
-                {billing.status === 'menunggu_verifikasi' ? <><TemplateIcon name="document" size={18} style={{ marginRight: '8px' }} /> Bukti Transfer Anda</> : <><TemplateIcon name="upload" size={18} style={{ marginRight: '8px' }} /> Upload Bukti Transfer</>}
-              </h3>
+            {paymentMethod !== 'midtrans' && (
+              <div className="card animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>
+                  {billing.status === 'menunggu_verifikasi' ? <><TemplateIcon name="document" size={18} style={{ marginRight: '8px' }} /> Bukti Transfer Anda</> : <><TemplateIcon name="upload" size={18} style={{ marginRight: '8px' }} /> Upload Bukti Transfer</>}
+                </h3>
 
-              {billing.status === 'menunggu_verifikasi' ? (
-                <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '10px 0' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}><TemplateIcon name="loading" size={42} color="var(--primary-light)" /></div>
-                  <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Pembayaran Sedang Diverifikasi Admin</p>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    Admin sedang mencocokkan nominal transfer Anda. Internet Anda akan otomatis aktif setelah verifikasi disetujui.
-                  </p>
-                </div>
-              ) : (
-                <form onSubmit={handleUpload}>
-                  <div className="form-group" style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', padding: '16px', background: 'var(--bg-secondary)', border: '1px dashed var(--border-color-light)', borderRadius: '5px', textAlign: 'center', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '1.5rem', display: 'block', marginBottom: '4px' }}><TemplateIcon name="camera" size={28} /></span>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)' }}>
-                        {file ? 'Ganti File Gambar' : 'Pilih Foto / Screenshot Bukti'}
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        style={{ display: 'none' }}
-                        required
-                      />
-                    </label>
+                {billing.status === 'menunggu_verifikasi' ? (
+                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '10px 0' }}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}><TemplateIcon name="loading" size={42} color="var(--primary-light)" /></div>
+                    <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Pembayaran Sedang Diverifikasi Admin</p>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Admin sedang mencocokkan nominal transfer Anda. Internet Anda akan otomatis aktif setelah verifikasi disetujui.
+                    </p>
                   </div>
-
-                  {preview && (
-                    <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Preview Bukti:</div>
-                      <img
-                        src={preview}
-                        alt="Preview Bukti Transfer"
-                        style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '5px', border: '1px solid var(--border-color)' }}
-                      />
+                ) : (
+                  <form onSubmit={handleUpload}>
+                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', padding: '16px', background: 'var(--bg-secondary)', border: '1px dashed var(--border-color-light)', borderRadius: '5px', textAlign: 'center', cursor: 'pointer' }}>
+                        <span style={{ fontSize: '1.5rem', display: 'block', marginBottom: '4px' }}><TemplateIcon name="camera" size={28} /></span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)' }}>
+                          {file ? 'Ganti File Gambar' : 'Pilih Foto / Screenshot Bukti'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          style={{ display: 'none' }}
+                          required
+                        />
+                      </label>
                     </div>
-                  )}
 
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    style={{ width: '100%', padding: '12px' }}
-                    disabled={uploading || !file}
-                  >
-                    {uploading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Mengunggah...</> : <><TemplateIcon name="upload" size={16} style={{ marginRight: '6px' }} /> Kirim Konfirmasi Pembayaran</>}
-                  </button>
-                </form>
-              )}
-            </div>
+                    {preview && (
+                      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Preview Bukti:</div>
+                        <img
+                          src={preview}
+                          alt="Preview Bukti Transfer"
+                          style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '5px', border: '1px solid var(--border-color)' }}
+                        />
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      style={{ width: '100%', padding: '12px' }}
+                      disabled={uploading || !file}
+                    >
+                      {uploading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Mengunggah...</> : <><TemplateIcon name="upload" size={16} style={{ marginRight: '6px' }} /> Kirim Konfirmasi Pembayaran</>}
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

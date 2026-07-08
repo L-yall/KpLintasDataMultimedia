@@ -17,6 +17,7 @@ import PembayaranPage from './pages/PembayaranPage';
 import LaporanPage from './pages/LaporanPage';
 import CustomerLoginPage from './pages/CustomerLoginPage';
 import CustomerPortalPage from './pages/CustomerPortalPage';
+import LandingPage from './pages/LandingPage';
 
 function App() {
   // Admin authentication state
@@ -30,8 +31,8 @@ function App() {
   var [loading, setLoading] = useState(true);
   var [socket, setSocket] = useState(null);
 
-  // Check URL pathname to determine if it is customer flow
-  var isCustomerRoute = window.location.pathname.startsWith('/portal') || window.location.pathname.startsWith('/bayar');
+  // Check URL pathname to determine if it is admin dashboard flow
+  var isAdminRoute = window.location.pathname.startsWith('/dashboard') || window.location.pathname.startsWith('/login');
 
   // Load saved sessions
   useEffect(function () {
@@ -74,10 +75,10 @@ function App() {
       function (error) {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           console.warn('Session expired or invalid. Logging out.');
-          if (isCustomerRoute) {
-            handleCustomerLogout();
-          } else {
+          if (isAdminRoute) {
             handleLogout();
+          } else {
+            handleCustomerLogout();
           }
         }
         return Promise.reject(error);
@@ -87,11 +88,11 @@ function App() {
     return function () {
       axios.interceptors.response.eject(interceptor);
     };
-  }, [isCustomerRoute]);
+  }, [isAdminRoute]);
 
   // Admin socket manager
   useEffect(function () {
-    if (token && !isCustomerRoute) {
+    if (token && isAdminRoute) {
       var newSocket = io('http://localhost:3000', {
         transports: ['websocket'],
         auth: { token: token }
@@ -106,7 +107,7 @@ function App() {
     } else {
       setSocket(null);
     }
-  }, [token, isCustomerRoute]);
+  }, [token, isAdminRoute]);
 
   // Admin login / logout
   function handleLogin(adminData, tokenData) {
@@ -151,59 +152,64 @@ function App() {
   }
 
   // ==========================================
-  // 1. CUSTOMER PORTAL FLOW
+  // 1. ADMIN DASHBOARD FLOW
   // ==========================================
-  if (isCustomerRoute) {
-    if (!customer || !customerToken) {
+  if (isAdminRoute) {
+    if (!admin || !token) {
       return (
         <Routes>
-          <Route path="/bayar/:userEmail" element={<CustomerLoginPage onLogin={handleCustomerLogin} />} />
-          <Route path="/bayar" element={<CustomerLoginPage onLogin={handleCustomerLogin} />} />
-          <Route path="*" element={<Navigate to="/bayar" replace />} />
+          <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       );
     }
 
     return (
-      <Routes>
-        <Route path="/portal" element={<CustomerPortalPage onLogout={handleCustomerLogout} />} />
-        <Route path="*" element={<Navigate to="/portal" replace />} />
-      </Routes>
+      <div className="app-layout">
+        <Sidebar admin={admin} onLogout={handleLogout} />
+        <Navbar />
+        <main className="app-main">
+          <div className="app-content">
+            <Routes>
+              <Route path="/dashboard" element={<DashboardPage socket={socket} />} />
+              <Route path="/dashboard/pelanggan" element={<PelangganPage socket={socket} />} />
+              <Route path="/dashboard/paket" element={<PaketPage />} />
+              <Route path="/dashboard/mikrotik" element={<MikrotikPage socket={socket} />} />
+              <Route path="/dashboard/reminder-logs" element={<ReminderLogPage />} />
+              <Route path="/dashboard/pembayaran" element={<PembayaranPage socket={socket} />} />
+              <Route path="/dashboard/laporan" element={<LaporanPage />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </div>
+        </main>
+      </div>
     );
   }
 
   // ==========================================
-  // 2. ADMIN DASHBOARD FLOW
+  // 2. PUBLIC & CUSTOMER PORTAL FLOW
   // ==========================================
-  if (!admin || !token) {
-    return (
-      <Routes>
-        <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    );
-  }
-
   return (
-    <div className="app-layout">
-      <Sidebar admin={admin} onLogout={handleLogout} />
-      <Navbar />
-      <main className="app-main">
-        <div className="app-content">
-          <Routes>
-            <Route path="/dashboard" element={<DashboardPage socket={socket} />} />
-            <Route path="/dashboard/pelanggan" element={<PelangganPage socket={socket} />} />
-            <Route path="/dashboard/paket" element={<PaketPage />} />
-            <Route path="/dashboard/mikrotik" element={<MikrotikPage socket={socket} />} />
-            <Route path="/dashboard/reminder-logs" element={<ReminderLogPage />} />
-            <Route path="/dashboard/pembayaran" element={<PembayaranPage socket={socket} />} />
-            <Route path="/dashboard/laporan" element={<LaporanPage />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </div>
-      </main>
-    </div>
+    <Routes>
+      {/* Landing Page — accessible to everyone */}
+      <Route path="/" element={<LandingPage customer={customer} onLogout={handleCustomerLogout} />} />
+
+      {/* Customer Login */}
+      <Route path="/bayar/:userEmail" element={<CustomerLoginPage onLogin={handleCustomerLogin} />} />
+      <Route path="/bayar" element={<CustomerLoginPage onLogin={handleCustomerLogin} />} />
+
+      {/* Customer Portal — requires login */}
+      <Route path="/portal" element={
+        customer && customerToken
+          ? <CustomerPortalPage onLogout={handleCustomerLogout} />
+          : <Navigate to="/bayar" replace />
+      } />
+
+      {/* Fallback: redirect to landing */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
 export default App;
+

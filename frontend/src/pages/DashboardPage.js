@@ -75,10 +75,13 @@ function DashboardPage({ socket }) {
         var routerX = routerRect.left - containerRect.left + routerRect.width / 2;
         var routerY = routerRect.top - containerRect.top + routerRect.height;
         var swX = swRect.left - containerRect.left + swRect.width / 2;
-        var swY = swRect.top - containerRect.top + swRect.height;
+        var swY_top = swRect.top - containerRect.top;
 
         setRouterLine({
-          pathD: 'M ' + routerX + ' ' + routerY + ' C ' + routerX + ' ' + (routerY + 32) + ', ' + swX + ' ' + (swY - 44) + ', ' + swX + ' ' + (swY - 6),
+          x1: routerX,
+          y1: routerY,
+          x2: swX,
+          y2: swY_top,
           color: routerStatus.online ? '#22C55E' : '#EF4444'
         });
       } else {
@@ -86,6 +89,10 @@ function DashboardPage({ socket }) {
       }
 
       if (switchNode && clientNodes.length > 0) {
+        var swRect = switchNode.getBoundingClientRect();
+        var swX = swRect.left - containerRect.left + swRect.width / 2;
+        var swY_bottom = swRect.top - containerRect.top + swRect.height;
+
         var newLines = Array.from(clientNodes).map(function (node) {
           var cRect = node.getBoundingClientRect();
           var isOnline = node.classList.contains('online');
@@ -93,14 +100,12 @@ function DashboardPage({ socket }) {
           var status = isOnline ? 'up' : (isWarning ? 'warning' : 'down');
           var x2 = cRect.left - containerRect.left + cRect.width / 2;
           var y2 = cRect.top - containerRect.top + 8;
-          var curveX = x2 >= swX ? Math.min(110, Math.abs(x2 - swX) * 0.32) : -Math.min(110, Math.abs(x2 - swX) * 0.32);
 
           return {
             x1: swX,
-            y1: swY - 6,
+            y1: swY_bottom,
             x2: x2,
             y2: y2,
-            pathD: 'M ' + swX + ' ' + (swY - 6) + ' C ' + (swX + curveX) + ' ' + (swY + 26) + ', ' + (x2 - curveX * 0.4) + ' ' + (y2 - 36) + ', ' + x2 + ' ' + y2,
             status: status
           };
         });
@@ -468,7 +473,7 @@ function DashboardPage({ socket }) {
           align-items: center;
           gap: 20px;
           padding: 20px 0;
-          min-height: 480px;
+          min-height: 440px;
           position: relative;
           background-image: radial-gradient(var(--border-color-light) 1px, transparent 1px);
           background-size: 20px 20px;
@@ -504,10 +509,6 @@ function DashboardPage({ socket }) {
           transition: transform 0.2s ease, filter 0.2s ease;
           z-index: 3;
           padding: 8px 6px;
-          border-radius: var(--radius-xl);
-          background: rgba(255, 255, 255, 0.72);
-          backdrop-filter: blur(4px);
-          border: 1px solid rgba(225, 227, 228, 0.8);
         }
 
         .network-node:hover {
@@ -527,22 +528,6 @@ function DashboardPage({ socket }) {
           position: relative;
           transition: all 0.3s ease;
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
-        }
-
-        .network-node.online .node-icon-wrapper {
-          border-color: var(--primary);
-          box-shadow: 0 0 15px rgba(0, 104, 118, 0.14);
-        }
-
-        .network-node.offline .node-icon-wrapper {
-          border-color: var(--border-color);
-          opacity: 0.7;
-        }
-
-        .network-node.warning .node-icon-wrapper {
-          border-color: var(--status-merah);
-          box-shadow: 0 0 15px rgba(186, 26, 26, 0.18);
-          animation: pulse-border-red 2s infinite;
         }
 
         .node-label {
@@ -582,8 +567,6 @@ function DashboardPage({ socket }) {
 
         .status-dot-pulse {
           position: absolute;
-          top: 4px;
-          right: 4px;
           width: 10px;
           height: 10px;
           border-radius: 50%;
@@ -612,6 +595,234 @@ function DashboardPage({ socket }) {
           0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(186, 26, 26, 0.6); }
           70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(186, 26, 26, 0); }
           100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(186, 26, 26, 0); }
+        }
+
+        /* Cisco Packet Tracer Styled Topology Map Styles */
+        .topology-header-tabs {
+          display: flex;
+          gap: 4px;
+          background: var(--bg-secondary);
+          padding: 3px;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-color);
+        }
+
+        .topology-tab-btn {
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          font-size: 0.8rem;
+          font-weight: 600;
+          padding: 6px 12px;
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .topology-tab-btn.active {
+          background: var(--bg-card);
+          color: var(--primary);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .topology-canvas-wrapper {
+          width: 100%;
+          overflow-x: auto;
+          border: 1px solid var(--border-color-light);
+          border-radius: var(--radius-lg);
+          background-color: #fcfdfe;
+          background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+          background-size: 24px 24px;
+          margin-top: 10px;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .topology-canvas {
+          position: relative;
+          width: 800px;
+          height: 440px;
+        }
+
+        .cisco-node {
+          position: absolute;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          cursor: pointer;
+          user-select: none;
+          transition: transform 0.2s ease;
+          width: 120px;
+          z-index: 5;
+        }
+
+        .cisco-node:hover {
+          transform: scale(1.05);
+        }
+
+        .cisco-node-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 60px;
+          width: 80px;
+          position: relative;
+        }
+
+        .cisco-labels {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-top: 4px;
+          font-family: 'Consolas', 'Courier New', monospace;
+        }
+
+        .cisco-label-model {
+          font-size: 0.72rem;
+          color: #475569;
+          font-weight: 500;
+        }
+
+        .cisco-label-name {
+          font-size: 0.76rem;
+          color: #0f172a;
+          font-weight: 700;
+          margin-top: -2px;
+        }
+
+        .cisco-label-ip {
+          font-size: 0.7rem;
+          color: #1e293b;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          padding: 1px 4px;
+          border-radius: 2px;
+          margin-top: 3px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .ping-packet-dot {
+          position: absolute;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          border: 2px solid #ffffff;
+          box-shadow: 0 0 12px rgba(0,0,0,0.3);
+          pointer-events: none;
+          z-index: 10;
+          transform: translate(-50%, -50%);
+          transition: left 450ms linear, top 450ms linear;
+        }
+
+        .ping-packet-dot.request {
+          background: #f59e0b;
+          box-shadow: 0 0 12px #f59e0b;
+        }
+
+        .ping-packet-dot.reply {
+          background: #06b6d4;
+          box-shadow: 0 0 12px #06b6d4;
+        }
+
+        /* Terminal Console styles */
+        .topology-terminal-panel {
+          background: #0b0f19;
+          border: 1px solid #1e293b;
+          border-radius: var(--radius-lg);
+          margin-top: 15px;
+          overflow: hidden;
+          font-family: 'Consolas', 'Courier New', monospace;
+          box-shadow: var(--shadow-md);
+        }
+
+        .terminal-header {
+          background: #141b2d;
+          padding: 8px 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px solid #1e293b;
+        }
+
+        .terminal-title {
+          color: #94a3b8;
+          font-size: 0.8rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+        }
+
+        .terminal-close-btn {
+          background: transparent;
+          border: none;
+          color: #64748b;
+          font-size: 1.2rem;
+          cursor: pointer;
+          transition: color var(--transition-fast);
+        }
+
+        .terminal-close-btn:hover {
+          color: #ef4444;
+        }
+
+        .terminal-body {
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        .terminal-logs {
+          background: #020612;
+          border: 1px solid #1e293b;
+          border-radius: var(--radius-md);
+          padding: 12px;
+          height: 180px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .terminal-log-line {
+          color: #f1f5f9;
+          font-size: 0.82rem;
+          line-height: 1.4;
+          white-space: pre-wrap;
+        }
+
+        .terminal-cursor-line {
+          display: flex;
+          align-items: center;
+        }
+
+        .cursor-indicator {
+          display: inline-block;
+          width: 8px;
+          height: 14px;
+          background: #38bdf8;
+          animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+          50% { opacity: 0; }
+        }
+
+        .terminal-controls {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .terminal-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .terminal-actions span {
+          color: #94a3b8;
+          font-size: 0.82rem;
         }
 
         @keyframes pulse-border-red {
@@ -766,7 +977,9 @@ function DashboardPage({ socket }) {
                 </span>
                 <span>Peta topologi jaringan</span>
               </div>
-              <div className="panel-card-subtitle">Status session & perangkat terhubung real-time dari Mikrotik</div>
+              <div className="panel-card-subtitle">
+                Status session & perangkat terhubung real-time dari Mikrotik
+              </div>
             </div>
             <div style={{ display: 'flex', gap: '12px', fontSize: '0.78rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '8px', height: '8px', background: 'var(--success)', borderRadius: '50%' }} /> Aktif ({activeCustomers.length})</span>
@@ -779,58 +992,33 @@ function DashboardPage({ socket }) {
 
           <div className="topology-container" ref={containerRef}>
             <div className="topology-row" style={{ marginBottom: '10px' }}>
-              <div id="router-node" className={`network-node ${routerStatus.online ? 'online' : 'offline'}`} title={`Mikrotik Router Gateway IP: ${routerStatus.online ? '192.168.50.1' : 'Offline'}`}>
-                {routerStatus.online && <span className="status-dot-pulse green" />}
-                {!routerStatus.online && <span className="status-dot-pulse red" />}
-                <div className="node-icon-wrapper" style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)' }}>
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={routerStatus.online ? 'var(--success)' : 'var(--text-muted)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 2v20M2 12h20" />
-                    <path d="M12 6l-2-2-2 2M12 18l2 2 2-2M6 12l-2-2-2 2M18 12l2 2 2-2" />
-                  </svg>
+              <div id="router-node" className={`network-node ${routerStatus.online ? 'online' : 'offline'}`} title={`Mikrotik Router Gateway IP: ${routerStatus.online ? '192.168.50.1' : 'Offline'}`} style={{ border: 'none', background: 'transparent', backdropFilter: 'none' }}>
+                <div style={{ position: 'relative' }}>
+                  <CiscoRouterIcon online={routerStatus.online} width={70} height={46} />
+                  {routerStatus.online && <span className="status-dot-pulse green" style={{ top: '-4px', right: '-4px' }} />}
+                  {!routerStatus.online && <span className="status-dot-pulse red" style={{ top: '-4px', right: '-4px' }} />}
                 </div>
-                <span className="node-label">Gateway Router</span>
+                <span className="node-label" style={{ marginTop: '8px' }}>Gateway Router</span>
                 <span className="node-sublabel">{routerStatus.online ? routerStatus.board : 'Offline'}</span>
               </div>
             </div>
 
             <div className="topology-row" style={{ marginBottom: '24px' }}>
-              <div id="switch-node" className={`network-node ${routerStatus.online ? 'online' : 'offline'}`}>
-                <div className="node-icon-wrapper" style={{ width: '70px', height: '42px', borderRadius: '6px', background: 'linear-gradient(135deg, #334155, #1e293b)' }}>
-                  <svg width="36" height="18" viewBox="0 0 24 12" fill="none" stroke={routerStatus.online ? 'var(--primary-light)' : 'var(--text-muted)'} strokeWidth="1.5">
-                    <rect x="1" y="1" width="22" height="10" rx="1" />
-                    <path d="M4 6h16M4 6l2-2M20 6l-2 2" />
-                  </svg>
-                </div>
-                <span className="node-label">Core Switch CSW1</span>
+              <div id="switch-node" className={`network-node ${routerStatus.online ? 'online' : 'offline'}`} style={{ border: 'none', background: 'transparent', backdropFilter: 'none' }}>
+                <CiscoSwitchIcon online={routerStatus.online} width={80} height={46} />
+                <span className="node-label" style={{ marginTop: '8px' }}>Core Switch CSW1</span>
                 <span className="node-sublabel">24-Port Gigabit</span>
               </div>
             </div>
 
             <svg className="topology-svg-connections">
-              {routerLine && (
-                <path
-                  className="topology-connector"
-                  d={routerLine.pathD}
-                  style={{ stroke: routerLine.color }}
-                />
-              )}
+              {routerLine && renderCiscoLink(routerLine.x1, routerLine.y1, routerLine.x2, routerLine.y2, routerStatus.online)}
 
               {clientLines.map(function (line, idx) {
-                var color = line.status === 'up' ? '#22C55E' : (line.status === 'warning' ? '#EF4444' : '#6B7280');
-                var stroke = line.status === 'up' ? '#22C55E' : (line.status === 'warning' ? '#EF4444' : 'var(--border-color)');
+                var isLinkActive = line.status === 'up';
                 return (
                   <g key={'client-line-' + idx}>
-                    <path
-                      className="topology-connector"
-                      d={line.pathD}
-                      style={{
-                        stroke: stroke,
-                        opacity: line.status === 'down' ? 0.35 : 1
-                      }}
-                    />
-                    <circle cx={line.x1} cy={line.y1 + 8} r="3.5" fill={routerStatus.online ? '#22C55E' : '#EF4444'} />
-                    <circle cx={line.x2} cy={line.y2 - 6} r="3.5" fill={color} />
+                    {renderCiscoLink(line.x1, line.y1, line.x2, line.y2, isLinkActive)}
                   </g>
                 );
               })}
@@ -843,16 +1031,12 @@ function DashboardPage({ socket }) {
                 <div className="topology-endpoints-grid">
                   {activeCustomers.map(function (cust) {
                     return (
-                      <div key={cust.id_pelanggan} className="network-node client-node online" title={`Nama: ${cust.nama}\nPPPoE: ${cust.pppoe_username}\nPaket: ${cust.paket}\nStatus: Aktif Online`}>
-                        <span className="status-dot-pulse green" />
-                        <div className="node-icon-wrapper">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="2" y="3" width="20" height="14" rx="2" />
-                            <line x1="8" y1="21" x2="16" y2="21" />
-                            <line x1="12" y1="17" x2="12" y2="21" />
-                          </svg>
+                      <div key={cust.id_pelanggan} className="network-node client-node online" title={`Nama: ${cust.nama}\nPPPoE: ${cust.pppoe_username}\nPaket: ${cust.paket}\nStatus: Aktif Online`} style={{ border: 'none', background: 'transparent', backdropFilter: 'none' }}>
+                        <div style={{ position: 'relative' }}>
+                          <CiscoPCIcon online={true} />
+                          <span className="status-dot-pulse green" style={{ top: '-2px', right: '-2px' }} />
                         </div>
-                        <span className="node-label">{cust.nama}</span>
+                        <span className="node-label" style={{ marginTop: '8px' }}>{cust.nama}</span>
                         <span className="node-sublabel" style={{ color: 'var(--success)' }}>Active (PPPoE)</span>
                       </div>
                     );
@@ -860,15 +1044,12 @@ function DashboardPage({ socket }) {
 
                   {unregisteredActive.map(function (conn, idx) {
                     return (
-                      <div key={'unreg-' + idx} className="network-node client-node warning" title={`PPPoE User: ${conn.name}\nIP: ${conn.address}\nUptime: ${conn.uptime}\nWARNING: Tidak terdaftar di sistem!`}>
-                        <span className="status-dot-pulse red" />
-                        <div className="node-icon-wrapper" style={{ background: 'rgba(239, 68, 68, 0.05)' }}>
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M20 16V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11" />
-                            <path d="M2 21h20" />
-                          </svg>
+                      <div key={'unreg-' + idx} className="network-node client-node warning" title={`PPPoE User: ${conn.name}\nIP: ${conn.address}\nUptime: ${conn.uptime}\nWARNING: Tidak terdaftar di sistem!`} style={{ border: 'none', background: 'transparent', backdropFilter: 'none' }}>
+                        <div style={{ position: 'relative' }}>
+                          <CiscoPCIcon online={true} />
+                          <span className="status-dot-pulse red" style={{ top: '-2px', right: '-2px' }} />
                         </div>
-                        <span className="node-label" style={{ color: 'var(--danger)' }}>{conn.name}</span>
+                        <span className="node-label" style={{ color: 'var(--danger)', marginTop: '8px' }}>{conn.name}</span>
                         <span className="node-sublabel" style={{ color: 'var(--danger)', fontWeight: 600 }}>Unregistered!</span>
                       </div>
                     );
@@ -876,15 +1057,9 @@ function DashboardPage({ socket }) {
 
                   {inactiveCustomers.map(function (cust) {
                     return (
-                      <div key={cust.id_pelanggan} className="network-node client-node offline" title={`Nama: ${cust.nama}\nPPPoE: ${cust.pppoe_username}\nPaket: ${cust.paket}\nStatus: Terisolir / Offline`}>
-                        <div className="node-icon-wrapper">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="2" y="3" width="20" height="14" rx="2" />
-                            <line x1="8" y1="21" x2="16" y2="21" />
-                            <line x1="12" y1="17" x2="12" y2="21" />
-                          </svg>
-                        </div>
-                        <span className="node-label">{cust.nama}</span>
+                      <div key={cust.id_pelanggan} className="network-node client-node offline" title={`Nama: ${cust.nama}\nPPPoE: ${cust.pppoe_username}\nPaket: ${cust.paket}\nStatus: Terisolir / Offline`} style={{ border: 'none', background: 'transparent', backdropFilter: 'none' }}>
+                        <CiscoPCIcon online={false} />
+                        <span className="node-label" style={{ marginTop: '8px' }}>{cust.nama}</span>
                         <span className="node-sublabel">Offline</span>
                       </div>
                     );
@@ -902,6 +1077,184 @@ function DashboardPage({ socket }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================================
+// Cisco Packet Tracer Style SVG Icons
+// ============================================================================
+
+function CiscoRouterIcon({ width = 60, height = 40, online = true }) {
+  var topColorStart = online ? "#4ba3e3" : "#cbd5e1";
+  var topColorEnd = online ? "#1b75bb" : "#94a3b8";
+  var bodyColorStart = online ? "#1266a5" : "#64748b";
+  var bodyColorEnd = online ? "#0c4b7a" : "#475569";
+  var strokeColor = online ? "#175e96" : "#475569";
+  
+  return (
+    <svg width={width} height={height} viewBox="0 0 80 50" style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={`routerTopGrad-${online}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={topColorStart} />
+          <stop offset="100%" stopColor={topColorEnd} />
+        </linearGradient>
+        <linearGradient id={`routerBodyGrad-${online}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={bodyColorStart} />
+          <stop offset="100%" stopColor={bodyColorEnd} />
+        </linearGradient>
+      </defs>
+      <path d="M 5,20 L 5,38 A 35,12 0 0 0 75,38 L 75,20 Z" fill={`url(#routerBodyGrad-${online})`} stroke={strokeColor} strokeWidth="1" />
+      <ellipse cx="40" cy="20" rx="35" ry="12" fill={`url(#routerTopGrad-${online})`} stroke={strokeColor} strokeWidth="1" />
+      <ellipse cx="40" cy="20" rx="35" ry="12" fill="none" stroke="#ffffff" strokeWidth="1.5" style={{ opacity: 0.3 }} />
+      
+      {/* 4 Arrows on top */}
+      <g transform="translate(40, 20) scale(0.9)" opacity="0.9">
+        <line x1="-18" y1="-5" x2="18" y2="5" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="-18" y1="5" x2="18" y2="-5" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+        <polygon points="-18,-5 -12,-7 -14,-2" fill="#ffffff" />
+        <polygon points="18,5 12,7 14,2" fill="#ffffff" />
+        <polygon points="-18,5 -12,7 -14,2" fill="#ffffff" />
+        <polygon points="18,-5 12,-7 14,-2" fill="#ffffff" />
+      </g>
+    </svg>
+  );
+}
+
+function CiscoSwitchIcon({ width = 70, height = 40, online = true }) {
+  var topStart = online ? "#3d8ec7" : "#cbd5e1";
+  var topEnd = online ? "#1e6b9e" : "#94a3b8";
+  var frontStart = online ? "#185987" : "#64748b";
+  var frontEnd = online ? "#0c3d5f" : "#475569";
+  var sideColor = online ? "#154e77" : "#334155";
+  var strokeColor = online ? "#09273d" : "#334155";
+
+  return (
+    <svg width={width} height={height} viewBox="0 0 80 46" style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={`switchTopGrad-${online}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={topStart} />
+          <stop offset="100%" stopColor={topEnd} />
+        </linearGradient>
+        <linearGradient id={`switchFrontGrad-${online}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={frontStart} />
+          <stop offset="100%" stopColor={frontEnd} />
+        </linearGradient>
+      </defs>
+      
+      <path d="M 15,10 L 55,10 L 68,20 L 28,20 Z" fill={`url(#switchTopGrad-${online})`} stroke={strokeColor} strokeWidth="0.75" />
+      <path d="M 28,20 L 68,20 L 68,34 L 28,34 Z" fill={`url(#switchFrontGrad-${online})`} stroke={strokeColor} strokeWidth="0.75" />
+      <path d="M 15,10 L 28,20 L 28,34 L 15,24 Z" fill={sideColor} stroke={strokeColor} strokeWidth="0.75" />
+      
+      {/* Port Grid */}
+      <g transform="translate(32, 22)" opacity={online ? 0.9 : 0.4}>
+        <rect x="1" y="2" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        <rect x="5" y="2" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        <rect x="9" y="2" width="2" height="2" fill={online ? "#eab308" : "#475569"} />
+        <rect x="13" y="2" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        <rect x="17" y="2" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        <rect x="21" y="2" width="2" height="2" fill="#475569" />
+        <rect x="25" y="2" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        <rect x="29" y="2" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        
+        <rect x="1" y="6" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        <rect x="5" y="6" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        <rect x="9" y="6" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        <rect x="13" y="6" width="2" height="2" fill="#475569" />
+        <rect x="17" y="6" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        <rect x="21" y="6" width="2" height="2" fill={online ? "#22c55e" : "#475569"} />
+        <rect x="25" y="6" width="2" height="2" fill={online ? "#eab308" : "#475569"} />
+        <rect x="29" y="6" width="2" height="2" fill="#475569" />
+      </g>
+      
+      <g transform="translate(30, 12) scale(0.65)" opacity="0.8">
+        <path d="M 5,2 L 25,2 M 5,2 L 9,-1 M 5,2 L 9,5" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M 5,8 L 25,8 M 25,8 L 21,5 M 25,8 L 21,11" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+    </svg>
+  );
+}
+
+function CiscoPCIcon({ width = 50, height = 42, online = true }) {
+  var screenColorStart = online ? "#a0c4ff" : "#cbd5e1";
+  var screenColorEnd = online ? "#4a90e2" : "#94a3b8";
+  var bezelStart = "#f1f5f9";
+  var bezelEnd = "#cbd5e1";
+  var towerColorStart = "#cbd5e1";
+  var towerColorEnd = "#94a3b8";
+  var keyColor = online ? "#22c55e" : "#64748b";
+
+  return (
+    <svg width={width} height={height} viewBox="0 0 60 50" style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={`pcScreen-${online}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={screenColorStart} />
+          <stop offset="100%" stopColor={screenColorEnd} />
+        </linearGradient>
+        <linearGradient id="pcBezel" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={bezelStart} />
+          <stop offset="100%" stopColor={bezelEnd} />
+        </linearGradient>
+        <linearGradient id="pcTower" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={towerColorStart} />
+          <stop offset="100%" stopColor={towerColorEnd} />
+        </linearGradient>
+      </defs>
+      
+      <rect x="43" y="10" width="11" height="28" rx="1" fill="url(#pcTower)" stroke="#475569" strokeWidth="0.5" />
+      <line x1="45" y1="13" x2="52" y2="13" stroke="#475569" strokeWidth="1.2" />
+      <line x1="45" y1="16" x2="52" y2="16" stroke="#475569" strokeWidth="1.2" />
+      <circle cx="48" cy="30" r="1.5" fill={keyColor} />
+      
+      <rect x="6" y="8" width="34" height="24" rx="2" fill="url(#pcBezel)" stroke="#475569" strokeWidth="0.75" />
+      <rect x="9" y="11" width="28" height="18" rx="0.5" fill={`url(#pcScreen-${online})`} stroke="#1e40af" strokeWidth="0.5" />
+      <path d="M 9,11 L 28,11 L 9,23 Z" fill="#ffffff" style={{ opacity: 0.15 }} />
+      
+      <path d="M 21,32 L 25,32 L 26,37 L 20,37 Z" fill="#64748b" stroke="#475569" strokeWidth="0.5" />
+      <ellipse cx="23" cy="37" rx="7" ry="2" fill="#475569" />
+
+      <path d="M 8,40 L 38,40 L 40,46 L 6,46 Z" fill="#cbd5e1" stroke="#475569" strokeWidth="0.5" />
+      <line x1="10" y1="42" x2="36" y2="42" stroke="#64748b" strokeWidth="1" strokeDasharray="2,1" />
+      <line x1="8" y1="44" x2="38" y2="44" stroke="#64748b" strokeWidth="1" strokeDasharray="2,1.5" />
+    </svg>
+  );
+}
+
+function renderCiscoLink(x1, y1, x2, y2, isActive = true) {
+  var angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+  var dist = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+  if (dist === 0) return null;
+  
+  var offsetStart = 4;
+  var offsetEnd = 4;
+  
+  var startX = x1 + (offsetStart / dist) * (x2 - x1);
+  var startY = y1 + (offsetStart / dist) * (y2 - y1);
+  var endX = x2 - (offsetEnd / dist) * (x2 - x1);
+  var endY = y2 - (offsetEnd / dist) * (y2 - y1);
+  
+  var light1X = startX + 0.25 * (endX - startX);
+  var light1Y = startY + 0.25 * (endY - startY);
+  var light2X = startX + 0.75 * (endX - startX);
+  var light2Y = startY + 0.75 * (endY - startY);
+  
+  var color = isActive ? "#0f9d5b" : "#ba1a1a";
+  
+  return (
+    <g>
+      <line x1={startX} y1={startY} x2={endX} y2={endY} stroke="#27272a" strokeWidth="2.5" />
+      <polygon
+        points="-5,4 0,-6 5,4"
+        fill={color}
+        transform={`translate(${light1X}, ${light1Y}) rotate(${angle + 90})`}
+        style={{ filter: isActive ? 'drop-shadow(0 0 3px rgba(15, 157, 91, 0.8))' : 'none' }}
+      />
+      <polygon
+        points="-5,4 0,-6 5,4"
+        fill={color}
+        transform={`translate(${light2X}, ${light2Y}) rotate(${angle - 90})`}
+        style={{ filter: isActive ? 'drop-shadow(0 0 3px rgba(15, 157, 91, 0.8))' : 'none' }}
+      />
+    </g>
   );
 }
 

@@ -100,19 +100,12 @@ function Sidebar({ admin, onLogout }) {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">
-        <div className="sidebar-brand-icon">
-          <img
-            src={process.env.PUBLIC_URL + '/logo ldm.png'}
-            alt="Logo LDM"
-            className="sidebar-logo"
-            style={{ width: '40px', height: '40px', objectFit: 'contain' }}
-          />
-        </div>
-        <div className="sidebar-brand-text">
-          <h2>ESP Lintas Data</h2>
-          <span>ISP Dashboard</span>
-        </div>
+      <div className="sidebar-brand" style={{ justifyContent: 'center', minHeight: 'var(--topbar-height)', padding: '12px' }}>
+        <img
+          src={process.env.PUBLIC_URL + '/logo ldm.png'}
+          alt="Logo LDM"
+          style={{ width: '160px', height: 'auto', maxHeight: '55px', objectFit: 'contain' }}
+        />
       </div>
 
       <nav className="sidebar-nav">

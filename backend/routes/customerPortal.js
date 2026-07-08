@@ -3,9 +3,215 @@ var router = express.Router();
 var multer = require('multer');
 var path = require('path');
 var fs = require('fs');
+var crypto = require('crypto');
+var axios = require('axios');
 var db = require('../config/db');
 var verifyCustomerToken = require('../middleware/customerAuth');
 var SocketService = require('../services/socket');
+
+// Midtrans Webhook Callback endpoint (Public - must be BEFORE verifyCustomerToken)
+router.post('/midtrans-callback', function(req, res) {
+  var notification = req.body;
+  
+  // Jika payload tidak lengkap (seperti ping test dari Midtrans Dashboard), berikan respon 200 OK agar tes berhasil
+  if (!notification || !notification.order_id || !notification.status_code || !notification.gross_amount || !notification.signature_key) {
+    console.log('[Midtrans Callback] Received dashboard ping / test request.');
+    return res.status(200).json({ success: true, message: 'Test notification received successfully' });
+  }
+
+  var order_id = notification.order_id;
+  var status_code = notification.status_code;
+  var gross_amount = notification.gross_amount;
+  var signature_key = notification.signature_key;
+
+  var serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+  
+  // Verify signature_key
+  var payload = order_id + status_code + gross_amount + serverKey;
+  var computedHash = crypto.createHash('sha512').update(payload).digest('hex');
+
+  if (computedHash !== signature_key) {
+    console.error('[Midtrans Callback] Invalid Signature Key! Verification failed.');
+    // Tetap kembalikan 200 agar dashboard tidak error, namun dengan status sukses false
+    return res.status(200).json({ success: false, message: 'Invalid signature key' });
+  }
+
+  // Parse id_tagihan from order_id (e.g. 'TRX-12-1783492810' -> id_tagihan = 12)
+  var parts = order_id.split('-');
+  var id_tagihan = parseInt(parts[1], 10);
+  if (isNaN(id_tagihan)) {
+    console.error('[Midtrans Callback] Failed to parse id_tagihan from order_id:', order_id);
+    return res.status(200).json({ success: false, message: 'Invalid order ID format' });
+  }
+
+  var transaction_status = notification.transaction_status;
+  var fraud_status = notification.fraud_status;
+  var payment_type = notification.payment_type;
+
+  console.log(`[Midtrans Callback] Received status for Tagihan #${id_tagihan}: status=${transaction_status}, type=${payment_type}`);
+
+  // We consider success when status is settlement or capture with fraud accept
+  var isSuccess = transaction_status === 'settlement' || (transaction_status === 'capture' && fraud_status === 'accept');
+
+  if (isSuccess) {
+    // 1. Get Tagihan and Customer Info
+    var selectSql = `
+      SELECT t.*, p.nama, p.no_hp, p.email, p.pppoe_username, p.due_date 
+      FROM tagihan t 
+      JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan 
+      WHERE t.id_tagihan = ?
+    `;
+    db.query(selectSql, [id_tagihan], function(err, results) {
+      if (err) {
+        console.error('[Midtrans Callback] Database error:', err.message);
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      if (results.length === 0) {
+        console.error('[Midtrans Callback] Tagihan not found for ID:', id_tagihan);
+        return res.status(404).json({ success: false, message: 'Tagihan tidak ditemukan' });
+      }
+
+      var billing = results[0];
+
+      // If the bill is already paid, do nothing
+      if (billing.status === 'lunas') {
+        console.log(`[Midtrans Callback] Tagihan #${id_tagihan} is already lunas. Skipping duplicate processing.`);
+        return res.json({ success: true, message: 'Tagihan sudah lunas.' });
+      }
+
+      // Proceed with approval flow
+      // 2. Create Pembayaran entry with status 'diterima'
+      var relativePath = 'Midtrans / ' + payment_type + ' / ' + transaction_status;
+      var insertSql = `
+        INSERT INTO pembayaran (id_tagihan, bukti_file, status, tanggal_upload, verified_at, id_admin) 
+        VALUES (?, ?, 'diterima', NOW(), NOW(), NULL)
+      `;
+      db.query(insertSql, [id_tagihan, relativePath], function(err, paymentResult) {
+        if (err) {
+          console.error('[Midtrans Callback] Failed to insert payment:', err.message);
+          return res.status(500).json({ success: false, message: 'Failed to record payment' });
+        }
+
+        var id_pembayaran = paymentResult.insertId;
+
+        // 3. Update tagihan status to 'lunas'
+        var TagihanModel = require('../models/Tagihan');
+        TagihanModel.updateStatus(id_tagihan, 'lunas', function(tagihanErr) {
+          if (tagihanErr) {
+            console.error('[Midtrans Callback] Failed to update tagihan status:', tagihanErr.message);
+            return res.status(500).json({ success: false, message: 'Failed to update bill status' });
+          }
+
+          // 4. Update pelanggan: set status to 'hijau' and extend due_date by 30 days
+          var currentDueDate = new Date(billing.due_date);
+          var newDueDate = new Date(currentDueDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+          var newDueDateString = newDueDate.toISOString().split('T')[0];
+
+          var PelangganModel = require('../models/Pelanggan');
+          PelangganModel.update(billing.id_pelanggan, {
+            status_tagihan: 'hijau',
+            due_date: newDueDateString
+          }, async function(pelangganErr) {
+            if (pelangganErr) {
+              console.error('[Midtrans Callback] Failed to update customer status:', pelangganErr.message);
+            }
+
+            // 5. Generate next month's bill in tagihan table
+            var parts = billing.periode.split('-');
+            var year = parseInt(parts[0], 10);
+            var month = parseInt(parts[1], 10);
+            if (month === 12) {
+              month = 1;
+              year += 1;
+            } else {
+              month += 1;
+            }
+            var nextPeriod = year + '-' + (month < 10 ? '0' + month : month);
+
+            // Get customer package price for accuracy
+            var nominal = await new Promise((resolve) => {
+              db.query(`
+                SELECT pl.harga 
+                FROM pelanggan p 
+                JOIN paket_layanan pl ON p.paket = pl.nama_paket 
+                WHERE p.id_pelanggan = ?
+              `, [billing.id_pelanggan], (err, rows) => {
+                resolve(rows && rows[0] ? rows[0].harga : billing.nominal);
+              });
+            });
+
+            TagihanModel.create({
+              id_pelanggan: billing.id_pelanggan,
+              periode: nextPeriod,
+              nominal: nominal,
+              status: 'belum_bayar',
+              due_date: newDueDateString
+            }, async function(nextBillErr) {
+              if (nextBillErr) {
+                console.error('[Midtrans Callback] Failed to generate next month bill:', nextBillErr.message);
+              }
+
+              // 6. Enable PPPoE in Mikrotik if username is present
+              var pppoeStatus = 'unknown';
+              if (billing.pppoe_username) {
+                try {
+                  var MikrotikService = require('../services/mikrotik');
+                  var mRes = await MikrotikService.enableSecret(billing.pppoe_username);
+                  if (mRes) pppoeStatus = 'active';
+                } catch (mikrotikErr) {
+                  console.error(`[Midtrans Callback] Failed to enable PPPoE ${billing.pppoe_username}:`, mikrotikErr.message);
+                }
+              }
+
+              // 7. Send Email confirmation of approval
+              if (billing.email) {
+                try {
+                  var EmailService = require('../services/emailService');
+                  var dueDateFormatted = newDueDate.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  });
+
+                  await EmailService.sendPaymentApprovedEmail(billing.email, {
+                    nama: billing.nama,
+                    periode: billing.periode,
+                    nominal: Number(billing.nominal).toLocaleString('id-ID'),
+                    dueDateFormatted: dueDateFormatted
+                  });
+                } catch (emailErr) {
+                  console.error('[Midtrans Callback] Failed to send confirmation email:', emailErr.message);
+                }
+              }
+
+              // 8. Broadcast websocket updates
+              SocketService.broadcast('pelanggan_updated', {
+                id_pelanggan: billing.id_pelanggan,
+                status_tagihan: 'hijau',
+                pppoe_status: pppoeStatus
+              });
+
+              SocketService.broadcast('pembayaran_masuk', {
+                id_pembayaran: id_pembayaran,
+                id_tagihan: id_tagihan,
+                nama_pelanggan: billing.nama,
+                tanggal_upload: new Date()
+              });
+
+              console.log(`[Midtrans Callback] Tagihan #${id_tagihan} successfully processed and re-activated!`);
+              return res.json({ success: true, message: 'Pembayaran berhasil diproses!' });
+            });
+          });
+        });
+      });
+    });
+  } else {
+    // For pending/failed/expired transactions, just return success acknowledgment to Midtrans
+    console.log(`[Midtrans Callback] Acknowledging transaction status: ${transaction_status}`);
+    return res.json({ success: true, message: 'Status callback received: ' + transaction_status });
+  }
+});
 
 // Protect all portal routes with customer JWT token
 router.use(verifyCustomerToken);
@@ -227,6 +433,100 @@ router.post('/pay', function(req, res) {
             }
           });
         });
+      });
+    });
+  });
+});
+
+// GET /api/customer/portal/midtrans-config - Get Client Key for Snap SDK initialization
+router.get('/midtrans-config', function(req, res) {
+  var clientKey = process.env.MIDTRANS_CLIENT_KEY || '';
+  var serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+  var isSandbox = process.env.MIDTRANS_IS_SANDBOX === 'true' || serverKey.startsWith('SB-') || clientKey.startsWith('SB-');
+  res.json({
+    success: true,
+    clientKey: clientKey,
+    isSandbox: isSandbox
+  });
+});
+
+// POST /api/customer/portal/midtrans-token - Request Midtrans Snap Token for a bill
+router.post('/midtrans-token', function(req, res) {
+  var { id_tagihan } = req.body;
+  var customerId = req.customerId;
+
+  if (!id_tagihan) {
+    return res.status(400).json({ success: false, message: 'ID Tagihan wajib disertakan.' });
+  }
+
+  // Verify that the bill belongs to the logged-in customer and is not paid yet
+  var sql = `
+    SELECT t.*, p.nama, p.email, p.no_hp 
+    FROM tagihan t 
+    JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan 
+    WHERE t.id_tagihan = ? AND t.id_pelanggan = ?
+  `;
+  db.query(sql, [id_tagihan, customerId], function(err, results) {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    if (results.length === 0) {
+      return res.status(403).json({ success: false, message: 'Tagihan tidak ditemukan atau bukan milik Anda.' });
+    }
+
+    var billing = results[0];
+    if (billing.status === 'lunas') {
+      return res.status(400).json({ success: false, message: 'Tagihan ini sudah lunas.' });
+    }
+
+    // Generate unique order ID
+    var orderId = 'TRX-' + id_tagihan + '-' + Date.now();
+    var serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+    var isSandbox = process.env.MIDTRANS_IS_SANDBOX === 'true' || serverKey.startsWith('SB-');
+
+    var snapUrl = isSandbox 
+      ? 'https://app.sandbox.midtrans.com/snap/v1/transactions'
+      : 'https://app.midtrans.com/snap/v1/transactions';
+
+    // Call Midtrans Snap API
+    var authHeader = 'Basic ' + Buffer.from(serverKey + ':').toString('base64');
+    
+    var payload = {
+      transaction_details: {
+        order_id: orderId,
+        gross_amount: Math.round(Number(billing.nominal))
+      },
+      credit_card: {
+        secure: true
+      },
+      customer_details: {
+        first_name: billing.nama,
+        email: billing.email || (billing.no_hp + '@ldm.net'),
+        phone: billing.no_hp
+      }
+    };
+
+    axios.post(snapUrl, payload, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': authHeader
+      }
+    })
+    .then(function(midtransRes) {
+      res.json({
+        success: true,
+        token: midtransRes.data.token,
+        redirect_url: midtransRes.data.redirect_url
+      });
+    })
+    .catch(function(midtransErr) {
+      console.error('[Midtrans Token API] Error:', midtransErr.response?.data || midtransErr.message);
+      res.status(500).json({
+        success: false,
+        message: 'Gagal membuat transaksi di Midtrans. Silakan coba metode transfer biasa.',
+        error: midtransErr.response?.data || midtransErr.message
       });
     });
   });
