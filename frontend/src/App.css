@@ -1905,6 +1905,10 @@
     display: none;
   }
 
+  .landing-nav-menu {
+    display: none;
+  }
+
   .landing-hero-title {
     font-size: 2rem;
   }
@@ -1929,7 +1933,21 @@
     height: 1px;
   }
 
-  .landing-features-grid {
+  .landing-about-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-features-grid,
+  .landing-features-grid--4 {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-cta-wa-inner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .landing-pricing-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1941,6 +1959,10 @@
 
   .landing-cta-visual {
     width: 100%;
+  }
+
+  .landing-contact-grid {
+    grid-template-columns: 1fr;
   }
 
   .landing-footer-inner {
