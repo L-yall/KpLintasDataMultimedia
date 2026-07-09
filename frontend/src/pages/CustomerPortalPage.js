@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
 
 function CustomerPortalPage({ onLogout }) {
@@ -29,13 +28,10 @@ function CustomerPortalPage({ onLogout }) {
       if (response.data.success) {
         var clientKey = response.data.clientKey;
         setMidtransClientKey(clientKey);
-
-        // Dynamically load Midtrans Snap JS
         var isSandbox = response.data.isSandbox;
         var snapScriptUrl = isSandbox
           ? 'https://app.sandbox.midtrans.com/snap/snap.js'
           : 'https://app.midtrans.com/snap/snap.js';
-
         var existingScript = document.getElementById('midtrans-snap-js');
         if (!existingScript) {
           var script = document.createElement('script');
@@ -79,27 +75,20 @@ function CustomerPortalPage({ onLogout }) {
       setMessage({ type: 'error', text: 'Silakan pilih file gambar bukti transfer terlebih dahulu.' });
       return;
     }
-
     setUploading(true);
     setMessage({ type: '', text: '' });
-
     var formData = new FormData();
     formData.append('id_tagihan', billing.id_tagihan);
     formData.append('bukti', file);
-
     try {
       var response = await axios.post(`${API_BASE_URL}/api/customer/portal/pay`, formData, {
-        headers: {
-          ...headers,
-          'Content-Type': 'multipart/form-data'
-        }
+        headers: { ...headers, 'Content-Type': 'multipart/form-data' }
       });
-
       if (response.data.success) {
         setMessage({ type: 'success', text: response.data.message });
         setFile(null);
         setPreview('');
-        fetchBilling(); // Reload billing data to reflect new status
+        fetchBilling();
       }
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Gagal mengunggah bukti pembayaran.' });
@@ -112,15 +101,12 @@ function CustomerPortalPage({ onLogout }) {
     if (!billing || !billing.id_tagihan) return;
     setMidtransLoading(true);
     setMessage({ type: '', text: '' });
-
     try {
       var response = await axios.post(`${API_BASE_URL}/api/customer/portal/midtrans-token`, {
         id_tagihan: billing.id_tagihan
       }, { headers: headers });
-
       if (response.data.success) {
         var snapToken = response.data.token;
-        
         if (window.snap) {
           window.snap.pay(snapToken, {
             onSuccess: function (result) {
@@ -139,7 +125,6 @@ function CustomerPortalPage({ onLogout }) {
             }
           });
         } else {
-          // Fallback to redirect_url if snap popup fails to load
           window.location.href = response.data.redirect_url;
         }
       }
@@ -151,68 +136,72 @@ function CustomerPortalPage({ onLogout }) {
     }
   }
 
+  // Styles
+  var S = {
+    page: { background: 'var(--md-background)', minHeight: '100vh', fontFamily: "'Hanken Grotesk', sans-serif" },
+    nav: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(248,249,250,0.8)', backdropFilter: 'blur(12px)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
+    navInner: { maxWidth: 640, margin: '0 auto', padding: '0 20px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+    content: { maxWidth: 640, margin: '0 auto', padding: '88px 20px 40px' },
+    card: { background: 'var(--md-surface-container-lowest)', border: '1px solid rgba(188,201,204,0.3)', borderRadius: 'var(--radius-lg)', padding: 24, boxShadow: '0px 4px 20px rgba(0,75,122,0.08)', marginBottom: 20 },
+    label: { fontSize: '0.82rem', color: 'var(--md-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase' },
+    h3: { fontSize: '1rem', fontWeight: 700, color: 'var(--md-on-surface)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 },
+    btnPrimary: { width: '100%', background: 'var(--md-primary-container)', color: 'var(--md-on-primary-container)', border: 'none', borderRadius: 'var(--radius-md)', padding: '14px', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: "'Hanken Grotesk', sans-serif" },
+    infoBox: { background: 'var(--md-surface-container-low)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--md-outline-variant)', marginTop: 12, textAlign: 'center' },
+    select: { width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--md-surface-container-low)', color: 'var(--md-on-surface)', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', outline: 'none', appearance: 'auto', fontFamily: "'Hanken Grotesk', sans-serif" }
+  };
+
   function renderPaymentDetail() {
     switch (paymentMethod) {
       case 'midtrans':
         return (
-          <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '5px', border: '1px solid var(--border-color)', marginTop: '12px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: 'var(--primary-light)' }}>
+          <div style={S.infoBox}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: 8, color: 'var(--md-primary)' }}>
               Pembayaran Online Otomatis (Midtrans)
             </div>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '16px' }}>
-              Bayar menggunakan QRIS, GoPay, ShopeePay, Mandiri Billpayment, BCA/BRI Virtual Account, atau Kartu Kredit. Pembayaran akan terverifikasi secara instan dan internet Anda akan langsung aktif kembali.
+            <p style={{ fontSize: '0.78rem', color: 'var(--md-on-surface-variant)', lineHeight: 1.4, marginBottom: 16 }}>
+              Bayar menggunakan QRIS, GoPay, ShopeePay, Mandiri Billpayment, BCA/BRI Virtual Account, atau Kartu Kredit. Pembayaran akan terverifikasi secara instan.
             </p>
-            <button
-              type="button"
-              className="btn btn-primary"
-              style={{ width: '100%', padding: '12px', fontWeight: 700 }}
-              onClick={handleMidtransPay}
-              disabled={midtransLoading}
-            >
+            <button type="button" style={{ ...S.btnPrimary, opacity: midtransLoading ? 0.7 : 1 }} onClick={handleMidtransPay} disabled={midtransLoading}>
               {midtransLoading ? (
-                <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Menghubungkan...</>
+                <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>hourglass_top</span> Menghubungkan...</>
               ) : (
-                <><TemplateIcon name="money" size={16} style={{ marginRight: '6px' }} /> Bayar Sekarang</>
+                <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>payments</span> Bayar Sekarang</>
               )}
             </button>
           </div>
         );
       case 'qris':
         return (
-          <div style={{ textAlign: 'center', marginTop: '12px' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '12px' }}>Scan Kode QRIS di bawah:</div>
-            <div style={{ display: 'inline-block', padding: '10px', background: 'white', borderRadius: '5px', marginBottom: '8px' }}>
-              <img
-                src={`${API_BASE_URL}/images/qris.png`}
-                alt="QRIS ESP Lintas Data"
-                style={{ width: '180px', height: '180px', display: 'block', objectFit: 'contain' }}
-              />
+          <div style={{ ...S.infoBox, textAlign: 'center' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 12 }}>Scan Kode QRIS di bawah:</div>
+            <div style={{ display: 'inline-block', padding: 10, background: 'white', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
+              <img src={`${API_BASE_URL}/images/qris.png`} alt="QRIS" style={{ width: 180, height: 180, display: 'block', objectFit: 'contain' }} />
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Support semua bank & e-wallet (Gopay, OVO, Dana, LinkAja)</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--md-outline)' }}>Support semua bank & e-wallet</div>
           </div>
         );
       case 'bri':
         return (
-          <div style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '5px', border: '1px solid var(--border-color)', marginTop: '12px' }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank BRI</div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--primary-light)' }}>0346-01-001962-50-8</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>a/n ESP Lintas Data Multimedia</div>
+          <div style={S.infoBox}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--md-outline)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank BRI</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--md-primary)' }}>0346-01-001962-50-8</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)' }}>a/n ESP Lintas Data Multimedia</div>
           </div>
         );
       case 'mandiri':
         return (
-          <div style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '5px', border: '1px solid var(--border-color)', marginTop: '12px' }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank Mandiri</div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--primary-light)' }}>131-00-1572912-3</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>a/n ESP Lintas Data Multimedia</div>
+          <div style={S.infoBox}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--md-outline)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank Mandiri</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--md-primary)' }}>131-00-1572912-3</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)' }}>a/n ESP Lintas Data Multimedia</div>
           </div>
         );
       case 'bca':
         return (
-          <div style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '5px', border: '1px solid var(--border-color)', marginTop: '12px' }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank BCA</div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--primary-light)' }}>869-0577-888</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>a/n ESP Lintas Data Multimedia</div>
+          <div style={S.infoBox}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--md-outline)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank BCA</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--md-primary)' }}>869-0577-888</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)' }}>a/n ESP Lintas Data Multimedia</div>
           </div>
         );
       default:
@@ -222,98 +211,92 @@ function CustomerPortalPage({ onLogout }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-        <TemplateIcon name="loading" size={20} style={{ marginRight: '8px' }} /> Memuat tagihan Anda...
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--md-background)', color: 'var(--md-on-surface)', fontFamily: "'Hanken Grotesk', sans-serif" }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 24, marginRight: 8, animation: 'pulse 1s infinite' }}>hourglass_top</span> Memuat tagihan Anda...
       </div>
     );
   }
 
   return (
-    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', color: 'var(--text-primary)', padding: '24px 16px' }}>
-      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+    <div style={S.page}>
+      {/* Navbar — fixed, blur, shadow */}
+      <nav style={S.nav}>
+        <div style={S.navInner}>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Portal Pelanggan</h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ESP Lintas Data Multimedia</p>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--md-on-surface)' }}>Portal Pelanggan</h2>
+            <p style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)' }}>ESP Lintas Data Multimedia</p>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={onLogout}>
-            <TemplateIcon name="logout" size={16} style={{ marginRight: '6px' }} /> Keluar
+          <button onClick={onLogout} style={{
+            background: 'var(--md-surface-container)', color: 'var(--md-on-surface)', border: '1px solid var(--md-outline-variant)',
+            borderRadius: 'var(--radius-md)', padding: '8px 16px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Hanken Grotesk', sans-serif"
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span> Keluar
           </button>
         </div>
+      </nav>
 
+      <div style={S.content}>
+        {/* Messages */}
         {message.text && (
-          <div className={message.type === 'success' ? 'status-badge hijau' : 'login-error'} style={{ width: '100%', padding: '12px', borderRadius: '5px', marginBottom: '16px', display: 'block', textAlign: 'center' }}>
-            {message.type === 'success' ? <TemplateIcon name="check" size={16} /> : <TemplateIcon name="alert" size={16} />} <span style={{ marginLeft: '8px' }}>{message.text}</span>
+          <div style={{
+            background: message.type === 'success' ? 'var(--status-hijau-bg)' : 'var(--status-merah-bg)',
+            color: message.type === 'success' ? 'var(--status-hijau)' : 'var(--status-merah)',
+            padding: '14px 16px', borderRadius: 'var(--radius-md)', marginBottom: 20,
+            display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.88rem', fontWeight: 600
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{message.type === 'success' ? 'check_circle' : 'error'}</span>
+            {message.text}
           </div>
         )}
 
-
-
+        {/* Rejected Payment Alert */}
         {lastPayment && lastPayment.status === 'ditolak' && (
-          <div className="login-error animate-fadeIn" style={{ width: '100%', padding: '16px', borderRadius: '5px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '0.88rem' }}>
-            <TemplateIcon name="alert" size={18} color="var(--text-danger)" />
-            <div style={{ textAlign: 'left' }}>
+          <div style={{
+            background: 'var(--status-merah-bg)', color: 'var(--status-merah)',
+            padding: '16px', borderRadius: 'var(--radius-md)', marginBottom: 20,
+            display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem'
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>warning</span>
+            <div>
               <strong>Pembayaran Ditolak Admin!</strong> Bukti pembayaran periode <strong>{lastPayment.periode}</strong> ditolak. <br />Alasan: <em>"{lastPayment.alasan_tolak}"</em>. Silakan upload ulang bukti pembayaran yang valid.
             </div>
           </div>
         )}
 
-        {/* Billing Info Card */}
+        {/* Content */}
         {!billing ? (
-          <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '16px' }}><TemplateIcon name="check" size={56} color="var(--primary-light)" /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '8px' }}>Semua Tagihan Lunas</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Terima kasih atas pembayaran Anda. Layanan internet Anda aktif.</p>
+          <div style={{ ...S.card, textAlign: 'center', padding: '48px 20px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 56, color: 'var(--md-primary)', marginBottom: 16, display: 'block' }}>check_circle</span>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: 8 }}>Semua Tagihan Lunas</h3>
+            <p style={{ color: 'var(--md-on-surface-variant)', fontSize: '0.88rem' }}>Terima kasih atas pembayaran Anda. Layanan internet Anda aktif.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Status & Price */}
-            <div className="card animate-fadeIn">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>
-                  Tagihan Periode {billing.periode}
-                </span>
+          <>
+            {/* Billing Card */}
+            <div style={S.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <span style={S.label}>Tagihan Periode {billing.periode}</span>
                 <span className={`status-badge ${billing.status_tagihan}`}>
                   {billing.status === 'menunggu_verifikasi' ? 'Verifikasi Pending' : (billing.status_tagihan === 'kuning' ? 'Jatuh Tempo' : (billing.status_tagihan === 'merah' ? 'Menunggak' : 'Belum Bayar'))}
                 </span>
               </div>
-
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, margin: '8px 0', background: 'linear-gradient(135deg, var(--text-primary), var(--primary-light))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <div style={{ fontSize: '2.2rem', fontWeight: 800, margin: '8px 0', color: 'var(--md-primary)' }}>
                 Rp {Number(billing.nominal).toLocaleString('id-ID')}
               </div>
-
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--md-on-surface-variant)' }}>
                 Batas Jatuh Tempo: <strong>{new Date(billing.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
               </div>
             </div>
 
-            {/* Payment instructions */}
+            {/* Payment Method */}
             {billing.status !== 'menunggu_verifikasi' && (
-              <div className="card animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}><TemplateIcon name="money" size={18} style={{ marginRight: '8px' }} /> Metode Pembayaran</h3>
-
-                {/* Payment Method Dropdown */}
-                <div className="form-group" style={{ marginBottom: '16px' }}>
-                  <select
-                    id="payment-method-select"
-                    value={paymentMethod}
-                    onChange={function (e) { setPaymentMethod(e.target.value); }}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '5px',
-                      border: '1px solid var(--border-color)',
-                      background: 'var(--bg-secondary)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      outline: 'none',
-                      appearance: 'auto'
-                    }}
-                  >
+              <div style={S.card}>
+                <h3 style={S.h3}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>payments</span> Metode Pembayaran
+                </h3>
+                <div style={{ marginBottom: 16 }}>
+                  <select value={paymentMethod} onChange={function (e) { setPaymentMethod(e.target.value); }} style={S.select}>
                     <option value="midtrans">Bayar Online Instan (QRIS, E-Wallet, VA Bank Transfer) - Otomatis</option>
                     <option value="qris">Manual: QRIS</option>
                     <option value="bri">Manual: Bank BRI</option>
@@ -321,69 +304,63 @@ function CustomerPortalPage({ onLogout }) {
                     <option value="bca">Manual: Bank BCA</option>
                   </select>
                 </div>
-
-                {/* Payment Detail based on selected method */}
                 {renderPaymentDetail()}
               </div>
             )}
 
-            {/* Upload Payment Proof */}
+            {/* Upload Proof */}
             {paymentMethod !== 'midtrans' && (
-              <div className="card animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>
-                  {billing.status === 'menunggu_verifikasi' ? <><TemplateIcon name="document" size={18} style={{ marginRight: '8px' }} /> Bukti Transfer Anda</> : <><TemplateIcon name="upload" size={18} style={{ marginRight: '8px' }} /> Upload Bukti Transfer</>}
+              <div style={S.card}>
+                <h3 style={S.h3}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                    {billing.status === 'menunggu_verifikasi' ? 'description' : 'upload_file'}
+                  </span>
+                  {billing.status === 'menunggu_verifikasi' ? 'Bukti Transfer Anda' : 'Upload Bukti Transfer'}
                 </h3>
 
                 {billing.status === 'menunggu_verifikasi' ? (
-                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '10px 0' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}><TemplateIcon name="loading" size={42} color="var(--primary-light)" /></div>
-                    <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Pembayaran Sedang Diverifikasi Admin</p>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 42, color: 'var(--md-primary)', marginBottom: 12, display: 'block', animation: 'pulse 1.5s infinite' }}>hourglass_top</span>
+                    <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--md-on-surface)' }}>Pembayaran Sedang Diverifikasi Admin</p>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--md-on-surface-variant)', marginTop: 4 }}>
                       Admin sedang mencocokkan nominal transfer Anda. Internet Anda akan otomatis aktif setelah verifikasi disetujui.
                     </p>
                   </div>
                 ) : (
                   <form onSubmit={handleUpload}>
-                    <div className="form-group" style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', padding: '16px', background: 'var(--bg-secondary)', border: '1px dashed var(--border-color-light)', borderRadius: '5px', textAlign: 'center', cursor: 'pointer' }}>
-                        <span style={{ fontSize: '1.5rem', display: 'block', marginBottom: '4px' }}><TemplateIcon name="camera" size={28} /></span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-light)' }}>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{
+                        display: 'block', padding: 20, background: 'var(--md-surface-container-low)',
+                        border: '2px dashed var(--md-outline-variant)', borderRadius: 'var(--radius-md)',
+                        textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s'
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 32, display: 'block', marginBottom: 4, color: 'var(--md-primary)' }}>add_a_photo</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--md-primary)' }}>
                           {file ? 'Ganti File Gambar' : 'Pilih Foto / Screenshot Bukti'}
                         </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileChange}
-                          style={{ display: 'none' }}
-                          required
-                        />
+                        <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} required />
                       </label>
                     </div>
 
                     {preview && (
-                      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Preview Bukti:</div>
-                        <img
-                          src={preview}
-                          alt="Preview Bukti Transfer"
-                          style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '5px', border: '1px solid var(--border-color)' }}
-                        />
+                      <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--md-outline)', marginBottom: 6 }}>Preview Bukti:</div>
+                        <img src={preview} alt="Preview Bukti Transfer" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 'var(--radius-md)', border: '1px solid var(--md-outline-variant)' }} />
                       </div>
                     )}
 
-                    <button
-                      type="submit"
-                      className="btn btn-primary"
-                      style={{ width: '100%', padding: '12px' }}
-                      disabled={uploading || !file}
-                    >
-                      {uploading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Mengunggah...</> : <><TemplateIcon name="upload" size={16} style={{ marginRight: '6px' }} /> Kirim Konfirmasi Pembayaran</>}
+                    <button type="submit" style={{ ...S.btnPrimary, opacity: (uploading || !file) ? 0.5 : 1 }} disabled={uploading || !file}>
+                      {uploading ? (
+                        <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>hourglass_top</span> Mengunggah...</>
+                      ) : (
+                        <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>cloud_upload</span> Kirim Konfirmasi Pembayaran</>
+                      )}
                     </button>
                   </form>
                 )}
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>

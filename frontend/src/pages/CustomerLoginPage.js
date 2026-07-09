@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
 
 function CustomerLoginPage({ onLogin }) {
@@ -59,30 +58,97 @@ function CustomerLoginPage({ onLogin }) {
   }
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <div className="login-card">
-          <div className="login-logo">
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'var(--md-surface-container-low)',
+      fontFamily: "'Hanken Grotesk', sans-serif",
+      padding: '24px'
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: 440,
+        animation: 'slideUp 0.5s ease-out'
+      }}>
+        {/* Login Card — white rounded-2xl + ambient-shadow */}
+        <div style={{
+          background: 'var(--md-surface-container-lowest)',
+          borderRadius: 'var(--radius-2xl)',
+          padding: '48px 40px',
+          boxShadow: '0px 4px 20px rgba(0, 75, 122, 0.08)'
+        }}>
+          {/* Logo */}
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img
               src={process.env.PUBLIC_URL + '/logo ldm.png'}
               alt="Logo Lintas Data Multimedia"
-              className="login-logo-img"
+              style={{
+                height: 75,
+                maxWidth: '100%',
+                objectFit: 'contain',
+                marginBottom: 16,
+                filter: 'drop-shadow(0 4px 8px rgba(0, 104, 118, 0.15))'
+              }}
             />
-            <h1>Portal Pembayaran</h1>
-            <p>ESP Lintas Data Multimedia</p>
+            <h1 style={{
+              fontSize: '1.4rem',
+              fontWeight: 800,
+              color: 'var(--md-on-surface)',
+              marginBottom: 4
+            }}>Portal Pembayaran</h1>
+            <p style={{
+              color: 'var(--md-on-surface-variant)',
+              fontSize: '0.85rem'
+            }}>ESP Lintas Data Multimedia</p>
           </div>
 
-          {error && <div className="login-error"><TemplateIcon name="alert" size={16} style={{ marginRight: '6px' }} /> {error}</div>}
+          {/* Error */}
+          {error && (
+            <div style={{
+              background: 'var(--status-merah-bg)',
+              color: 'var(--status-merah)',
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.85rem',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>error</span>
+              {error}
+            </div>
+          )}
+
+          {/* Success */}
           {successMsg && !error && (
-            <div className="status-badge hijau" style={{ width: '100%', padding: '10px', borderRadius: '5px', marginBottom: '16px', display: 'block', textAlign: 'center' }}>
+            <div style={{
+              background: 'var(--status-hijau-bg)',
+              color: 'var(--status-hijau)',
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.85rem',
+              marginBottom: 16,
+              textAlign: 'center',
+              fontWeight: 600
+            }}>
               {successMsg}
             </div>
           )}
 
           {step === 1 ? (
-            <form className="login-form" onSubmit={handleRequestOtp}>
-              <div className="form-group">
-                <label>Email Pelanggan</label>
+            <form onSubmit={handleRequestOtp}>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  color: 'var(--md-on-surface-variant)',
+                  marginBottom: 6,
+                  marginLeft: 4,
+                  display: 'block'
+                }}>Email Pelanggan</label>
                 <input
                   type="email"
                   placeholder="Contoh: user@email.com"
@@ -90,44 +156,122 @@ function CustomerLoginPage({ onLogin }) {
                   onChange={function (e) { setEmail(e.target.value); }}
                   required
                   autoFocus
+                  style={{
+                    width: '100%',
+                    background: 'var(--md-surface-container-low)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '14px 16px',
+                    fontSize: '0.95rem',
+                    outline: 'none'
+                  }}
                 />
               </div>
               <button
                 type="submit"
-                className="btn btn-primary"
                 disabled={loading}
+                style={{
+                  width: '100%',
+                  background: 'var(--md-primary-container)',
+                  color: 'var(--md-on-primary-container)',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '14px',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  cursor: loading ? 'wait' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  transition: 'all 0.2s ease',
+                  opacity: loading ? 0.7 : 1,
+                  fontFamily: "'Hanken Grotesk', sans-serif"
+                }}
               >
-                {loading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Memproses...</> : <><TemplateIcon name="mail" size={16} style={{ marginRight: '6px' }} /> Kirim OTP via Email</>}
+                {loading ? (
+                  <><span className="material-symbols-outlined" style={{ fontSize: 18, animation: 'pulse 1s infinite' }}>hourglass_top</span> Memproses...</>
+                ) : (
+                  <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>mail</span> Kirim OTP via Email</>
+                )}
               </button>
             </form>
           ) : (
-            <form className="login-form" onSubmit={handleVerifyOtp}>
-              <div className="form-group">
-                <label>Masukkan 6-Digit Kode OTP</label>
+            <form onSubmit={handleVerifyOtp}>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  color: 'var(--md-on-surface-variant)',
+                  marginBottom: 6,
+                  marginLeft: 4,
+                  display: 'block'
+                }}>Masukkan 6-Digit Kode OTP</label>
                 <input
                   type="text"
                   maxLength="6"
-                  placeholder="******"
+                  placeholder="••••••"
                   value={otp}
                   onChange={function (e) { setOtp(e.target.value); }}
                   required
                   autoFocus
-                  style={{ textAlign: 'center', fontSize: '1.4rem', letterSpacing: '4px', fontWeight: 'bold' }}
+                  style={{
+                    width: '100%',
+                    background: 'var(--md-surface-container-low)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '14px 16px',
+                    fontSize: '1.4rem',
+                    letterSpacing: '6px',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    outline: 'none'
+                  }}
                 />
               </div>
               <button
                 type="submit"
-                className="btn btn-primary"
                 disabled={loading}
-                style={{ marginBottom: '10px' }}
+                style={{
+                  width: '100%',
+                  background: 'var(--md-primary-container)',
+                  color: 'var(--md-on-primary-container)',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '14px',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  cursor: loading ? 'wait' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  marginBottom: 10,
+                  opacity: loading ? 0.7 : 1,
+                  fontFamily: "'Hanken Grotesk', sans-serif"
+                }}
               >
-                {loading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Memverifikasi...</> : <><TemplateIcon name="shield" size={16} style={{ marginRight: '6px' }} /> Masuk</>}
+                {loading ? (
+                  <><span className="material-symbols-outlined" style={{ fontSize: 18, animation: 'pulse 1s infinite' }}>hourglass_top</span> Memverifikasi...</>
+                ) : (
+                  <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>verified_user</span> Masuk</>
+                )}
               </button>
               <button
                 type="button"
-                className="btn btn-secondary"
                 onClick={function () { setStep(1); setError(''); setSuccessMsg(''); }}
-                style={{ width: '100%' }}
+                style={{
+                  width: '100%',
+                  background: 'var(--md-surface-container)',
+                  color: 'var(--md-on-surface)',
+                  border: '1px solid var(--md-outline-variant)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: "'Hanken Grotesk', sans-serif"
+                }}
               >
                 Kembali
               </button>

@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import axios from 'axios';
 import { SOCKET_URL } from './config';
 import './App.css';
+import './LandingTheme.css';
 
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Nav';

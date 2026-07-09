@@ -1,17 +1,66 @@
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap');
 
 /* ============================================
    ESP Lintas Data Multimedia - Design System
+   Derived from code.html Material Design 3 palette
    ============================================ */
 
 :root {
-  /* Primary Colors */
+  /* ====== Material Design 3 Color Tokens ====== */
+  --md-surface-bright: #f8f9fa;
+  --md-primary-fixed: #a2efff;
+  --md-tertiary-fixed: #dbe4ed;
+  --md-secondary-fixed-dim: #99cbff;
+  --md-surface-dim: #d9dadb;
+  --md-on-error-container: #93000a;
+  --md-on-primary: #ffffff;
+  --md-on-surface-variant: #3d494b;
+  --md-tertiary-container: #8d969e;
+  --md-outline-variant: #bcc9cc;
+  --md-outline: #6d797c;
+  --md-primary-fixed-dim: #61d6ec;
+  --md-tertiary-fixed-dim: #bfc8d0;
+  --md-on-tertiary: #ffffff;
+  --md-surface-variant: #e1e3e4;
+  --md-on-secondary-fixed: #001d34;
+  --md-on-secondary-container: #145483;
+  --md-on-secondary-fixed-variant: #004a78;
+  --md-tertiary: #575f67;
+  --md-on-surface: #191c1d;
+  --md-on-tertiary-fixed: #141d23;
+  --md-surface: #f8f9fa;
+  --md-on-primary-container: #00333a;
+  --md-secondary-container: #94c8fe;
+  --md-primary-container: #14a3b8;
+  --md-on-tertiary-container: #262f35;
+  --md-on-secondary: #ffffff;
+  --md-surface-tint: #006876;
+  --md-error: #ba1a1a;
+  --md-inverse-primary: #61d6ec;
+  --md-surface-container-highest: #e1e3e4;
+  --md-surface-container: #edeeef;
+  --md-on-primary-fixed-variant: #004e5a;
+  --md-surface-container-lowest: #ffffff;
+  --md-on-background: #191c1d;
+  --md-on-error: #ffffff;
+  --md-secondary: #286292;
+  --md-inverse-on-surface: #f0f1f2;
+  --md-primary: #006876;
+  --md-on-tertiary-fixed-variant: #3f484f;
+  --md-on-primary-fixed: #001f25;
+  --md-inverse-surface: #2e3132;
+  --md-surface-container-high: #e7e8e9;
+  --md-secondary-fixed: #cfe5ff;
+  --md-surface-container-low: #f3f4f5;
+  --md-error-container: #ffdad6;
+  --md-background: #f8f9fa;
+
+  /* ====== Semantic Aliases (backwards-compat for admin dashboard) ====== */
   --primary: #006876;
   --primary-light: #14a3b8;
   --primary-dark: #004e5a;
   --primary-glow: rgba(0, 104, 118, 0.12);
 
-  /* Background Colors */
   --bg-primary: #f8f9fa;
   --bg-secondary: #f3f4f5;
   --bg-tertiary: #edeeef;
@@ -19,13 +68,12 @@
   --bg-card-hover: #f8fbfc;
   --bg-input: #ffffff;
 
-  /* Text Colors */
   --text-primary: #191c1d;
-  --text-secondary: #2f3b40;
-  --text-muted: #5c6a70;
+  --text-secondary: #3d494b;
+  --text-muted: #6d797c;
   --text-inverse: #ffffff;
 
-  /* Status Colors */
+  /* Status Colors — PRESERVED from original (semantic meaning unchanged) */
   --status-hijau: #0f9d5b;
   --status-hijau-bg: rgba(15, 157, 91, 0.12);
   --status-kuning: #b7791f;
@@ -35,33 +83,43 @@
   --status-abu: #6d797c;
   --status-abu-bg: rgba(109, 121, 124, 0.12);
 
-  /* Accent Colors */
   --accent-cyan: #61d6ec;
   --accent-purple: #286292;
   --accent-pink: #8d969e;
 
-  /* Borders */
   --border-color: #e1e3e4;
-  --border-color-light: #dee2e6;
+  --border-color-light: #bcc9cc;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(25, 28, 29, 0.08);
-  --shadow-md: 0 10px 24px rgba(25, 28, 29, 0.08);
-  --shadow-lg: 0 18px 36px rgba(25, 28, 29, 0.12);
+  /* Shadows — from code.html */
+  --shadow-sm: 0 1px 3px rgba(25, 28, 29, 0.06);
+  --shadow-md: 0px 4px 20px rgba(0, 75, 122, 0.08);
+  --shadow-lg: 0 18px 36px rgba(25, 28, 29, 0.10);
   --shadow-glow: 0 0 18px rgba(0, 104, 118, 0.12);
 
-  /* Radius */
-  --radius-sm: 3px;
-  --radius-md: 4px;
-  --radius-lg: 5px;
-  --radius-xl: 8px;
+  /* Radius — from code.html */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Spacing — from code.html */
+  --stack-sm: 8px;
+  --stack-md: 16px;
+  --stack-lg: 32px;
+  --section-gap: 80px;
+  --gutter: 24px;
+  --margin-desktop: 64px;
+  --margin-mobile: 20px;
+  --container-max: 1280px;
 
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Sidebar */
+  /* Admin Dashboard Layout */
   --sidebar-width: 260px;
   --sidebar-collapsed: 72px;
   --topbar-height: 64px;
@@ -85,7 +143,7 @@ html {
 }
 
 body {
-  font-family: 'Hanken Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
@@ -104,6 +162,29 @@ a:hover {
   color: var(--primary);
 }
 
+/* Material Symbols configuration */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ============================================
+   Custom Effect Classes (from code.html)
+   ============================================ */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.text-glow {
+  text-shadow: 0 0 20px rgba(20, 163, 184, 0.3);
+}
+
+.ambient-shadow {
+  box-shadow: 0px 4px 20px rgba(0, 75, 122, 0.08);
+}
+
 /* ============================================
    Scrollbar Custom
    ============================================ */
@@ -118,16 +199,16 @@ a:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--text-muted);
+  background: var(--md-outline-variant);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: var(--md-outline);
 }
 
 /* ============================================
-   Utility Classes
+   Status Utility Classes
    ============================================ */
 
 .text-hijau {
@@ -169,34 +250,33 @@ a:hover {
 input,
 select,
 textarea {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Hanken Grotesk', sans-serif;
   font-size: 0.95rem;
   color: var(--text-primary);
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-color-light);
+  background-color: var(--md-surface-container-low);
+  border: none;
   border-radius: var(--radius-md);
-  padding: 10px 14px;
+  padding: 12px 16px;
   width: 100%;
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: box-shadow var(--transition-fast);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-glow);
+  box-shadow: 0 0 0 2px var(--md-primary-container);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--text-muted);
+  color: var(--md-outline);
 }
 
 select {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a0a0b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236d797c' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 36px;
@@ -206,8 +286,9 @@ label {
   display: block;
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--md-on-surface-variant);
   margin-bottom: 6px;
+  margin-left: 4px;
 }
 
 /* ============================================
@@ -219,7 +300,7 @@ label {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Hanken Grotesk', sans-serif;
   font-size: 0.9rem;
   font-weight: 600;
   padding: 10px 20px;
@@ -235,41 +316,39 @@ label {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: white;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-light), var(--primary));
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  filter: brightness(0.95);
+  box-shadow: 0 4px 16px rgba(0, 104, 118, 0.25);
   transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background: var(--bg-tertiary);
+  background: var(--md-surface-container);
   color: var(--text-primary);
-  border: 1px solid var(--border-color-light);
+  border: 1px solid var(--md-outline-variant);
 }
 
 .btn-secondary:hover {
-  background: var(--bg-card-hover);
+  background: var(--md-surface-container-high);
   border-color: var(--primary);
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, var(--status-merah), #dc2626);
-  color: white;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  background: var(--md-error);
+  color: var(--md-on-error);
 }
 
 .btn-danger:hover {
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+  filter: brightness(0.95);
   transform: translateY(-1px);
 }
 
 .btn-success {
-  background: linear-gradient(135deg, var(--status-hijau), #16a34a);
+  background: var(--status-hijau);
   color: white;
 }
 
@@ -290,15 +369,17 @@ label {
    ============================================ */
 
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--md-surface-container-lowest);
+  border: 1px solid rgba(188, 201, 204, 0.3);
   border-radius: var(--radius-lg);
   padding: 24px;
   transition: all var(--transition-normal);
+  box-shadow: 0px 4px 20px rgba(0, 75, 122, 0.08);
 }
 
 .card:hover {
-  border-color: var(--border-color-light);
+  transform: translateY(-2px);
+  box-shadow: 0px 8px 30px rgba(0, 75, 122, 0.12);
 }
 
 .card-header {
@@ -311,7 +392,7 @@ label {
 .card-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--md-on-surface);
 }
 
 /* ============================================
@@ -400,12 +481,25 @@ label {
   }
 }
 
+@keyframes bounceSlow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
 .animate-slideUp {
   animation: slideUp 0.4s ease-out forwards;
+}
+
+.animate-bounce-slow {
+  animation: bounceSlow 3s ease-in-out infinite;
 }
 
 /* Staggered animations for lists */

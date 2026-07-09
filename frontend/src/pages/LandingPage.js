@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import TemplateIcon from '../components/TemplateIcon';
 
 function LandingPage({ customer, onLogout }) {
   var navigate = useNavigate();
@@ -8,6 +7,7 @@ function LandingPage({ customer, onLogout }) {
   var [openFaq, setOpenFaq] = useState(0);
 
   useEffect(function () {
+    // Scroll-reveal observer
     var sections = document.querySelectorAll('.reveal-on-scroll');
     if (!sections.length || typeof IntersectionObserver === 'undefined') {
       sections.forEach(function (section) { section.classList.add('is-visible'); });
@@ -21,16 +21,26 @@ function LandingPage({ customer, onLogout }) {
           observer.unobserve(entry.target);
         }
       });
-    }, {
-      threshold: 0.2,
-    });
+    }, { threshold: 0.2 });
 
-    sections.forEach(function (section) {
-      observer.observe(section);
-    });
+    sections.forEach(function (section) { observer.observe(section); });
+
+    // Navbar scroll shadow
+    function handleScroll() {
+      var nav = document.querySelector('.landing-nav');
+      if (nav) {
+        if (window.scrollY > 50) {
+          nav.classList.add('scrolled');
+        } else {
+          nav.classList.remove('scrolled');
+        }
+      }
+    }
+    window.addEventListener('scroll', handleScroll);
 
     return function () {
       observer.disconnect();
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -55,46 +65,49 @@ function LandingPage({ customer, onLogout }) {
   ];
 
   var packages = [
-    { name: 'Paket 10 Mbps', price: '150.000', features: ['Kecepatan 10 Mbps', 'Unlimited tanpa FUP', 'Dukungan 24/7', 'Instalasi Gratis'] },
-    { name: 'Paket 20 Mbps', price: '175.000', features: ['Kecepatan 20 Mbps', 'Unlimited tanpa FUP', 'Dukungan 24/7', 'Instalasi Gratis'] },
-    { name: 'Paket 30 Mbps', price: '200.000', features: ['Kecepatan 30 Mbps', 'Unlimited tanpa FUP', 'Dukungan 24/7', 'Instalasi Gratis'], popular: true },
-    { name: 'Paket 50 Mbps', price: '250.000', features: ['Kecepatan 50 Mbps', 'Unlimited tanpa FUP', 'Dukungan 24/7', 'Instalasi Gratis'] },
-    { name: 'Paket 75 Mbps', price: '330.000', features: ['Kecepatan 75 Mbps', 'Unlimited tanpa FUP', 'Dukungan 24/7', 'Instalasi Gratis'] },
-    { name: 'Paket Gamer 100 Mbps', price: '385.000', features: ['Kecepatan 100 Mbps', 'Unlimited tanpa FUP', 'Dukungan Prioritas 24/7', 'Instalasi Gratis'] }
+    { name: 'Paket 10 Mbps', speed: '10', price: '150.000', features: ['Kecepatan 10 Mbps', 'Unlimited tanpa FUP', 'Dukungan 24/7', 'Instalasi Gratis'] },
+    { name: 'Paket 20 Mbps', speed: '20', price: '175.000', features: ['Kecepatan 20 Mbps', 'Unlimited tanpa FUP', 'Dukungan 24/7', 'Instalasi Gratis'] },
+    { name: 'Paket 30 Mbps', speed: '30', price: '200.000', features: ['Kecepatan 30 Mbps', 'Unlimited tanpa FUP', 'Dukungan 24/7', 'Instalasi Gratis'], popular: true },
+    { name: 'Paket 50 Mbps', speed: '50', price: '250.000', features: ['Kecepatan 50 Mbps', 'Unlimited tanpa FUP', 'Dukungan 24/7', 'Instalasi Gratis'] },
+    { name: 'Paket 75 Mbps', speed: '75', price: '330.000', features: ['Kecepatan 75 Mbps', 'Unlimited tanpa FUP', 'Dukungan 24/7', 'Instalasi Gratis'] },
+    { name: 'Paket Gamer 100 Mbps', speed: '100', price: '385.000', features: ['Kecepatan 100 Mbps', 'Unlimited tanpa FUP', 'Dukungan Prioritas 24/7', 'Instalasi Gratis'] }
   ];
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   return (
     <div className="landing-page">
-      {/* Navbar */}
+      {/* Navbar — fixed, blur, shadow on scroll */}
       <nav className="landing-nav">
         <div className="landing-nav-inner">
           <div className="landing-nav-brand">
             <img src={process.env.PUBLIC_URL + '/logo ldm.png'} alt="Logo LDM" className="landing-nav-logo" />
-            <span className="landing-nav-title">LINTAS DATA MULTIMEDIA</span>
+            <span className="landing-nav-title">PT. Lintas Data Multimedia</span>
           </div>
           <div className="landing-nav-menu">
-            <a href="#tentang" className="landing-nav-link">Tentang</a>
             <a href="#layanan" className="landing-nav-link">Layanan</a>
             <a href="#harga" className="landing-nav-link">Harga</a>
             <a href="#faq" className="landing-nav-link">FAQ</a>
-            <a href="#kontak" className="landing-nav-link">Kontak</a>
+            <a href="#kontak" className="landing-nav-link">Hubungi Kami</a>
           </div>
           <div className="landing-nav-actions">
             {isLoggedIn ? (
               <>
                 <span className="landing-nav-user">
-                  <TemplateIcon name="user" size={15} /> {customer.nama}
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>person</span> {customer.nama}
                 </span>
                 <button className="landing-btn-outline" onClick={function () { navigate('/portal'); }}>
-                  <TemplateIcon name="money" size={15} /> Portal Saya
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>dashboard</span> Portal Saya
                 </button>
                 <button className="landing-btn-outline landing-btn-outline--muted" onClick={onLogout}>
-                  <TemplateIcon name="logout" size={15} /> Keluar
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span> Keluar
                 </button>
               </>
             ) : (
               <button className="landing-btn-primary" onClick={function () { navigate('/bayar'); }}>
-                Bayar Tagihan
+                Daftar Sekarang
               </button>
             )}
           </div>
@@ -107,19 +120,22 @@ function LandingPage({ customer, onLogout }) {
         <div className="landing-hero-bg-orb landing-hero-bg-orb--2"></div>
         <div className="landing-hero-bg-orb landing-hero-bg-orb--3"></div>
         <div className="landing-hero-content">
+          <div className="landing-hero-badge">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>bolt</span>
+            Koneksi Tanpa Batas
+          </div>
           <h1 className="landing-hero-title">
-            Penyedia Layanan Internet <br />
-            <span className="landing-hero-title--accent">Terbaik &amp; Terpercaya</span>
+            Penyedia Layanan <span className="landing-hero-title--accent">Internet Terbaik</span> Untuk Anda
           </h1>
           <p className="landing-hero-subtitle">
-            Dengan bandwidth yang disesuaikan untuk pengalaman Anda. Koneksi fiber optic cepat dan stabil untuk kebutuhan rumah dan bisnis.
+            Nikmati pengalaman browsing ultra-lancar dengan bandwidth yang disesuaikan khusus untuk kebutuhan rumah tangga dan bisnis profesional Anda.
           </p>
           <div className="landing-hero-actions">
             <a href="#harga" className="landing-btn-primary landing-btn-lg">
-              <TemplateIcon name="signal" size={18} /> Mulai Sekarang
+              <span className="material-symbols-outlined">arrow_forward</span> Mulai Sekarang
             </a>
             <button className="landing-btn-ghost landing-btn-lg" onClick={handlePaymentClick}>
-              <TemplateIcon name="money" size={16} /> Bayar Tagihan
+              <span className="material-symbols-outlined">payments</span> Bayar Tagihan
             </button>
           </div>
           <div className="landing-hero-stats">
@@ -141,78 +157,41 @@ function LandingPage({ customer, onLogout }) {
         </div>
       </section>
 
-      {/* Tentang Kami */}
-      <section className="landing-about reveal-on-scroll" id="tentang">
-        <div className="landing-section-inner">
-          <div className="landing-section-header">
-            <h2 className="landing-section-title">Tentang Kami</h2>
-          </div>
-          <div className="landing-about-grid">
-            <div className="landing-about-text">
-              <p>PT. Lintas Data Multimedia adalah penyedia layanan internet (ISP) yang berkomitmen memberikan koneksi internet cepat dan stabil untuk kebutuhan bisnis dan rumah Anda.</p>
-              <ul className="landing-checklist">
-                <li><TemplateIcon name="check" size={16} color="#5eead4" /> Layanan internet dengan bandwidth yang dapat disesuaikan.</li>
-                <li><TemplateIcon name="check" size={16} color="#5eead4" /> Dukungan teknis 24/7 untuk memastikan koneksi Anda selalu optimal.</li>
-                <li><TemplateIcon name="check" size={16} color="#5eead4" /> Jaringan yang handal dan aman untuk berbagai kebutuhan digital Anda.</li>
-              </ul>
-            </div>
-            <div className="landing-about-text">
-              <p>Dengan pengalaman bertahun-tahun di industri telekomunikasi, kami berkomitmen untuk memberikan layanan terbaik dan solusi internet yang inovatif bagi pelanggan kami.</p>
-              <div className="landing-about-highlights">
-                <div className="landing-highlight-item">
-                  <div className="landing-highlight-num">01</div>
-                  <div>
-                    <h4>Konsultasi &amp; Analisis</h4>
-                    <p>Memahami kebutuhan Anda untuk solusi internet yang tepat.</p>
-                  </div>
-                </div>
-                <div className="landing-highlight-item">
-                  <div className="landing-highlight-num">02</div>
-                  <div>
-                    <h4>Instalasi &amp; Setup</h4>
-                    <p>Pemasangan perangkat dan konfigurasi jaringan oleh teknisi profesional.</p>
-                  </div>
-                </div>
-                <div className="landing-highlight-item">
-                  <div className="landing-highlight-num">03</div>
-                  <div>
-                    <h4>Monitoring &amp; Dukungan</h4>
-                    <p>Pemantauan kinerja jaringan dan dukungan berkelanjutan.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Layanan */}
+      {/* Layanan Section */}
       <section className="landing-features reveal-on-scroll" id="layanan">
         <div className="landing-section-inner">
           <div className="landing-section-header">
-            <h2 className="landing-section-title">Layanan Kami</h2>
-            <p className="landing-section-subtitle">Kami menyediakan berbagai layanan internet dan solusi jaringan yang dirancang untuk memenuhi kebutuhan bisnis dan rumah tangga Anda.</p>
+            <h2 className="landing-section-title">Solusi Konektivitas Digital</h2>
+            <p className="landing-section-subtitle">Kami menghadirkan infrastruktur jaringan terkini untuk mendukung segala aktivitas digital Anda dengan performa maksimal.</p>
           </div>
           <div className="landing-features-grid landing-features-grid--4">
             <div className="landing-feature-card">
-              <div className="landing-feature-icon landing-feature-icon--cyan"><TemplateIcon name="server" size={24} /></div>
+              <div className="landing-feature-icon landing-feature-icon--cyan">
+                <span className="material-symbols-outlined" style={{ fontSize: 28 }}>router</span>
+              </div>
               <h3>Internet Broadband</h3>
-              <p>Layanan internet cepat dengan bandwidth yang dapat disesuaikan untuk rumah dan bisnis, menggunakan teknologi fiber optic terdepan.</p>
+              <p>Layanan internet cepat dan stabil untuk kebutuhan harian tanpa kuota, menggunakan teknologi fiber optic terdepan.</p>
             </div>
             <div className="landing-feature-card">
-              <div className="landing-feature-icon landing-feature-icon--green"><TemplateIcon name="signal" size={24} /></div>
+              <div className="landing-feature-icon landing-feature-icon--green">
+                <span className="material-symbols-outlined" style={{ fontSize: 28 }}>wifi</span>
+              </div>
               <h3>Solusi WiFi</h3>
-              <p>Instalasi dan pengelolaan jaringan WiFi yang handal untuk area rumah, kantor, atau publik dengan keamanan tinggi.</p>
+              <p>Cakupan sinyal WiFi yang luas dan merata di setiap sudut ruangan Anda dengan keamanan tinggi.</p>
             </div>
             <div className="landing-feature-card">
-              <div className="landing-feature-icon landing-feature-icon--purple"><TemplateIcon name="shield" size={24} /></div>
+              <div className="landing-feature-icon landing-feature-icon--purple">
+                <span className="material-symbols-outlined" style={{ fontSize: 28 }}>security</span>
+              </div>
               <h3>Keamanan Jaringan</h3>
-              <p>Perlindungan jaringan dengan firewall, enkripsi data, dan monitoring 24/7 untuk mencegah ancaman cyber.</p>
+              <p>Proteksi data tingkat tinggi untuk menjaga privasi digital Anda tetap aman dari ancaman cyber.</p>
             </div>
             <div className="landing-feature-card">
-              <div className="landing-feature-icon landing-feature-icon--orange"><TemplateIcon name="user" size={24} /></div>
+              <div className="landing-feature-icon landing-feature-icon--orange">
+                <span className="material-symbols-outlined" style={{ fontSize: 28 }}>support_agent</span>
+              </div>
               <h3>Dukungan Teknis</h3>
-              <p>Tim ahli siap membantu instalasi, troubleshooting, dan pemeliharaan jaringan kapan saja Anda butuhkan.</p>
+              <p>Tim ahli yang siap membantu Anda kapan saja untuk kendala teknis apapun, 24/7.</p>
             </div>
           </div>
         </div>
@@ -226,7 +205,7 @@ function LandingPage({ customer, onLogout }) {
             <p>Dapatkan koneksi internet cepat dan stabil untuk rumah atau bisnis Anda. Tim kami siap membantu dengan instalasi dan dukungan penuh.</p>
           </div>
           <a href="https://wa.me/6282299139449?text=Halo%2C%20saya%20ingin%20pesan%20layanan%20internet%20dari%20Lintas%20Data%20Multimedia." target="_blank" rel="noopener noreferrer" className="landing-btn-wa">
-            <TemplateIcon name="phone" size={18} /> Pesan via WhatsApp
+            <span className="material-symbols-outlined">call</span> Pesan via WhatsApp
           </a>
         </div>
       </section>
@@ -235,14 +214,14 @@ function LandingPage({ customer, onLogout }) {
       <section className="landing-pricing reveal-on-scroll" id="harga">
         <div className="landing-section-inner">
           <div className="landing-section-header">
-            <h2 className="landing-section-title">Daftar Harga</h2>
-            <p className="landing-section-subtitle">Pilih paket internet yang sesuai dengan kebutuhan Anda dari berbagai pilihan kecepatan dan harga kompetitif.</p>
+            <h2 className="landing-section-title">Pilih Paket Internet Anda</h2>
+            <p className="landing-section-subtitle">Harga fleksibel dan kompetitif yang dirancang untuk mendukung gaya hidup digital Anda.</p>
           </div>
           <div className="landing-pricing-grid">
             {packages.map(function (pkg, idx) {
               return (
                 <div className={'landing-pricing-card' + (pkg.popular ? ' landing-pricing-card--popular' : '')} key={idx}>
-                  {pkg.popular && <div className="landing-pricing-badge">Popular</div>}
+                  {pkg.popular && <div className="landing-pricing-badge">Terpopuler</div>}
                   <h3 className="landing-pricing-name">{pkg.name}</h3>
                   <div className="landing-pricing-price">
                     <span className="landing-pricing-currency">Rp</span>
@@ -251,10 +230,10 @@ function LandingPage({ customer, onLogout }) {
                   </div>
                   <ul className="landing-pricing-features">
                     {pkg.features.map(function (f, i) {
-                      return <li key={i}><TemplateIcon name="check" size={14} color="#5eead4" /> {f}</li>;
+                      return <li key={i}><span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--md-primary)' }}>check_circle</span> {f}</li>;
                     })}
                   </ul>
-                  <a href="https://wa.me/6282299139449?text=Halo%2C%20saya%20ingin%20berlangganan%20" target="_blank" rel="noopener noreferrer" className="landing-btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+                  <a href="https://wa.me/6282299139449?text=Halo%2C%20saya%20ingin%20berlangganan%20" target="_blank" rel="noopener noreferrer" className={pkg.popular ? 'landing-btn-primary' : 'landing-btn-ghost'} style={{ width: '100%', justifyContent: 'center' }}>
                     Pesan Sekarang
                   </a>
                 </div>
@@ -263,7 +242,7 @@ function LandingPage({ customer, onLogout }) {
           </div>
           <div className="landing-pricing-info">
             <p><strong>Wilayah Layanan:</strong> Kec. Pringsewu, Kec. Pagelaran, Kec. Sukoharjo, Kec. Kalirejo, Kec. Adiluwih, Kec. Banyumas</p>
-            <p><strong>Biaya Instalasi:</strong> <del>Rp 350.000</del> <span style={{ color: '#5eead4', fontWeight: 700 }}>(Gratis untuk semua paket)</span></p>
+            <p><strong>Biaya Instalasi:</strong> <del>Rp 350.000</del> <span style={{ color: 'var(--md-primary)', fontWeight: 700 }}>(Gratis untuk semua paket)</span></p>
           </div>
         </div>
       </section>
@@ -274,15 +253,15 @@ function LandingPage({ customer, onLogout }) {
           <div className="landing-cta-content">
             <h2>Bayar Tagihan Anda Sekarang</h2>
             <p>Login ke portal pelanggan untuk melihat status tagihan dan melakukan pembayaran secara instan. Pembayaran otomatis diverifikasi dan internet langsung aktif kembali.</p>
-            <button className="landing-btn-primary landing-btn-lg landing-btn-glow" onClick={handlePaymentClick}>
-              <TemplateIcon name="money" size={18} /> {isLoggedIn ? 'Buka Portal Pembayaran' : 'Login & Bayar Sekarang'}
+            <button className="landing-btn-primary landing-btn-lg" onClick={handlePaymentClick}>
+              <span className="material-symbols-outlined">payments</span> {isLoggedIn ? 'Buka Portal Pembayaran' : 'Login & Bayar Sekarang'}
             </button>
           </div>
           <div className="landing-cta-visual">
             <div className="landing-cta-card">
               <div className="landing-cta-card-row">
                 <span className="landing-cta-card-label">Status</span>
-                <span className="landing-cta-card-badge landing-cta-card-badge--green">Lunas</span>
+                <span className="landing-cta-card-badge--green">Lunas</span>
               </div>
               <div className="landing-cta-card-row">
                 <span className="landing-cta-card-label">Periode</span>
@@ -291,10 +270,6 @@ function LandingPage({ customer, onLogout }) {
               <div className="landing-cta-card-row">
                 <span className="landing-cta-card-label">Nominal</span>
                 <span className="landing-cta-card-value landing-cta-card-value--bold">Rp 200.000</span>
-              </div>
-              <div className="landing-cta-card-row">
-                <span className="landing-cta-card-label">Metode</span>
-                <span className="landing-cta-card-value">Midtrans (QRIS)</span>
               </div>
             </div>
           </div>
@@ -314,7 +289,7 @@ function LandingPage({ customer, onLogout }) {
                 <div className={'landing-faq-item' + (openFaq === idx ? ' landing-faq-item--open' : '')} key={idx} onClick={function () { toggleFaq(idx); }}>
                   <div className="landing-faq-question">
                     <span>{faq.q}</span>
-                    <TemplateIcon name={openFaq === idx ? 'chevron-down' : 'chevron-right'} size={18} />
+                    <span className="material-symbols-outlined" style={{ transition: 'transform 0.3s', transform: openFaq === idx ? 'rotate(180deg)' : 'rotate(0)' }}>expand_more</span>
                   </div>
                   {openFaq === idx && <div className="landing-faq-answer">{faq.a}</div>}
                 </div>
@@ -333,17 +308,17 @@ function LandingPage({ customer, onLogout }) {
           </div>
           <div className="landing-contact-grid">
             <div className="landing-contact-item">
-              <div className="landing-contact-icon"><TemplateIcon name="location" size={22} /></div>
+              <div className="landing-contact-icon"><span className="material-symbols-outlined">location_on</span></div>
               <h4>Alamat</h4>
               <p>Jl. KH. Gholib Raya Gg. Panda, Pringsewu Utara, Kec. Pringsewu, Kabupaten Pringsewu, Lampung 35373</p>
             </div>
             <div className="landing-contact-item">
-              <div className="landing-contact-icon"><TemplateIcon name="phone" size={22} /></div>
+              <div className="landing-contact-icon"><span className="material-symbols-outlined">call</span></div>
               <h4>Telepon</h4>
               <p>+62 822-9913-9449</p>
             </div>
             <div className="landing-contact-item">
-              <div className="landing-contact-icon"><TemplateIcon name="mail" size={22} /></div>
+              <div className="landing-contact-icon"><span className="material-symbols-outlined">mail</span></div>
               <h4>Email</h4>
               <p>cs@lintasdata.net.id</p>
             </div>
@@ -352,7 +327,7 @@ function LandingPage({ customer, onLogout }) {
             <iframe
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d297!2d104.9778103!3d-5.3431389!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e47332d89a55f43:0x6d7f59cfb822556e!2sPT+Lintas+Data+Multimedia!5e0!3m2!1sen!2sid!4v1695897600000!5m2!1sen!2sid"
               title="Lokasi PT Lintas Data Multimedia"
-              style={{ border: 0, width: '100%', height: '300px', borderRadius: '14px' }}
+              style={{ border: 0, width: '100%', height: '300px', borderRadius: '12px' }}
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
@@ -366,37 +341,46 @@ function LandingPage({ customer, onLogout }) {
         <div className="landing-footer-inner">
           <div className="landing-footer-brand">
             <img src={process.env.PUBLIC_URL + '/logo ldm.png'} alt="Logo LDM" className="landing-footer-logo" />
-            <p className="landing-footer-desc">PT. Lintas Data Multimedia — Penyedia layanan internet fiber optic cepat dan stabil di Pringsewu, Lampung.</p>
+            <p className="landing-footer-desc">PT. Lintas Data Multimedia — Membangun konektivitas masa depan untuk Indonesia yang lebih terintegrasi dan produktif.</p>
+            <div className="landing-footer-social">
+              <a href="https://www.facebook.com/share/172oaMU4xo/" target="_blank" rel="noopener noreferrer" className="landing-social-link"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>group</span></a>
+              <a href="https://www.instagram.com/lintasdata_mm" target="_blank" rel="noopener noreferrer" className="landing-social-link"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>photo_camera</span></a>
+              <a href="https://www.tiktok.com/@lintas.data.multi" target="_blank" rel="noopener noreferrer" className="landing-social-link"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>videocam</span></a>
+            </div>
           </div>
           <div className="landing-footer-links">
-            <h4>Navigasi</h4>
-            <a href="#tentang">Tentang Kami</a>
+            <h4>Tautan Cepat</h4>
             <a href="#layanan">Layanan</a>
             <a href="#harga">Harga</a>
             <a href="#faq">FAQ</a>
+            <a href="#kontak">Hubungi Kami</a>
           </div>
           <div className="landing-footer-links">
-            <h4>Layanan</h4>
-            <a href="#layanan">Internet Broadband</a>
-            <a href="#layanan">Solusi WiFi</a>
-            <a href="#layanan">Keamanan Jaringan</a>
-            <a href="#layanan">Dukungan Teknis</a>
-          </div>
-          <div className="landing-footer-links">
-            <h4>Kontak &amp; Sosial</h4>
-            <a href="mailto:cs@lintasdata.net.id"><TemplateIcon name="mail" size={14} /> cs@lintasdata.net.id</a>
-            <a href="https://wa.me/6282299139449" target="_blank" rel="noopener noreferrer"><TemplateIcon name="phone" size={14} /> +62 822-9913-9449</a>
-            <div className="landing-footer-social">
-              <a href="https://www.facebook.com/share/172oaMU4xo/" target="_blank" rel="noopener noreferrer" className="landing-social-link">FB</a>
-              <a href="https://www.instagram.com/lintasdata_mm" target="_blank" rel="noopener noreferrer" className="landing-social-link">IG</a>
-              <a href="https://www.tiktok.com/@lintas.data.multi" target="_blank" rel="noopener noreferrer" className="landing-social-link">TT</a>
-            </div>
+            <h4>Legal</h4>
+            <a href="#kontak">Kebijakan Privasi</a>
+            <a href="#kontak">Syarat & Ketentuan</a>
           </div>
         </div>
         <div className="landing-footer-bottom">
-          <p>&copy; {new Date().getFullYear()} Hak Cipta <strong>LINTAS DATA MULTIMEDIA</strong> Semua Hak Dilindungi</p>
+          <p>&copy; {new Date().getFullYear()} PT. Lintas Data Multimedia. Seluruh Hak Cipta Dilindungi.</p>
         </div>
       </footer>
+
+      {/* Back to Top Button */}
+      <button
+        onClick={scrollToTop}
+        style={{
+          position: 'fixed', bottom: 32, right: 32, width: 56, height: 56,
+          background: 'var(--md-primary)', color: 'white', borderRadius: '50%',
+          border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 8px 24px rgba(0,104,118,0.3)', cursor: 'pointer',
+          transition: 'all 0.3s ease', zIndex: 40
+        }}
+        onMouseEnter={function(e) { e.target.style.transform = 'translateY(-4px)'; }}
+        onMouseLeave={function(e) { e.target.style.transform = 'translateY(0)'; }}
+      >
+        <span className="material-symbols-outlined">arrow_upward</span>
+      </button>
     </div>
   );
 }
