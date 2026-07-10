@@ -1,20 +1,41 @@
 /* ============================================
-   Landing Theme Override — code.html Design System
-   Light theme overrides for all landing/public pages
+   Landing Theme Override — Light Theme Design System
+   Overrides all dark-theme landing styles from App.css
    ============================================ */
 
-/* Hero text elements */
+/* ============================================
+   Hero Section — Light Theme
+   ============================================ */
+
+.landing-hero {
+  background: linear-gradient(180deg, #f0fdfa 0%, #f8f9fa 60%, #ffffff 100%);
+}
+
+.landing-hero-bg-orb--1 {
+  background: radial-gradient(circle, rgba(0, 104, 118, 0.08), transparent 70%);
+}
+
+.landing-hero-bg-orb--2 {
+  background: radial-gradient(circle, rgba(20, 163, 184, 0.06), transparent 70%);
+}
+
+.landing-hero-bg-orb--3 {
+  background: radial-gradient(circle, rgba(40, 98, 146, 0.06), transparent 70%);
+}
+
 .landing-hero-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 16px;
   background: var(--md-primary-fixed);
+  border: 1px solid rgba(0, 104, 118, 0.2);
   border-radius: var(--radius-full);
-  color: var(--md-on-primary-fixed-variant);
+  color: var(--md-primary);
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
   margin-bottom: 24px;
 }
 
@@ -32,6 +53,7 @@
   -webkit-text-fill-color: var(--md-primary);
   background: none;
   -webkit-background-clip: unset;
+  background-clip: unset;
 }
 
 .landing-hero-subtitle {
@@ -55,35 +77,72 @@
   align-items: center;
   justify-content: center;
   gap: 0;
-  padding: 24px 32px;
-  background: rgba(255, 255, 255, 0.7);
+  padding: 28px 36px;
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(0, 104, 118, 0.1);
   border-radius: var(--radius-xl);
-  box-shadow: 0px 4px 20px rgba(0, 75, 122, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 75, 122, 0.1);
 }
 
 .landing-stat { flex: 1; text-align: center; padding: 0 24px; }
+
 .landing-stat-value {
-  font-size: 1.6rem;
+  font-size: 1.7rem;
   font-weight: 800;
   color: var(--md-primary);
+  -webkit-text-fill-color: var(--md-primary);
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
 }
+
 .landing-stat-label {
   font-size: 0.75rem;
   color: var(--md-on-surface-variant);
-  font-weight: 500;
+  font-weight: 600;
   margin-top: 4px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
 .landing-stat-divider {
   width: 1px;
   height: 40px;
   background: var(--md-outline-variant);
 }
 
-/* Sections */
+/* ============================================
+   Buttons — Light Theme
+   ============================================ */
+
+.landing-btn-primary {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  box-shadow: 0 4px 20px rgba(0, 104, 118, 0.25);
+}
+
+.landing-btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 104, 118, 0.35);
+  color: var(--md-on-primary);
+}
+
+.landing-btn-ghost {
+  border-color: var(--md-primary);
+  color: var(--md-primary);
+}
+
+.landing-btn-ghost:hover {
+  background: rgba(0, 104, 118, 0.06);
+  color: var(--md-primary);
+}
+
+/* ============================================
+   Sections — Light Theme
+   ============================================ */
+
 .landing-section-inner {
   max-width: var(--container-max);
   margin: 0 auto;
@@ -120,7 +179,10 @@
   line-height: 1.6;
 }
 
-/* Features / Layanan */
+/* ============================================
+   Features / Layanan — Light Theme
+   ============================================ */
+
 .landing-features {
   padding: var(--section-gap) 24px;
   background: var(--md-surface-container-low);
@@ -149,6 +211,7 @@
   transform: translateY(-8px);
   box-shadow: 0px 8px 30px rgba(0, 75, 122, 0.12);
   border-color: rgba(0, 104, 118, 0.2);
+  background: var(--md-surface-container-lowest);
 }
 
 .landing-feature-icon {
@@ -181,7 +244,10 @@
   line-height: 1.6;
 }
 
-/* About / Tentang */
+/* ============================================
+   About / Tentang — Light Theme
+   ============================================ */
+
 .landing-about {
   padding: var(--section-gap) 24px;
   background: var(--md-surface);
@@ -259,7 +325,10 @@
   margin: 0;
 }
 
-/* Nav Links */
+/* ============================================
+   Nav Links — Light Theme
+   ============================================ */
+
 .landing-nav-menu {
   display: flex;
   align-items: center;
@@ -278,7 +347,10 @@
   color: var(--md-primary);
 }
 
-/* CTA WhatsApp */
+/* ============================================
+   CTA WhatsApp — Light Theme
+   ============================================ */
+
 .landing-cta-wa {
   padding: 60px 24px;
   background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
@@ -325,9 +397,13 @@
 .landing-btn-wa:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+  color: var(--md-primary);
 }
 
-/* Pricing */
+/* ============================================
+   Pricing — Light Theme
+   ============================================ */
+
 .landing-pricing {
   padding: var(--section-gap) 24px;
   background: var(--md-surface);
@@ -355,6 +431,8 @@
 .landing-pricing-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 12px 30px rgba(0, 75, 122, 0.12);
+  background: var(--md-surface-container-lowest);
+  border-color: rgba(0, 104, 118, 0.2);
 }
 
 .landing-pricing-card--popular {
@@ -362,6 +440,7 @@
   transform: scale(1.05);
   z-index: 10;
   box-shadow: 0 12px 40px rgba(0, 104, 118, 0.15);
+  background: var(--md-surface-container-lowest);
 }
 
 .landing-pricing-badge {
@@ -442,7 +521,10 @@
   gap: 8px;
 }
 
-/* FAQ */
+/* ============================================
+   FAQ — Light Theme
+   ============================================ */
+
 .landing-faq {
   padding: var(--section-gap) 24px;
   background: var(--md-surface);
@@ -468,6 +550,7 @@
 
 .landing-faq-item:hover {
   box-shadow: 0 8px 24px rgba(0, 75, 122, 0.12);
+  background: var(--md-surface-container-lowest);
 }
 
 .landing-faq-question {
@@ -490,7 +573,10 @@
   animation: slideDown 0.25s ease-out;
 }
 
-/* CTA Bayar */
+/* ============================================
+   CTA Bayar — Light Theme
+   ============================================ */
+
 .landing-cta {
   padding: var(--section-gap) 24px;
   background: var(--md-surface-container-low);
@@ -562,7 +648,10 @@
   text-transform: uppercase;
 }
 
-/* Contact */
+/* ============================================
+   Contact — Light Theme
+   ============================================ */
+
 .landing-contact {
   padding: var(--section-gap) 24px;
   background: var(--md-surface-container-low);
@@ -587,7 +676,7 @@
 .landing-contact-icon {
   width: 48px;
   height: 48px;
-  background: rgba(20, 163, 184, 0.1);
+  background: rgba(0, 104, 118, 0.1);
   color: var(--md-primary);
   border-radius: 50%;
   display: flex;
@@ -618,7 +707,10 @@
   box-shadow: 0px 4px 20px rgba(0, 75, 122, 0.08);
 }
 
-/* Footer */
+/* ============================================
+   Footer — Light Theme
+   ============================================ */
+
 .landing-footer {
   padding: 60px 24px 0;
   background: var(--md-surface-container-highest);
@@ -638,6 +730,7 @@
   height: 48px;
   object-fit: contain;
   margin-bottom: 14px;
+  filter: none;
 }
 
 .landing-footer-desc {
@@ -687,7 +780,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--md-primary-container);
+  background: var(--md-primary);
+  border: none;
   color: white !important;
   font-size: 0.72rem;
   font-weight: 700;
@@ -699,6 +793,8 @@
 
 .landing-social-link:hover {
   transform: scale(1.1);
+  background: var(--md-primary-container);
+  color: white !important;
 }
 
 .landing-footer-bottom {

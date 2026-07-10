@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 
@@ -13,9 +13,33 @@ function CustomerPortalPage({ onLogout }) {
   var [paymentMethod, setPaymentMethod] = useState('midtrans');
   var [midtransClientKey, setMidtransClientKey] = useState('');
   var [midtransLoading, setMidtransLoading] = useState(false);
+  var [dropdownOpen, setDropdownOpen] = useState(false);
+  var dropdownRef = useRef(null);
 
   var token = localStorage.getItem('customer_token');
   var headers = { Authorization: 'Bearer ' + token };
+
+  // Payment method options with logos
+  var paymentOptions = [
+    { value: 'midtrans', label: 'Bayar Online Instan (QRIS, E-Wallet, VA Bank Transfer)', sublabel: 'Otomatis', icon: 'payments', logo: null },
+    { value: 'qris', label: 'Manual: QRIS', sublabel: 'Scan & Transfer', icon: 'qr_code_2', logo: null },
+    { value: 'bri', label: 'Manual: Bank BRI', sublabel: 'Transfer Bank', icon: null, logo: process.env.PUBLIC_URL + '/BRI.jpg' },
+    { value: 'mandiri', label: 'Manual: Bank Mandiri', sublabel: 'Transfer Bank', icon: null, logo: process.env.PUBLIC_URL + '/MANDIRI.png' },
+    { value: 'bca', label: 'Manual: Bank BCA', sublabel: 'Transfer Bank', icon: null, logo: process.env.PUBLIC_URL + '/BCA.png' }
+  ];
+
+  // Close dropdown when clicking outside
+  useEffect(function () {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return function () {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   useEffect(function () {
     fetchBilling();
@@ -136,6 +160,15 @@ function CustomerPortalPage({ onLogout }) {
     }
   }
 
+  function getSelectedOption() {
+    return paymentOptions.find(function (opt) { return opt.value === paymentMethod; });
+  }
+
+  function handleSelectOption(value) {
+    setPaymentMethod(value);
+    setDropdownOpen(false);
+  }
+
   // Styles
   var S = {
     page: { background: 'var(--md-background)', minHeight: '100vh', fontFamily: "'Hanken Grotesk', sans-serif" },
@@ -149,6 +182,69 @@ function CustomerPortalPage({ onLogout }) {
     infoBox: { background: 'var(--md-surface-container-low)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--md-outline-variant)', marginTop: 12, textAlign: 'center' },
     select: { width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--md-surface-container-low)', color: 'var(--md-on-surface)', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', outline: 'none', appearance: 'auto', fontFamily: "'Hanken Grotesk', sans-serif" }
   };
+
+  // Custom dropdown styles
+  var dropdownStyles = {
+    container: { position: 'relative', marginBottom: 16 },
+    trigger: {
+      width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)',
+      border: dropdownOpen ? '2px solid var(--md-primary)' : '2px solid transparent',
+      background: 'var(--md-surface-container-low)', color: 'var(--md-on-surface)',
+      fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', outline: 'none',
+      fontFamily: "'Hanken Grotesk', sans-serif",
+      display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between',
+      transition: 'border-color 0.2s ease'
+    },
+    triggerLeft: { display: 'flex', alignItems: 'center', gap: 10, flex: 1 },
+    menu: {
+      position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+      background: 'var(--md-surface-container-lowest)',
+      border: '1px solid var(--md-outline-variant)',
+      borderRadius: 'var(--radius-md)',
+      boxShadow: '0 8px 30px rgba(0,75,122,0.15)',
+      zIndex: 20, overflow: 'hidden',
+      animation: 'slideDown 0.2s ease-out'
+    },
+    option: function (isSelected) {
+      return {
+        padding: '12px 16px', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: isSelected ? 'var(--md-primary-fixed)' : 'transparent',
+        borderBottom: '1px solid rgba(188,201,204,0.2)',
+        transition: 'background 0.15s ease',
+        fontSize: '0.88rem', fontWeight: isSelected ? 700 : 500,
+        color: isSelected ? 'var(--md-primary)' : 'var(--md-on-surface)'
+      };
+    },
+    optionLogo: {
+      width: 28, height: 28, objectFit: 'contain', borderRadius: 4,
+      background: 'none', padding: 0, border: 'none',
+      flexShrink: 0
+    },
+    optionIcon: {
+      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--md-primary-fixed)', borderRadius: 4, flexShrink: 0,
+      color: 'var(--md-primary)'
+    },
+    optionText: { flex: 1 },
+    optionLabel: { fontSize: '0.88rem', fontWeight: 600 },
+    optionSublabel: { fontSize: '0.72rem', color: 'var(--md-on-surface-variant)', fontWeight: 400 },
+    selectedCheck: { color: 'var(--md-primary)', flexShrink: 0, fontSize: 18 }
+  };
+
+  function renderOptionIcon(opt) {
+    if (opt.logo) {
+      return <img src={opt.logo} alt={opt.label} style={dropdownStyles.optionLogo} />;
+    }
+    if (opt.icon) {
+      return (
+        <div style={dropdownStyles.optionIcon}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{opt.icon}</span>
+        </div>
+      );
+    }
+    return null;
+  }
 
   function renderPaymentDetail() {
     switch (paymentMethod) {
@@ -183,7 +279,10 @@ function CustomerPortalPage({ onLogout }) {
       case 'bri':
         return (
           <div style={S.infoBox}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--md-outline)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank BRI</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 }}>
+              <img src={process.env.PUBLIC_URL + '/logo_bri.png'} alt="Bank BRI" style={{ height: 32, objectFit: 'contain' }} />
+              <div style={{ fontSize: '0.78rem', color: 'var(--md-outline)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank BRI</div>
+            </div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--md-primary)' }}>0346-01-001962-50-8</div>
             <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)' }}>a/n ESP Lintas Data Multimedia</div>
           </div>
@@ -191,7 +290,10 @@ function CustomerPortalPage({ onLogout }) {
       case 'mandiri':
         return (
           <div style={S.infoBox}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--md-outline)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank Mandiri</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 }}>
+              <img src={process.env.PUBLIC_URL + '/logo_mandiri.png'} alt="Bank Mandiri" style={{ height: 32, objectFit: 'contain' }} />
+              <div style={{ fontSize: '0.78rem', color: 'var(--md-outline)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank Mandiri</div>
+            </div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--md-primary)' }}>131-00-1572912-3</div>
             <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)' }}>a/n ESP Lintas Data Multimedia</div>
           </div>
@@ -199,7 +301,10 @@ function CustomerPortalPage({ onLogout }) {
       case 'bca':
         return (
           <div style={S.infoBox}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--md-outline)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank BCA</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 }}>
+              <img src={process.env.PUBLIC_URL + '/logo_bca.png'} alt="Bank BCA" style={{ height: 32, objectFit: 'contain' }} />
+              <div style={{ fontSize: '0.78rem', color: 'var(--md-outline)', textTransform: 'uppercase', fontWeight: 600 }}>Transfer Bank BCA</div>
+            </div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, margin: '4px 0', color: 'var(--md-primary)' }}>869-0577-888</div>
             <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)' }}>a/n ESP Lintas Data Multimedia</div>
           </div>
@@ -216,6 +321,8 @@ function CustomerPortalPage({ onLogout }) {
       </div>
     );
   }
+
+  var selectedOpt = getSelectedOption();
 
   return (
     <div style={S.page}>
@@ -295,15 +402,63 @@ function CustomerPortalPage({ onLogout }) {
                 <h3 style={S.h3}>
                   <span className="material-symbols-outlined" style={{ fontSize: 20 }}>payments</span> Metode Pembayaran
                 </h3>
-                <div style={{ marginBottom: 16 }}>
-                  <select value={paymentMethod} onChange={function (e) { setPaymentMethod(e.target.value); }} style={S.select}>
-                    <option value="midtrans">Bayar Online Instan (QRIS, E-Wallet, VA Bank Transfer) - Otomatis</option>
-                    <option value="qris">Manual: QRIS</option>
-                    <option value="bri">Manual: Bank BRI</option>
-                    <option value="mandiri">Manual: Bank Mandiri</option>
-                    <option value="bca">Manual: Bank BCA</option>
-                  </select>
+
+                {/* Custom Dropdown */}
+                <div style={dropdownStyles.container} ref={dropdownRef}>
+                  <button
+                    type="button"
+                    style={dropdownStyles.trigger}
+                    onClick={function () { setDropdownOpen(!dropdownOpen); }}
+                  >
+                    <div style={dropdownStyles.triggerLeft}>
+                      {selectedOpt && renderOptionIcon(selectedOpt)}
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>{selectedOpt ? selectedOpt.label : ''}</div>
+                        {selectedOpt && selectedOpt.sublabel && (
+                          <div style={{ fontSize: '0.72rem', color: 'var(--md-on-surface-variant)', fontWeight: 400 }}>{selectedOpt.sublabel}</div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined" style={{
+                      fontSize: 20, color: 'var(--md-on-surface-variant)',
+                      transition: 'transform 0.2s ease',
+                      transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0)'
+                    }}>expand_more</span>
+                  </button>
+
+                  {dropdownOpen && (
+                    <div style={dropdownStyles.menu}>
+                      {paymentOptions.map(function (opt) {
+                        var isSelected = opt.value === paymentMethod;
+                        return (
+                          <div
+                            key={opt.value}
+                            style={dropdownStyles.option(isSelected)}
+                            onClick={function () { handleSelectOption(opt.value); }}
+                            onMouseEnter={function (e) {
+                              if (!isSelected) e.currentTarget.style.background = 'var(--md-surface-container-low)';
+                            }}
+                            onMouseLeave={function (e) {
+                              if (!isSelected) e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            {renderOptionIcon(opt)}
+                            <div style={dropdownStyles.optionText}>
+                              <div style={dropdownStyles.optionLabel}>{opt.label}</div>
+                              {opt.sublabel && (
+                                <div style={dropdownStyles.optionSublabel}>{opt.sublabel}</div>
+                              )}
+                            </div>
+                            {isSelected && (
+                              <span className="material-symbols-outlined" style={dropdownStyles.selectedCheck}>check_circle</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
+
                 {renderPaymentDetail()}
               </div>
             )}
