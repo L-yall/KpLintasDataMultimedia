@@ -78,7 +78,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'var(--md-surface-container-low)',
-      fontFamily: "'Nunito', sans-serif"
+      fontFamily: "'Open Sans', sans-serif"
     }}>
       <div style={{
         flex: 1,
@@ -207,7 +207,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
                   gap: 8,
                   transition: 'all 0.2s ease',
                   opacity: loading ? 0.7 : 1,
-                  fontFamily: "'Nunito', sans-serif"
+                  fontFamily: "'Open Sans', sans-serif"
                 }}
               >
                 {loading ? (
@@ -269,7 +269,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
                   gap: 8,
                   marginBottom: 10,
                   opacity: loading ? 0.7 : 1,
-                  fontFamily: "'Nunito', sans-serif"
+                  fontFamily: "'Open Sans', sans-serif"
                 }}
               >
                 {loading ? (
@@ -291,7 +291,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
                   fontSize: '0.9rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  fontFamily: "'Nunito', sans-serif"
+                  fontFamily: "'Open Sans', sans-serif"
                 }}
               >
                 Kembali

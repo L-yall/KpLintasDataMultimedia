@@ -36,7 +36,7 @@ function HeroSplineScene({ scene = "https://prod.spline.design/oh9QGSrrXyqUjitX/
           justifyContent: 'center',
           background: 'transparent',
           color: 'var(--md-primary)',
-          fontFamily: "'Nunito', sans-serif"
+          fontFamily: "'Open Sans', sans-serif"
         }}>
           <div style={{
             width: '40px',
@@ -84,7 +84,7 @@ function HeroSplineScene({ scene = "https://prod.spline.design/oh9QGSrrXyqUjitX/
       }}>
         <img src={process.env.PUBLIC_URL + '/logo ldm.png'} alt="Logo LDM" style={{ height: '32px' }} />
         <span style={{
-          fontFamily: "'Nunito', sans-serif",
+          fontFamily: "'Open Sans', sans-serif",
           fontWeight: 700,
           color: 'var(--md-primary)',
           fontSize: '1.20rem'
