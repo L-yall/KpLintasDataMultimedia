@@ -103,7 +103,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
           {/* Logo */}
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img
-              src={process.env.PUBLIC_URL + '/logo ldm.png'}
+              src={process.env.PUBLIC_URL + '/logo_ldm.png'}
               alt="Logo Lintas Data Multimedia"
               style={{
                 height: 75,

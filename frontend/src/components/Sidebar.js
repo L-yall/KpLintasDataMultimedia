@@ -102,7 +102,7 @@ function Sidebar({ admin, onLogout }) {
     <aside className="sidebar">
       <div className="sidebar-brand" style={{ justifyContent: 'center', minHeight: 'var(--topbar-height)', padding: '12px' }}>
         <img
-          src={process.env.PUBLIC_URL + '/logo ldm.png'}
+          src={process.env.PUBLIC_URL + '/logo_ldm.png'}
           alt="Logo LDM"
           style={{ width: '160px', height: 'auto', maxHeight: '55px', objectFit: 'contain' }}
         />

@@ -41,7 +41,7 @@ function LoginPage({ onLogin }) {
         <div className="login-card">
           <div className="login-logo">
             <img
-              src={process.env.PUBLIC_URL + '/logo ldm.png'}
+              src={process.env.PUBLIC_URL + '/logo_ldm.png'}
               alt="Logo Lintas Data Multimedia"
               className="login-logo-img"
             />

@@ -90,7 +90,7 @@ function LandingPage({ customer, onLogout }) {
     { q: 'Bagaimana cara pemesanan layanan internet?', a: 'Anda dapat memesan melalui website kami, telepon, atau kunjungi kantor kami. Tim kami akan melakukan survei lokasi dan instalasi dalam waktu 1-3 hari kerja setelah konfirmasi pembayaran.' },
     { q: 'Apakah ada biaya instalasi?', a: 'Biaya instalasi sebesar Rp 350.000, namun saat ini kami memberikan promo instalasi gratis untuk semua paket baru. Pastikan untuk konfirmasi saat pemesanan.' },
     { q: 'Bagaimana dukungan teknis yang diberikan?', a: 'Dukungan teknis tersedia 24/7 melalui telepon, email, dan chat online. Tim ahli kami siap membantu troubleshooting, pemeliharaan, dan upgrade layanan kapan saja Anda butuhkan.' },
-    { q: 'Wilayah layanan di mana saja?', a: 'Kami melayani wilayah Pringsewu, Pagelaran, Sukoharjo, Kalirejo, Adiluwih, dan Banyumas. Jika lokasi Anda belum tercakup, hubungi kami untuk informasi ketersediaan ekspansi layanan.' }
+    { q: 'Wilayah layanan di mana saja?', a: 'Kami melayani wilayah Kota Surabaya (Surabaya Pusat, Surabaya Timur, Surabaya Selatan, Surabaya Barat, dan Surabaya Utara). Jika lokasi Anda belum tercakup, hubungi kami untuk informasi ketersediaan ekspansi layanan.' }
   ];
 
   var [packages, setPackages] = useState([
@@ -163,7 +163,7 @@ function LandingPage({ customer, onLogout }) {
       <nav className="landing-nav">
         <div className="landing-nav-inner">
           <div className="landing-nav-brand">
-            <img src={process.env.PUBLIC_URL + '/logo ldm.png'} alt="Logo LDM" className="landing-nav-logo" />
+            <img src={process.env.PUBLIC_URL + '/logo_ldm.png'} alt="Logo LDM" className="landing-nav-logo" />
             <span className="landing-nav-title">PT. Lintas Data Multimedia</span>
           </div>
           <div className="landing-nav-menu">
@@ -175,11 +175,14 @@ function LandingPage({ customer, onLogout }) {
           <div className="landing-nav-actions">
             {isLoggedIn ? (
               <>
-                {!isMobile && (
-                  <span className="landing-nav-user">
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>person</span> {customer.nama}
-                  </span>
-                )}
+                <span 
+                  className="landing-nav-user" 
+                  style={{ cursor: 'pointer' }}
+                  onClick={function () { navigate('/portal', { state: { activeTab: 'profile' } }); }}
+                  title="Lihat Profil Saya"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>person</span> {isMobile ? 'Profil' : customer.nama}
+                </span>
                 <button className="landing-btn-outline landing-btn-outline--muted" onClick={onLogout}>
                   <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span> {isMobile ? 'Keluar' : 'Keluar'}
                 </button>
@@ -280,7 +283,8 @@ function LandingPage({ customer, onLogout }) {
             height: showSpline ? '520px' : '350px',
             position: 'relative',
             margin: showSpline ? '0' : '20px auto 0',
-            display: 'block'
+            display: 'block',
+            pointerEvents: 'none'
           }}>
             <HeroSplineScene logoCoverColor="linear-gradient(to bottom, #fafbfc, #fbfcfd)" />
           </div>
@@ -351,7 +355,7 @@ function LandingPage({ customer, onLogout }) {
                       return <li key={i}><span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--md-primary)' }}>check_circle</span> {f}</li>;
                     })}
                   </ul>
-                  <a href="https://wa.me/6282299139449?text=Halo%2C%20saya%20ingin%20berlangganan%20" target="_blank" rel="noopener noreferrer" className={pkg.popular ? 'landing-btn-primary' : 'landing-btn-ghost'} style={{ width: '100%', justifyContent: 'center' }}>
+                  <a href="https://wa.me/6285722422448?text=Halo%2C%20saya%20ingin%20berlangganan%20" target="_blank" rel="noopener noreferrer" className={pkg.popular ? 'landing-btn-primary' : 'landing-btn-ghost'} style={{ width: '100%', justifyContent: 'center' }}>
                     Pesan Sekarang
                   </a>
                 </div>
@@ -359,7 +363,7 @@ function LandingPage({ customer, onLogout }) {
             })}
           </div>
           <div className="landing-pricing-info">
-            <p><strong>Wilayah Layanan:</strong> Kec. Pringsewu, Kec. Pagelaran, Kec. Sukoharjo, Kec. Kalirejo, Kec. Adiluwih, Kec. Banyumas</p>
+            <p><strong>Wilayah Layanan:</strong> Kec. Genteng, Kec. Tegalsari, Kec. Gubeng, Kec. Sawahan, Kec. Wonokromo, Kec. Sukolilo, dan seluruh wilayah Kota Surabaya</p>
             <p><strong>Biaya Instalasi:</strong> <del>Rp 350.000</del> <span style={{ color: 'var(--md-primary)', fontWeight: 700 }}>(Gratis untuk semua paket)</span></p>
           </div>
         </div>
@@ -373,7 +377,7 @@ function LandingPage({ customer, onLogout }) {
             <p>Bergabunglah dengan ratusan pelanggan puas Lintas Data Multimedia. Nikmati internet cepat tanpa batas dengan harga terjangkau dan instalasi gratis. Hubungi kami via WhatsApp untuk proses pendaftaran yang mudah dan cepat.</p>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <a
-                href="https://wa.me/6282299139449?text=Halo%2C%20saya%20ingin%20mendaftar%20layanan%20internet%20dari%20Lintas%20Data%20Multimedia."
+                href="https://wa.me/6285722422448?text=Halo%2C%20saya%20ingin%20mendaftar%20layanan%20internet%20dari%20Lintas%20Data%20Multimedia."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="landing-btn-primary landing-btn-lg"
@@ -438,22 +442,22 @@ function LandingPage({ customer, onLogout }) {
             <div className="landing-contact-item">
               <div className="landing-contact-icon"><span className="material-symbols-outlined">location_on</span></div>
               <h4>Alamat</h4>
-              <p>Jl. KH. Gholib Raya Gg. Panda, Pringsewu Utara, Kec. Pringsewu, Kabupaten Pringsewu, Lampung 35373</p>
+              <p>Intiland Tower Lantai 11 Unit 3A, Jl. Panglima Sudirman No. 101-103, Surabaya, Jawa Timur 60271</p>
             </div>
             <div className="landing-contact-item">
               <div className="landing-contact-icon"><span className="material-symbols-outlined">call</span></div>
               <h4>Telepon</h4>
-              <p>+62 822-9913-9449</p>
+              <p>(+6231) 33030088 / +62 857-2242-2448</p>
             </div>
             <div className="landing-contact-item">
               <div className="landing-contact-icon"><span className="material-symbols-outlined">mail</span></div>
               <h4>Email</h4>
-              <p>cs@lintasdata.net.id</p>
+              <p>sales@ldm.net.id</p>
             </div>
           </div>
           <div className="landing-map">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d297!2d104.9778103!3d-5.3431389!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e47332d89a55f43:0x6d7f59cfb822556e!2sPT+Lintas+Data+Multimedia!5e0!3m2!1sen!2sid!4v1695897600000!5m2!1sen!2sid"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3957.653427181313!2d112.74378777488344!3d-7.265215792736207!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd7f95d852a4175%3A0xf639962a98f1a5b8!2sIntiland%20Tower%20Surabaya!5e0!3m2!1sid!2sid!4v1721052800000!5m2!1sid!2sid"
               title="Lokasi PT Lintas Data Multimedia"
               style={{ border: 0, width: '100%', height: '300px', borderRadius: '5px' }}
               allowFullScreen
@@ -468,7 +472,7 @@ function LandingPage({ customer, onLogout }) {
       <footer className="landing-footer reveal-on-scroll">
         <div className="landing-footer-inner">
           <div className="landing-footer-brand">
-            <img src={process.env.PUBLIC_URL + '/logo ldm.png'} alt="Logo LDM" className="landing-footer-logo" />
+            <img src={process.env.PUBLIC_URL + '/logo_ldm.png'} alt="Logo LDM" className="landing-footer-logo" />
             <p className="landing-footer-desc">PT. Lintas Data Multimedia — Membangun konektivitas masa depan untuk Indonesia yang lebih terintegrasi dan produktif.</p>
             <div className="landing-footer-social">
               <a href="https://www.facebook.com/share/172oaMU4xo/" target="_blank" rel="noopener noreferrer" className="landing-social-link"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>group</span></a>

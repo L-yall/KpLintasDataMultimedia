@@ -61,9 +61,10 @@ function HeroSplineScene({ scene = "https://prod.spline.design/oh9QGSrrXyqUjitX/
           width: '100%',
           height: '100%',
           transform: 'scale(1.1) translateY(-15px)',
-          transformOrigin: 'center center'
+          transformOrigin: 'center center',
+          pointerEvents: 'none'
         }}>
-          <Spline scene={scene} onLoad={handleLoad} />
+          <Spline scene={scene} onLoad={handleLoad} style={{ pointerEvents: 'none' }} />
         </div>
       </Suspense>
 
@@ -82,7 +83,7 @@ function HeroSplineScene({ scene = "https://prod.spline.design/oh9QGSrrXyqUjitX/
         justifyContent: 'center',
         gap: '12px'
       }}>
-        <img src={process.env.PUBLIC_URL + '/logo ldm.png'} alt="Logo LDM" style={{ height: '32px' }} />
+        <img src={process.env.PUBLIC_URL + '/logo_ldm.png'} alt="Logo LDM" style={{ height: '32px' }} />
         <span style={{
           fontFamily: "'Open Sans', sans-serif",
           fontWeight: 700,

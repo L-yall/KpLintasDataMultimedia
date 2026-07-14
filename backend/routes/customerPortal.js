@@ -532,4 +532,42 @@ router.post('/midtrans-token', function (req, res) {
   });
 });
 
+/* GET /api/customer/portal/profile - Get full profile and subscription of customer */
+router.get('/profile', function (req, res) {
+  var id_pelanggan = req.customerId;
+  var sql = `
+    SELECT p.*, pl.harga, pl.kecepatan, pl.deskripsi 
+    FROM pelanggan p 
+    LEFT JOIN paket_layanan pl ON p.paket = pl.nama_paket 
+    WHERE p.id_pelanggan = ?
+  `;
+  db.query(sql, [id_pelanggan], function (err, results) {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error', error: err.message });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pelanggan tidak ditemukan.' });
+    }
+    res.json({ success: true, data: results[0] });
+  });
+});
+
+/* GET /api/customer/portal/payments - Get payment history for customer */
+router.get('/payments', function (req, res) {
+  var id_pelanggan = req.customerId;
+  var sql = `
+    SELECT pem.*, t.periode, t.nominal, t.status AS status_tagihan
+    FROM pembayaran pem
+    JOIN tagihan t ON pem.id_tagihan = t.id_tagihan
+    WHERE t.id_pelanggan = ?
+    ORDER BY pem.tanggal_upload DESC
+  `;
+  db.query(sql, [id_pelanggan], function (err, results) {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error', error: err.message });
+    }
+    res.json({ success: true, data: results });
+  });
+});
+
 module.exports = router;
