@@ -255,7 +255,7 @@ function DashboardPage({ socket }) {
           color: var(--text-primary);
           margin-bottom: 8px;
           letter-spacing: -0.02em;
-          font-family: 'Hanken Grotesk', 'Inter', sans-serif;
+          font-family: 'Nunito', 'Inter', sans-serif;
         }
 
         .dashboard-hero p {

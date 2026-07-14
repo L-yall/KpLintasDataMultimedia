@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 
-function CustomerLoginPage({ onLogin }) {
+function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
   var { userEmail } = useParams();
   var [email, setEmail] = useState(userEmail ? decodeURIComponent(userEmail) : '');
   var [otp, setOtp] = useState('');
@@ -78,7 +78,7 @@ function CustomerLoginPage({ onLogin }) {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'var(--md-surface-container-low)',
-      fontFamily: "'Hanken Grotesk', sans-serif"
+      fontFamily: "'Nunito', sans-serif"
     }}>
       <div style={{
         flex: 1,
@@ -118,7 +118,7 @@ function CustomerLoginPage({ onLogin }) {
               fontWeight: 800,
               color: 'var(--md-on-surface)',
               marginBottom: 4
-            }}>Portal Pembayaran</h1>
+            }}>{title}</h1>
             <p style={{
               color: 'var(--md-on-surface-variant)',
               fontSize: '0.85rem'
@@ -207,7 +207,7 @@ function CustomerLoginPage({ onLogin }) {
                   gap: 8,
                   transition: 'all 0.2s ease',
                   opacity: loading ? 0.7 : 1,
-                  fontFamily: "'Hanken Grotesk', sans-serif"
+                  fontFamily: "'Nunito', sans-serif"
                 }}
               >
                 {loading ? (
@@ -269,7 +269,7 @@ function CustomerLoginPage({ onLogin }) {
                   gap: 8,
                   marginBottom: 10,
                   opacity: loading ? 0.7 : 1,
-                  fontFamily: "'Hanken Grotesk', sans-serif"
+                  fontFamily: "'Nunito', sans-serif"
                 }}
               >
                 {loading ? (
@@ -291,7 +291,7 @@ function CustomerLoginPage({ onLogin }) {
                   fontSize: '0.9rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  fontFamily: "'Hanken Grotesk', sans-serif"
+                  fontFamily: "'Nunito', sans-serif"
                 }}
               >
                 Kembali

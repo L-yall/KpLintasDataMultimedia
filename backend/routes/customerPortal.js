@@ -10,9 +10,9 @@ var verifyCustomerToken = require('../middleware/customerAuth');
 var SocketService = require('../services/socket');
 
 // Midtrans Webhook Callback endpoint (Public - must be BEFORE verifyCustomerToken)
-router.post('/midtrans-callback', function(req, res) {
+router.post('/midtrans-callback', function (req, res) {
   var notification = req.body;
-  
+
   // Jika payload tidak lengkap (seperti ping test dari Midtrans Dashboard), berikan respon 200 OK agar tes berhasil
   if (!notification || !notification.order_id || !notification.status_code || !notification.gross_amount || !notification.signature_key) {
     console.log('[Midtrans Callback] Received dashboard ping / test request.');
@@ -25,7 +25,7 @@ router.post('/midtrans-callback', function(req, res) {
   var signature_key = notification.signature_key;
 
   var serverKey = process.env.MIDTRANS_SERVER_KEY || '';
-  
+
   // Verify signature_key
   var payload = order_id + status_code + gross_amount + serverKey;
   var computedHash = crypto.createHash('sha512').update(payload).digest('hex');
@@ -61,7 +61,7 @@ router.post('/midtrans-callback', function(req, res) {
       JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan 
       WHERE t.id_tagihan = ?
     `;
-    db.query(selectSql, [id_tagihan], function(err, results) {
+    db.query(selectSql, [id_tagihan], function (err, results) {
       if (err) {
         console.error('[Midtrans Callback] Database error:', err.message);
         return res.status(500).json({ success: false, message: 'Database error' });
@@ -87,7 +87,7 @@ router.post('/midtrans-callback', function(req, res) {
         INSERT INTO pembayaran (id_tagihan, bukti_file, status, tanggal_upload, verified_at, id_admin) 
         VALUES (?, ?, 'diterima', NOW(), NOW(), NULL)
       `;
-      db.query(insertSql, [id_tagihan, relativePath], function(err, paymentResult) {
+      db.query(insertSql, [id_tagihan, relativePath], function (err, paymentResult) {
         if (err) {
           console.error('[Midtrans Callback] Failed to insert payment:', err.message);
           return res.status(500).json({ success: false, message: 'Failed to record payment' });
@@ -97,7 +97,7 @@ router.post('/midtrans-callback', function(req, res) {
 
         // 3. Update tagihan status to 'lunas'
         var TagihanModel = require('../models/Tagihan');
-        TagihanModel.updateStatus(id_tagihan, 'lunas', function(tagihanErr) {
+        TagihanModel.updateStatus(id_tagihan, 'lunas', function (tagihanErr) {
           if (tagihanErr) {
             console.error('[Midtrans Callback] Failed to update tagihan status:', tagihanErr.message);
             return res.status(500).json({ success: false, message: 'Failed to update bill status' });
@@ -112,7 +112,7 @@ router.post('/midtrans-callback', function(req, res) {
           PelangganModel.update(billing.id_pelanggan, {
             status_tagihan: 'hijau',
             due_date: newDueDateString
-          }, async function(pelangganErr) {
+          }, async function (pelangganErr) {
             if (pelangganErr) {
               console.error('[Midtrans Callback] Failed to update customer status:', pelangganErr.message);
             }
@@ -147,7 +147,7 @@ router.post('/midtrans-callback', function(req, res) {
               nominal: nominal,
               status: 'belum_bayar',
               due_date: newDueDateString
-            }, async function(nextBillErr) {
+            }, async function (nextBillErr) {
               if (nextBillErr) {
                 console.error('[Midtrans Callback] Failed to generate next month bill:', nextBillErr.message);
               }
@@ -223,10 +223,10 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 var storage = multer.diskStorage({
-  destination: function(req, file, cb) {
+  destination: function (req, file, cb) {
     cb(null, uploadDir);
   },
-  filename: function(req, file, cb) {
+  filename: function (req, file, cb) {
     var uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, 'bukti-' + uniqueSuffix + path.extname(file.originalname));
   }
@@ -234,7 +234,7 @@ var storage = multer.diskStorage({
 
 var upload = multer({
   storage: storage,
-  fileFilter: function(req, file, cb) {
+  fileFilter: function (req, file, cb) {
     if (!file.mimetype.startsWith('image/')) {
       return cb(new Error('Hanya file gambar yang diperbolehkan!'), false);
     }
@@ -246,7 +246,7 @@ var upload = multer({
 });
 
 /* GET /api/customer/portal/billing - Get active bill for customer */
-router.get('/billing', function(req, res) {
+router.get('/billing', function (req, res) {
   var id_pelanggan = req.customerId;
 
   function sendBillingResponse(billingData) {
@@ -258,7 +258,7 @@ router.get('/billing', function(req, res) {
       ORDER BY pem.tanggal_upload DESC 
       LIMIT 1
     `;
-    db.query(lastPaymentSql, [id_pelanggan], function(payErr, payResults) {
+    db.query(lastPaymentSql, [id_pelanggan], function (payErr, payResults) {
       var lastPayment = null;
       if (!payErr && payResults && payResults[0]) {
         lastPayment = payResults[0];
@@ -280,7 +280,7 @@ router.get('/billing', function(req, res) {
     LIMIT 1
   `;
 
-  db.query(sql, [id_pelanggan], function(err, results) {
+  db.query(sql, [id_pelanggan], function (err, results) {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error', error: err.message });
     }
@@ -293,7 +293,7 @@ router.get('/billing', function(req, res) {
         LEFT JOIN paket_layanan pl ON p.paket = pl.nama_paket
         WHERE p.id_pelanggan = ?
       `;
-      db.query(checkCustSql, [id_pelanggan], function(custErr, custResults) {
+      db.query(checkCustSql, [id_pelanggan], function (custErr, custResults) {
         if (custErr || custResults.length === 0) {
           return sendBillingResponse(null);
         }
@@ -311,7 +311,7 @@ router.get('/billing', function(req, res) {
 
         // Check if a bill for this period already exists
         var checkBillSql = 'SELECT * FROM tagihan WHERE id_pelanggan = ? AND periode = ?';
-        db.query(checkBillSql, [id_pelanggan, period], function(billErr, billResults) {
+        db.query(checkBillSql, [id_pelanggan, period], function (billErr, billResults) {
           if (billErr || billResults.length > 0) {
             return sendBillingResponse(null);
           }
@@ -324,7 +324,7 @@ router.get('/billing', function(req, res) {
             nominal: customer.harga,
             status: 'belum_bayar',
             due_date: customer.due_date
-          }, function(createBillErr, newBill) {
+          }, function (createBillErr, newBill) {
             if (createBillErr) {
               console.error('[Billing Service] Failed to generate bill:', createBillErr.message);
               return res.status(500).json({ success: false, message: 'Gagal membuat tagihan otomatis', error: createBillErr.message });
@@ -352,8 +352,8 @@ router.get('/billing', function(req, res) {
 });
 
 /* POST /api/customer/portal/pay - Upload payment proof */
-router.post('/pay', function(req, res) {
-  upload.single('bukti')(req, res, function(err) {
+router.post('/pay', function (req, res) {
+  upload.single('bukti')(req, res, function (err) {
     if (err) {
       return res.status(400).json({ success: false, message: err.message });
     }
@@ -371,14 +371,14 @@ router.post('/pay', function(req, res) {
 
     // Verify that the bill belongs to the logged-in customer
     var verifySql = 'SELECT * FROM tagihan WHERE id_tagihan = ? AND id_pelanggan = ?';
-    db.query(verifySql, [id_tagihan, customerId], function(err, results) {
+    db.query(verifySql, [id_tagihan, customerId], function (err, results) {
       if (err) {
         return res.status(500).json({ success: false, message: 'Database error' });
       }
 
       if (results.length === 0) {
         if (req.file) {
-          fs.unlink(req.file.path, () => {});
+          fs.unlink(req.file.path, () => { });
         }
         return res.status(403).json({ success: false, message: 'Akses ditolak. Tagihan bukan milik Anda.' });
       }
@@ -386,13 +386,13 @@ router.post('/pay', function(req, res) {
       var tagihan = results[0];
       if (tagihan.status === 'lunas') {
         if (req.file) {
-          fs.unlink(req.file.path, () => {});
+          fs.unlink(req.file.path, () => { });
         }
         return res.status(400).json({ success: false, message: 'Tagihan ini sudah lunas.' });
       }
       if (tagihan.status === 'menunggu_verifikasi') {
         if (req.file) {
-          fs.unlink(req.file.path, () => {});
+          fs.unlink(req.file.path, () => { });
         }
         return res.status(400).json({ success: false, message: 'Pembayaran untuk tagihan ini sedang menunggu verifikasi admin.' });
       }
@@ -404,14 +404,14 @@ router.post('/pay', function(req, res) {
         INSERT INTO pembayaran (id_tagihan, bukti_file, status, tanggal_upload) 
         VALUES (?, ?, 'pending', NOW())
       `;
-      db.query(insertSql, [id_tagihan, relativePath], function(err, paymentResult) {
+      db.query(insertSql, [id_tagihan, relativePath], function (err, paymentResult) {
         if (err) {
           return res.status(500).json({ success: false, message: 'Gagal mencatat pembayaran.', error: err.message });
         }
 
         // 2. Update tagihan status to 'menunggu_verifikasi'
         var updateSql = "UPDATE tagihan SET status = 'menunggu_verifikasi' WHERE id_tagihan = ?";
-        db.query(updateSql, [id_tagihan], function(err) {
+        db.query(updateSql, [id_tagihan], function (err) {
           if (err) {
             return res.status(500).json({ success: false, message: 'Gagal memperbarui status tagihan.' });
           }
@@ -439,7 +439,7 @@ router.post('/pay', function(req, res) {
 });
 
 // GET /api/customer/portal/midtrans-config - Get Client Key for Snap SDK initialization
-router.get('/midtrans-config', function(req, res) {
+router.get('/midtrans-config', function (req, res) {
   var clientKey = process.env.MIDTRANS_CLIENT_KEY || '';
   var serverKey = process.env.MIDTRANS_SERVER_KEY || '';
   var isSandbox = process.env.MIDTRANS_IS_SANDBOX === 'true' || serverKey.startsWith('SB-') || clientKey.startsWith('SB-');
@@ -451,7 +451,7 @@ router.get('/midtrans-config', function(req, res) {
 });
 
 // POST /api/customer/portal/midtrans-token - Request Midtrans Snap Token for a bill
-router.post('/midtrans-token', function(req, res) {
+router.post('/midtrans-token', function (req, res) {
   var { id_tagihan } = req.body;
   var customerId = req.customerId;
 
@@ -466,7 +466,7 @@ router.post('/midtrans-token', function(req, res) {
     JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan 
     WHERE t.id_tagihan = ? AND t.id_pelanggan = ?
   `;
-  db.query(sql, [id_tagihan, customerId], function(err, results) {
+  db.query(sql, [id_tagihan, customerId], function (err, results) {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error' });
     }
@@ -485,13 +485,13 @@ router.post('/midtrans-token', function(req, res) {
     var serverKey = process.env.MIDTRANS_SERVER_KEY || '';
     var isSandbox = process.env.MIDTRANS_IS_SANDBOX === 'true' || serverKey.startsWith('SB-');
 
-    var snapUrl = isSandbox 
+    var snapUrl = isSandbox
       ? 'https://app.sandbox.midtrans.com/snap/v1/transactions'
       : 'https://app.midtrans.com/snap/v1/transactions';
 
     // Call Midtrans Snap API
     var authHeader = 'Basic ' + Buffer.from(serverKey + ':').toString('base64');
-    
+
     var payload = {
       transaction_details: {
         order_id: orderId,
@@ -514,21 +514,21 @@ router.post('/midtrans-token', function(req, res) {
         'Authorization': authHeader
       }
     })
-    .then(function(midtransRes) {
-      res.json({
-        success: true,
-        token: midtransRes.data.token,
-        redirect_url: midtransRes.data.redirect_url
+      .then(function (midtransRes) {
+        res.json({
+          success: true,
+          token: midtransRes.data.token,
+          redirect_url: midtransRes.data.redirect_url
+        });
+      })
+      .catch(function (midtransErr) {
+        console.error('[Midtrans Token API] Error:', midtransErr.response?.data || midtransErr.message);
+        res.status(500).json({
+          success: false,
+          message: 'Gagal membuat transaksi di Midtrans. Silakan coba metode transfer biasa.',
+          error: midtransErr.response?.data || midtransErr.message
+        });
       });
-    })
-    .catch(function(midtransErr) {
-      console.error('[Midtrans Token API] Error:', midtransErr.response?.data || midtransErr.message);
-      res.status(500).json({
-        success: false,
-        message: 'Gagal membuat transaksi di Midtrans. Silakan coba metode transfer biasa.',
-        error: midtransErr.response?.data || midtransErr.message
-      });
-    });
   });
 });
 

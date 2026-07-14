@@ -200,12 +200,19 @@ function App() {
       <Route path="/bayar/:userEmail" element={
         customer && customerToken
           ? <Navigate to="/portal" replace />
-          : <CustomerLoginPage onLogin={handleCustomerLogin} />
+          : <CustomerLoginPage onLogin={handleCustomerLogin} title="Portal Pembayaran" />
       } />
       <Route path="/bayar" element={
         customer && customerToken
           ? <Navigate to="/portal" replace />
-          : <CustomerLoginPage onLogin={handleCustomerLogin} />
+          : <CustomerLoginPage onLogin={handleCustomerLogin} title="Portal Pembayaran" />
+      } />
+
+      {/* Customer Login Pelanggan */}
+      <Route path="/login" element={
+        customer && customerToken
+          ? <Navigate to="/portal" replace />
+          : <CustomerLoginPage onLogin={handleCustomerLogin} title="Portal Login" />
       } />
 
       {/* Customer Portal — requires login */}

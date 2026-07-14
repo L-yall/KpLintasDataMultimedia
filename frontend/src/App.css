@@ -439,7 +439,7 @@
 }
 
 .stat-card-info h3 {
-  font-family: 'Hanken Grotesk', 'Inter', sans-serif;
+  font-family: 'Nunito', 'Inter', sans-serif;
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-secondary);
@@ -756,7 +756,7 @@
 }
 
 .page-header h1 {
-  font-family: 'Hanken Grotesk', 'Inter', sans-serif;
+  font-family: 'Nunito', 'Inter', sans-serif;
   font-size: 1.55rem;
   font-weight: 800;
   color: var(--text-primary);
@@ -767,7 +767,7 @@
   color: var(--text-muted);
   font-size: 0.88rem;
   margin-top: 4px;
-  font-family: 'Hanken Grotesk', 'Inter', sans-serif;
+  font-family: 'Nunito', 'Inter', sans-serif;
 }
 
 /* ============================================
@@ -915,7 +915,7 @@
   background: var(--md-background);
   color: var(--md-on-surface);
   min-height: 100vh;
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: 'Nunito', sans-serif;
   overflow-x: hidden;
 }
 
@@ -937,7 +937,8 @@
 }
 
 .landing-nav-inner {
-  max-width: var(--container-max);
+  /* max-width: var(--container-max); */
+  max-width: 1600px;
   width: 100%;
   margin: 0 auto;
   padding: 0 var(--margin-desktop);

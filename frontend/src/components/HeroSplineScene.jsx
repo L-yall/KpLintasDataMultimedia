@@ -36,7 +36,7 @@ function HeroSplineScene({ scene = "https://prod.spline.design/oh9QGSrrXyqUjitX/
           justifyContent: 'center',
           background: 'transparent',
           color: 'var(--md-primary)',
-          fontFamily: "'Hanken Grotesk', sans-serif"
+          fontFamily: "'Nunito', sans-serif"
         }}>
           <div style={{
             width: '40px',
@@ -76,8 +76,22 @@ function HeroSplineScene({ scene = "https://prod.spline.design/oh9QGSrrXyqUjitX/
         height: '80px',
         background: logoCoverColor,
         zIndex: 10,
-        pointerEvents: 'none'
-      }} />
+        pointerEvents: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px'
+      }}>
+        <img src={process.env.PUBLIC_URL + '/logo ldm.png'} alt="Logo LDM" style={{ height: '32px' }} />
+        <span style={{
+          fontFamily: "'Nunito', sans-serif",
+          fontWeight: 700,
+          color: 'var(--md-primary)',
+          fontSize: '1.20rem'
+        }}>
+          PT. Lintas Data Multimedia
+        </span>
+      </div>
     </div>
   );
 }

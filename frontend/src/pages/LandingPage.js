@@ -70,6 +70,14 @@ function LandingPage({ customer, onLogout }) {
     }
   }
 
+  function handleLoginClick() {
+    if (isLoggedIn) {
+      navigate('/portal');
+    } else {
+      navigate('/login');
+    }
+  }
+
   function toggleFaq(index) {
     setOpenFaq(openFaq === index ? -1 : index);
   }
@@ -96,12 +104,12 @@ function LandingPage({ customer, onLogout }) {
       try {
         var response = await axios.get(`${API_BASE_URL}/api/paket`);
         if (response.data.success) {
-          var mapped = response.data.data.map(function(pkg, idx) {
+          var mapped = response.data.data.map(function (pkg, idx) {
             var featuresList = [];
             if (pkg.deskripsi) {
               featuresList = pkg.deskripsi.split(',').map(function (f) { return f.trim(); }).filter(Boolean);
             }
-            
+
             if (featuresList.length === 0) {
               featuresList = [
                 'Kecepatan ' + (pkg.kecepatan || '-'),
@@ -168,8 +176,8 @@ function LandingPage({ customer, onLogout }) {
                 )}
               </>
             ) : (
-              <button className="landing-btn-primary" onClick={function () { navigate('/bayar'); }}>
-                {isMobile ? 'Bayar' : 'Daftar Sekarang'}
+              <button className="landing-btn-primary" onClick={function () { window.open('https://wa.me/6282299139449?text=Halo%2C%20saya%20ingin%20pesan%20layanan%20internet%20dari%20Lintas%20Data%20Multimedia.', '_blank'); }}>
+                <span className="material-symbols-outlined">call</span> {isMobile ? 'Daftar' : 'Daftar Sekarang'}
               </button>
             )}
           </div>
@@ -186,7 +194,7 @@ function LandingPage({ customer, onLogout }) {
         <div className="landing-hero-bg-orb landing-hero-bg-orb--1"></div>
         <div className="landing-hero-bg-orb landing-hero-bg-orb--2"></div>
         <div className="landing-hero-bg-orb landing-hero-bg-orb--3"></div>
-        
+
         <div className="landing-hero-inner" style={{
           display: 'flex',
           flexDirection: showSpline ? 'row' : 'column',
@@ -310,18 +318,6 @@ function LandingPage({ customer, onLogout }) {
         </div>
       </section>
 
-      {/* CTA WhatsApp */}
-      <section className="landing-cta-wa reveal-on-scroll">
-        <div className="landing-cta-wa-inner">
-          <div className="landing-cta-wa-text">
-            <h2>Hubungi Kami Sekarang</h2>
-            <p>Dapatkan koneksi internet cepat dan stabil untuk rumah atau bisnis Anda. Tim kami siap membantu dengan instalasi dan dukungan penuh.</p>
-          </div>
-          <a href="https://wa.me/6282299139449?text=Halo%2C%20saya%20ingin%20pesan%20layanan%20internet%20dari%20Lintas%20Data%20Multimedia." target="_blank" rel="noopener noreferrer" className="landing-btn-wa">
-            <span className="material-symbols-outlined">call</span> Pesan via WhatsApp
-          </a>
-        </div>
-      </section>
 
       {/* Daftar Harga */}
       <section className="landing-pricing reveal-on-scroll" id="harga">
@@ -366,8 +362,8 @@ function LandingPage({ customer, onLogout }) {
           <div className="landing-cta-content">
             <h2>Bayar Tagihan Anda Sekarang</h2>
             <p>Login ke portal pelanggan untuk melihat status tagihan dan melakukan pembayaran secara instan. Pembayaran otomatis diverifikasi dan internet langsung aktif kembali.</p>
-            <button className="landing-btn-primary landing-btn-lg" onClick={handlePaymentClick}>
-              <span className="material-symbols-outlined">payments</span> {isLoggedIn ? 'Buka Portal Pembayaran' : 'Login & Bayar Sekarang'}
+            <button className="landing-btn-primary landing-btn-lg" onClick={handleLoginClick}>
+              <span className="material-symbols-outlined">payments</span> {isLoggedIn ? 'Buka Portal Pembayaran' : 'Login Pelanggan'}
             </button>
           </div>
           <div className="landing-cta-visual">
@@ -489,8 +485,8 @@ function LandingPage({ customer, onLogout }) {
           boxShadow: '0 8px 24px rgba(0,104,118,0.3)', cursor: 'pointer',
           transition: 'all 0.3s ease', zIndex: 40
         }}
-        onMouseEnter={function(e) { e.target.style.transform = 'translateY(-4px)'; }}
-        onMouseLeave={function(e) { e.target.style.transform = 'translateY(0)'; }}
+        onMouseEnter={function (e) { e.target.style.transform = 'translateY(-4px)'; }}
+        onMouseLeave={function (e) { e.target.style.transform = 'translateY(0)'; }}
       >
         <span className="material-symbols-outlined">arrow_upward</span>
       </button>

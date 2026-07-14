@@ -332,11 +332,11 @@
 .landing-nav-menu {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 36px;
 }
 
 .landing-nav-link {
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--md-on-surface-variant);
   text-decoration: none;

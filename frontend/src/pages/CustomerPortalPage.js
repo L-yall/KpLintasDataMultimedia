@@ -171,16 +171,16 @@ function CustomerPortalPage({ onLogout }) {
 
   // Styles
   var S = {
-    page: { background: 'var(--md-background)', minHeight: '100vh', fontFamily: "'Hanken Grotesk', sans-serif" },
+    page: { background: 'var(--md-background)', minHeight: '100vh', fontFamily: "'Nunito', sans-serif" },
     nav: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(248,249,250,0.8)', backdropFilter: 'blur(12px)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
     navInner: { maxWidth: 640, margin: '0 auto', padding: '0 20px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
     content: { maxWidth: 640, margin: '0 auto', padding: '88px 20px 40px' },
     card: { background: 'var(--md-surface-container-lowest)', border: '1px solid rgba(188,201,204,0.3)', borderRadius: 'var(--radius-lg)', padding: 24, boxShadow: '0px 4px 20px rgba(0,75,122,0.08)', marginBottom: 20 },
     label: { fontSize: '0.82rem', color: 'var(--md-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase' },
     h3: { fontSize: '1rem', fontWeight: 700, color: 'var(--md-on-surface)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 },
-    btnPrimary: { width: '100%', background: 'var(--md-primary-container)', color: 'var(--md-on-primary-container)', border: 'none', borderRadius: 'var(--radius-md)', padding: '14px', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: "'Hanken Grotesk', sans-serif" },
+    btnPrimary: { width: '100%', background: 'var(--md-primary-container)', color: 'var(--md-on-primary-container)', border: 'none', borderRadius: 'var(--radius-md)', padding: '14px', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: "'Nunito', sans-serif" },
     infoBox: { background: 'var(--md-surface-container-low)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--md-outline-variant)', marginTop: 12, textAlign: 'center' },
-    select: { width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--md-surface-container-low)', color: 'var(--md-on-surface)', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', outline: 'none', appearance: 'auto', fontFamily: "'Hanken Grotesk', sans-serif" }
+    select: { width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--md-surface-container-low)', color: 'var(--md-on-surface)', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', outline: 'none', appearance: 'auto', fontFamily: "'Nunito', sans-serif" }
   };
 
   // Custom dropdown styles
@@ -191,7 +191,7 @@ function CustomerPortalPage({ onLogout }) {
       border: dropdownOpen ? '2px solid var(--md-primary)' : '2px solid transparent',
       background: 'var(--md-surface-container-low)', color: 'var(--md-on-surface)',
       fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', outline: 'none',
-      fontFamily: "'Hanken Grotesk', sans-serif",
+      fontFamily: "'Nunito', sans-serif",
       display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between',
       transition: 'border-color 0.2s ease'
     },
@@ -316,7 +316,7 @@ function CustomerPortalPage({ onLogout }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--md-background)', color: 'var(--md-on-surface)', fontFamily: "'Hanken Grotesk', sans-serif" }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--md-background)', color: 'var(--md-on-surface)', fontFamily: "'Nunito', sans-serif" }}>
         <span className="material-symbols-outlined" style={{ fontSize: 24, marginRight: 8, animation: 'pulse 1s infinite' }}>hourglass_top</span> Memuat tagihan Anda...
       </div>
     );
@@ -336,7 +336,7 @@ function CustomerPortalPage({ onLogout }) {
           <button onClick={onLogout} style={{
             background: 'var(--md-surface-container)', color: 'var(--md-on-surface)', border: '1px solid var(--md-outline-variant)',
             borderRadius: 'var(--radius-md)', padding: '8px 16px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Hanken Grotesk', sans-serif"
+            display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Nunito', sans-serif"
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span> Keluar
           </button>
