@@ -8,6 +8,7 @@ function CustomerPortalPage({ onLogout }) {
   var initialTab = (location.state && location.state.activeTab) || 'billing';
   var [activeTab, setActiveTab] = useState(initialTab); // 'billing', 'history', 'profile'
   var [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  var [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   var [billing, setBilling] = useState(null);
   var [lastPayment, setLastPayment] = useState(null);
   var [profileData, setProfileData] = useState(null);
@@ -23,6 +24,7 @@ function CustomerPortalPage({ onLogout }) {
   var [midtransClientKey, setMidtransClientKey] = useState('');
   var [midtransLoading, setMidtransLoading] = useState(false);
   var [dropdownOpen, setDropdownOpen] = useState(false);
+  var [profileOpen, setProfileOpen] = useState(false);
   var dropdownRef = useRef(null);
 
   var token = localStorage.getItem('customer_token');
@@ -566,7 +568,7 @@ function CustomerPortalPage({ onLogout }) {
             var paymentUrl = isOnline ? '#' : `${API_BASE_URL}${pay.bukti_file}`;
             var badgeClass = pay.status === 'diterima' ? 'hijau' : (pay.status === 'ditolak' ? 'merah' : 'kuning');
             var statusText = pay.status === 'diterima' ? 'Lunas / Disetujui' : (pay.status === 'ditolak' ? 'Ditolak' : 'Menunggu Verifikasi');
-            
+
             return (
               <div key={pay.id_pembayaran} className="portal-card" style={{ padding: 24, marginBottom: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
@@ -642,13 +644,13 @@ function CustomerPortalPage({ onLogout }) {
                 <span className="material-symbols-outlined">person</span> Informasi Akun
               </span>
             </div>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div className="portal-info-row">
                 <span className="portal-info-label">Nama Lengkap</span>
                 <span className="portal-info-value" style={{ fontSize: '1rem', fontWeight: 700 }}>{profileData.nama}</span>
               </div>
-              
+
               <div className="portal-info-row">
                 <span className="portal-info-label">Email Terdaftar</span>
                 <span className="portal-info-value">{profileData.email || '-'}</span>
@@ -740,29 +742,50 @@ function CustomerPortalPage({ onLogout }) {
       {/* Dynamic styles injection */}
       <style>{`
         .portal-layout { display: flex; min-height: 100vh; background-color: #f1f5f9; font-family: 'Open Sans', sans-serif; width: 100%; }
-        .portal-sidebar { width: 260px; background: linear-gradient(180deg, #09171d 0%, #0e2229 100%); color: #f8fafc; position: fixed; top: 0; bottom: 0; left: 0; z-index: 1000; display: flex; flex-direction: column; transition: transform 0.3s ease; }
-        .portal-sidebar-brand { padding: 24px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .portal-sidebar-logo { height: 38px; object-fit: contain; }
-        .portal-sidebar-title { font-size: 0.88rem; font-weight: 800; color: #fff; letter-spacing: 0.5px; }
-        .portal-sidebar-user { padding: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; gap: 12px; }
-        .portal-user-avatar { width: 42px; height: 42px; background: var(--md-primary-container); color: var(--md-on-primary-container); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; flex-shrink: 0; }
+        .portal-sidebar { width: 260px; background: #ffffff; border-right: 1px solid var(--border-color, #e2e8f0); position: fixed; top: 0; bottom: 0; left: 0; z-index: 1000; display: flex; flex-direction: column; transition: transform 0.3s ease; overflow: hidden; }
+        .portal-sidebar-brand { min-height: 70px; border-bottom: 1px solid var(--border-color, #e2e8f0); display: flex; align-items: center; justify-content: flex-start; padding: 0 24px; background: #ffffff; }
+        .portal-sidebar-logo { width: 135px; height: auto; max-height: 42px; object-fit: contain; }
+        .portal-sidebar-profile { padding: 20px 24px 10px 24px; border-bottom: 1px solid var(--border-color, #e2e8f0); }
+        .portal-sidebar-profile-trigger { display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 10px 12px; border-radius: 8px; transition: background 0.2s ease; background: transparent; border: none; width: 100%; text-align: left; font-family: 'Open Sans', sans-serif; }
+        .portal-sidebar-profile-trigger:hover { background: var(--bg-primary, #f8fafc); }
+        .portal-sidebar-profile-trigger.open { background: var(--bg-secondary, #f1f5f9); }
+        .portal-user-avatar { width: 42px; height: 42px; background: linear-gradient(135deg, var(--primary, #006876) 0%, var(--primary-light, #0891b2) 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; flex-shrink: 0; }
         .portal-user-info { flex: 1; min-width: 0; }
-        .portal-user-name { font-size: 0.85rem; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .portal-user-email { font-size: 0.72rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-        .portal-sidebar-nav { flex: 1; padding: 20px 14px; display: flex; flex-direction: column; gap: 6px; }
-        .portal-nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #cbd5e1; font-size: 0.85rem; font-weight: 600; border-radius: 5px; cursor: pointer; transition: all 0.2s ease; border: none; background: transparent; text-align: left; width: 100%; font-family: 'Open Sans', sans-serif; }
-        .portal-nav-item:hover { background: rgba(255, 255, 255, 0.06); color: #ffffff; }
-        .portal-nav-item.active { background: var(--md-primary); color: #ffffff; box-shadow: 0 4px 14px rgba(0, 104, 118, 0.25); }
-        .portal-sidebar-footer { padding: 20px 14px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
-        .portal-logout-btn { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #ef4444; font-size: 0.85rem; font-weight: 700; border-radius: 5px; cursor: pointer; transition: all 0.2s ease; border: 1px solid rgba(239, 68, 68, 0.15); background: rgba(239, 68, 68, 0.05); width: 100%; font-family: 'Open Sans', sans-serif; }
-        .portal-logout-btn:hover { background: #ef4444; color: #ffffff; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+        .portal-user-name { font-size: 0.88rem; font-weight: 700; color: var(--text-primary, #1e293b); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .portal-user-role { font-size: 0.72rem; color: var(--text-muted, #94a3b8); font-weight: 600; }
+        .portal-profile-dropdown { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; background: var(--bg-primary, #f8fafc); border-radius: 8px; padding: 6px; border: 1px solid var(--border-color, #e2e8f0); animation: portalFadeIn 0.2s ease-out; }
+        .portal-profile-dropdown-item { padding: 8px 12px; font-size: 0.8rem; color: var(--text-secondary, #64748b); font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 6px; transition: background 0.15s ease; border: none; background: transparent; width: 100%; text-align: left; font-family: 'Open Sans', sans-serif; }
+        .portal-profile-dropdown-item:hover { background: var(--bg-tertiary, #e2e8f0); }
+        .portal-profile-dropdown-item.danger { color: var(--status-merah, #ef4444); }
+        .portal-profile-dropdown-item.danger:hover { background: var(--status-merah-bg, rgba(239,68,68,0.1)); }
+        .portal-sidebar-nav { flex: 1; padding: 20px 14px; overflow-y: auto; }
+        .portal-sidebar-section { margin-bottom: 22px; }
+        .portal-sidebar-section-title { font-size: 0.68rem; font-weight: 700; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 1.5px; padding: 0 12px; margin-bottom: 10px; }
+        .portal-nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; color: var(--text-secondary, #64748b); font-size: 0.88rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.25s ease; border: none; background: transparent; text-align: left; width: 100%; font-family: 'Open Sans', sans-serif; margin-bottom: 4px; text-decoration: none; position: relative; }
+        .portal-nav-item:hover { background: var(--bg-secondary, #f1f5f9); color: var(--text-primary, #1e293b); }
+        .portal-nav-item.active { background: var(--primary-glow, rgba(0,104,118,0.08)); color: var(--primary, #006876); font-weight: 700; }
+        .portal-nav-item .material-symbols-outlined { font-size: 1.3rem; }
+        .portal-nav-item.active .material-symbols-outlined { color: var(--primary, #006876); }
+        .portal-nav-item:not(.active) .material-symbols-outlined { color: var(--text-muted, #94a3b8); }
         .portal-main { flex: 1; margin-left: 260px; display: flex; flex-direction: column; min-height: 100vh; transition: margin-left 0.3s ease; }
-        .portal-topbar { height: 70px; background: #ffffff; border-bottom: 1px solid var(--md-outline-variant); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; position: sticky; top: 0; z-index: 90; }
+        .portal-main.collapsed { margin-left: 72px; }
+        .portal-sidebar.collapsed { width: 72px; }
+        .portal-sidebar.collapsed .portal-sidebar-brand { justify-content: center; padding: 0; }
+        .portal-sidebar.collapsed .portal-sidebar-logo { display: none; }
+        .portal-sidebar.collapsed .portal-sidebar-profile { display: none; }
+        .portal-sidebar.collapsed .portal-sidebar-section-title { display: none; }
+        .portal-sidebar.collapsed .portal-nav-item { justify-content: center; padding: 10px 0; }
+        .portal-sidebar.collapsed .portal-nav-item .nav-text { display: none; }
+        .portal-sidebar.collapsed .portal-nav-item .material-symbols-outlined { margin: 0; }
+        .portal-topbar { height: 70px; background: #004e5a; border-bottom: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; position: sticky; top: 0; z-index: 90; }
         .portal-topbar-left { display: flex; align-items: center; gap: 16px; }
-        .portal-menu-toggle { display: none; background: none; border: none; color: var(--md-on-surface); cursor: pointer; padding: 8px; border-radius: 50%; align-items: center; justify-content: center; }
-        .portal-menu-toggle:hover { background: var(--md-surface-container-low); }
-        .portal-page-title { font-size: 1.15rem; font-weight: 800; color: var(--md-on-surface); }
-        .portal-content-area { padding: 32px; max-width: 1000px; width: 100%; margin: 0 auto; flex: 1; }
+        .portal-menu-toggle { display: inline-flex; background: none; border: none; color: #ffffff; cursor: pointer; padding: 8px; border-radius: 50%; align-items: center; justify-content: center; }
+        .portal-menu-toggle:hover { background: rgba(255, 255, 255, 0.1); }
+        .portal-page-title { font-size: 1.15rem; font-weight: 800; color: #ffffff; }
+        .portal-hero-atlantis { background: var(--primary-dark, #004e5a); padding: 40px 48px 90px 48px; color: white; display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; box-shadow: 0px 4px 20px rgba(0,75,122,0.08); border-radius: 0; }
+        .portal-hero-atlantis h2 { font-size: 2.1rem; font-weight: 800; color: #ffffff; margin-bottom: 6px; letter-spacing: -0.02em; }
+        .portal-hero-atlantis p { color: rgba(255, 255, 255, 0.82); max-width: 600px; line-height: 1.5; font-size: 0.95rem; }
+        .portal-content-area { padding: 32px 48px; max-width: 1100px; width: 100%; margin: -60px auto 0; flex: 1; position: relative; z-index: 10; }
         .portal-sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 990; }
         .portal-card { background: #ffffff; border: 1px solid rgba(188,201,204,0.3); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0px 4px 20px rgba(0,75,122,0.06); margin-bottom: 24px; }
         .portal-card-header { border-bottom: 1px solid var(--md-outline-variant); padding-bottom: 12px; margin-bottom: 18px; }
@@ -772,14 +795,17 @@ function CustomerPortalPage({ onLogout }) {
         .portal-info-value { font-size: 0.9rem; color: var(--md-on-surface); font-weight: 600; }
         .portal-info-value.highlight { color: var(--md-primary); font-weight: 800; }
         .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @keyframes portalFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
         @media (max-width: 992px) {
           .portal-main { margin-left: 0; }
-          .portal-sidebar { transform: translateX(-100%); }
+          .portal-main.collapsed { margin-left: 0; }
+          .portal-sidebar, .portal-sidebar.collapsed { width: 260px; transform: translateX(-100%); }
           .portal-sidebar.open { transform: translateX(0); }
           .portal-sidebar-overlay.open { display: block; }
           .portal-menu-toggle { display: inline-flex; }
           .portal-topbar { padding: 0 16px; }
-          .portal-content-area { padding: 20px 16px; }
+          .portal-hero-atlantis { padding: 30px 20px 80px 20px; }
+          .portal-content-area { padding: 20px 16px; margin-top: -40px; }
         }
         @media (max-width: 768px) {
           .profile-grid { grid-template-columns: 1fr; }
@@ -787,91 +813,160 @@ function CustomerPortalPage({ onLogout }) {
       `}</style>
 
       {/* Sidebar mobile overlay */}
-      <div 
-        className={'portal-sidebar-overlay' + (isSidebarOpen ? ' open' : '')} 
+      <div
+        className={'portal-sidebar-overlay' + (isSidebarOpen ? ' open' : '')}
         onClick={function () { setIsSidebarOpen(false); }}
       ></div>
 
       {/* Sidebar Drawer */}
-      <aside className={'portal-sidebar' + (isSidebarOpen ? ' open' : '')}>
+      <aside className={'portal-sidebar' + (isSidebarOpen ? ' open' : '') + (isDesktopCollapsed ? ' collapsed' : '')}>
+        {/* Brand Header */}
         <div className="portal-sidebar-brand">
-          <img src={process.env.PUBLIC_URL + '/logo_ldm.png'} alt="Logo LDM" className="portal-sidebar-logo" />
-          <span className="portal-sidebar-title">Lintas Data</span>
+          {isDesktopCollapsed ? (
+            <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg, var(--primary, #006876) 0%, var(--primary-light, #0891b2) 100%)', color: 'white', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>LD</div>
+          ) : (
+            <img src={process.env.PUBLIC_URL + '/logo_ldm.png'} alt="Logo LDM" className="portal-sidebar-logo" />
+          )}
         </div>
 
-        <div className="portal-sidebar-user">
-          <div className="portal-user-avatar">
-            {getInitials(customer ? customer.nama : 'Pelanggan')}
-          </div>
-          <div className="portal-user-info">
-            <div className="portal-user-name">{customer ? customer.nama : 'Nama Pelanggan'}</div>
-            <div className="portal-user-email">{customer ? customer.email : 'email@ldm.net'}</div>
-          </div>
+        {/* Profile Card with Dropdown */}
+        <div className="portal-sidebar-profile">
+          <button
+            type="button"
+            className={'portal-sidebar-profile-trigger' + (profileOpen ? ' open' : '')}
+            onClick={function () { setProfileOpen(!profileOpen); }}
+          >
+            <div className="portal-user-avatar">
+              {getInitials(customer ? customer.nama : 'Pelanggan')}
+            </div>
+            <div className="portal-user-info">
+              <div className="portal-user-name">{customer ? customer.nama : 'Nama Pelanggan'}</div>
+              <div className="portal-user-role">Pelanggan</div>
+            </div>
+            <span className="material-symbols-outlined" style={{
+              fontSize: '1.1rem',
+              color: 'var(--text-muted, #94a3b8)',
+              transform: profileOpen ? 'rotate(180deg)' : 'none',
+              transition: 'transform 0.2s ease'
+            }}>
+              keyboard_arrow_down
+            </span>
+          </button>
+
+          {/* Collapsible Dropdown */}
+          {profileOpen && (
+            <div className="portal-profile-dropdown">
+              <button
+                type="button"
+                className="portal-profile-dropdown-item"
+                onClick={function () { setActiveTab('profile'); setIsSidebarOpen(false); setProfileOpen(false); }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>person</span>
+                Profil Saya
+              </button>
+              <button
+                type="button"
+                className="portal-profile-dropdown-item danger"
+                onClick={onLogout}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>logout</span>
+                Keluar (Logout)
+              </button>
+            </div>
+          )}
         </div>
 
+        {/* Navigation Links */}
         <nav className="portal-sidebar-nav">
-          <button 
-            type="button" 
-            className={'portal-nav-item' + (activeTab === 'billing' ? ' active' : '')} 
-            onClick={function () { setActiveTab('billing'); setIsSidebarOpen(false); }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>receipt_long</span>
-            Tagihan Saya
-          </button>
-          <button 
-            type="button" 
-            className={'portal-nav-item' + (activeTab === 'history' ? ' active' : '')} 
-            onClick={function () { setActiveTab('history'); setIsSidebarOpen(false); }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>history</span>
-            Riwayat Pembayaran
-          </button>
-          <button 
-            type="button" 
-            className={'portal-nav-item' + (activeTab === 'profile' ? ' active' : '')} 
-            onClick={function () { setActiveTab('profile'); setIsSidebarOpen(false); }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>person</span>
-            Profil & WiFi
-          </button>
-          <button 
-            type="button" 
-            className="portal-nav-item" 
-            onClick={function () { window.location.href = '/'; }}
-            style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 16, borderRadius: 0 }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>home</span>
-            Kembali ke Web
-          </button>
-        </nav>
+          <div className="portal-sidebar-section">
+            <div className="portal-sidebar-section-title">Portal</div>
+            <button
+              type="button"
+              className={'portal-nav-item' + (activeTab === 'billing' ? ' active' : '')}
+              onClick={function () { setActiveTab('billing'); setIsSidebarOpen(false); }}
+            >
+              <span className="material-symbols-outlined">receipt_long</span>
+              <span className="nav-text">Tagihan Saya</span>
+            </button>
+            <button
+              type="button"
+              className={'portal-nav-item' + (activeTab === 'history' ? ' active' : '')}
+              onClick={function () { setActiveTab('history'); setIsSidebarOpen(false); }}
+            >
+              <span className="material-symbols-outlined">history</span>
+              <span className="nav-text">Riwayat Pembayaran</span>
+            </button>
+            <button
+              type="button"
+              className={'portal-nav-item' + (activeTab === 'profile' ? ' active' : '')}
+              onClick={function () { setActiveTab('profile'); setIsSidebarOpen(false); }}
+            >
+              <span className="material-symbols-outlined">person</span>
+              <span className="nav-text">Profil & WiFi</span>
+            </button>
+          </div>
 
-        <div className="portal-sidebar-footer">
-          <button type="button" className="portal-logout-btn" onClick={onLogout}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>logout</span>
-            Keluar Portal
-          </button>
-        </div>
+          <div className="portal-sidebar-section">
+            <div className="portal-sidebar-section-title">Lainnya</div>
+            <button
+              type="button"
+              className="portal-nav-item"
+              onClick={function () { window.location.href = '/'; }}
+            >
+              <span className="material-symbols-outlined">home</span>
+              <span className="nav-text">Kembali ke Web</span>
+            </button>
+          </div>
+        </nav>
       </aside>
 
       {/* Main Layout Area */}
-      <main className="portal-main">
+      <main className={'portal-main' + (isDesktopCollapsed ? ' collapsed' : '')}>
         {/* Topbar sticky header */}
         <header className="portal-topbar">
           <div className="portal-topbar-left">
-            <button className="portal-menu-toggle" onClick={function () { setIsSidebarOpen(!isSidebarOpen); }}>
+            <button className="portal-menu-toggle" onClick={function () { 
+              if (window.innerWidth > 992) {
+                setIsDesktopCollapsed(!isDesktopCollapsed);
+              } else {
+                setIsSidebarOpen(!isSidebarOpen);
+              }
+            }}>
               <span className="material-symbols-outlined">menu</span>
             </button>
             <h1 className="portal-page-title">{activeTabTitle}</h1>
           </div>
           <div className="portal-topbar-right">
             {profileData && (
-              <span className={`status-badge ${profileData.pppoe_status === 'active' ? 'hijau' : 'merah'}`} style={{ display: 'flex', alignItems: 'center' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 14, marginRight: 4 }}>wifi</span>
+              <span className="status-badge" style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                background: '#ffffff', 
+                color: profileData.pppoe_status === 'active' ? 'var(--status-hijau)' : 'var(--status-merah)',
+                padding: '6px 12px',
+                borderRadius: '20px',
+                fontWeight: '700',
+                fontSize: '0.8rem',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16, marginRight: 6 }}>wifi</span>
                 {profileData.pppoe_status === 'active' ? 'Internet Aktif' : 'Internet Terputus'}
               </span>
             )}
           </div>
         </header>
+
+        {/* Hero Banner Section */}
+        <section className="portal-hero-atlantis animate-fadeIn">
+          <div>
+            <h2>{activeTabTitle}</h2>
+            <p>
+              {activeTab === 'billing' && 'Kelola tagihan internet Anda, cek rincian biaya, dan lakukan konfirmasi pembayaran dengan mengunggah bukti transfer.'}
+              {activeTab === 'history' && 'Rekapitulasi riwayat transaksi pembayaran Anda. Pantau pembayaran yang sudah divalidasi maupun yang sebelumnya ditolak.'}
+              {activeTab === 'profile' && 'Informasi lengkap profil akun pelanggan. Periksa detail kecepatan paket WiFi dan status koneksi router PPPoE Anda.'}
+            </p>
+          </div>
+        </section>
 
         {/* Content area */}
         <div className="portal-content-area">
@@ -897,7 +992,7 @@ function CustomerPortalPage({ onLogout }) {
             }}>
               <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--status-merah)' }}>warning</span>
               <div>
-                <strong style={{ display: 'block', marginBottom: 2 }}>Pembayaran Ditolak Admin!</strong> 
+                <strong style={{ display: 'block', marginBottom: 2 }}>Pembayaran Ditolak Admin!</strong>
                 Bukti transfer periode <strong>{lastPayment.periode}</strong> ditolak. <br />
                 Alasan Penolakan: <em style={{ fontWeight: 600 }}>"{lastPayment.alasan_tolak}"</em>. Silakan upload kembali bukti transfer yang valid.
               </div>

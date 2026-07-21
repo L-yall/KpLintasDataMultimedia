@@ -355,8 +355,8 @@ function LandingPage({ customer, onLogout }) {
                       return <li key={i}><span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--md-primary)' }}>check_circle</span> {f}</li>;
                     })}
                   </ul>
-                  <a href="https://wa.me/6282299139449?text=Halo%2C%20saya%20ingin%20berlangganan%20" target="_blank" rel="noopener noreferrer" className={pkg.popular ? 'landing-btn-primary' : 'landing-btn-ghost'} style={{ width: '100%', justifyContent: 'center' }}>
-                    Pesan Sekarang
+                  <a href="https://wa.me/6282299139449?text=Halo%2C%20saya%20ingin%20mendaftar%20dan%20memesan%20layanan%20internet%20dari%20Lintas%20Data%20Multimedia" target="_blank" rel="noopener noreferrer" className={pkg.popular ? 'landing-btn-primary' : 'landing-btn-ghost'} style={{ width: '100%', justifyContent: 'center' }}>
+                    Daftar dan Pesan Via WhatsApp
                   </a>
                 </div>
               );
@@ -370,7 +370,7 @@ function LandingPage({ customer, onLogout }) {
       </section>
 
       {/* CTA Daftar Sekarang */}
-      <section className="landing-cta reveal-on-scroll" id="daftar">
+      {/* <section className="landing-cta reveal-on-scroll" id="daftar">
         <div className="landing-cta-inner">
           <div className="landing-cta-content">
             <h2>Daftar Sekarang</h2>
@@ -406,7 +406,7 @@ function LandingPage({ customer, onLogout }) {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* FAQ */}
       <section className="landing-faq reveal-on-scroll" id="faq">
@@ -452,7 +452,7 @@ function LandingPage({ customer, onLogout }) {
             <div className="landing-contact-item">
               <div className="landing-contact-icon"><span className="material-symbols-outlined">mail</span></div>
               <h4>Email</h4>
-              <p>sales@ldm.net.id</p>
+              <p>cs@lintasdata.net.id</p>
             </div>
           </div>
           <div className="landing-map">

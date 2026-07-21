@@ -82,7 +82,8 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
       section: 'Lainnya',
       items: [
         { path: '/dashboard/laporan?action=pengeluaran', label: 'Pengeluaran', icon: 'account_balance_wallet' },
-        { path: '/dashboard?action=notifikasi', label: 'Notifikasi', icon: 'notifications', badge: unreadNotifCount },
+      //  { path: '/dashboard?action=notifikasi', label: 'Notifikasi', icon: 'notifications', badge: unreadNotifCount },
+        { path: '/dashboard/pembayaran', label: 'Notifikasi', icon: 'notifications', badge: unreadNotifCount },
         { path: '/dashboard?action=pengaturan', label: 'Pengaturan', icon: 'settings' }
       ]
     }
