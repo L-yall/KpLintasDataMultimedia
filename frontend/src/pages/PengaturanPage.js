@@ -6,7 +6,7 @@ import TemplateIcon from '../components/TemplateIcon';
 
 function PengaturanPage() {
   var { refreshLogo } = useLogo();
-  var [activeTab, setActiveTab] = useState('umum'); // 'umum', 'mikrotik', 'email', 'midtrans', 'duitku', 'reminder'
+  var [activeTab, setActiveTab] = useState('umum'); // 'umum', 'mikrotik', 'email', 'midtrans', 'duitku', 'manual', 'reminder'
   var [saving, setSaving] = useState(false);
   var [loadingConfig, setLoadingConfig] = useState(true);
   var [successMsg, setSuccessMsg] = useState('');
@@ -63,6 +63,9 @@ function PengaturanPage() {
     apiKey: '',
     appUrl: ''
   });
+
+  // Manual payment settings state
+  var [manualPaymentEnabled, setManualPaymentEnabled] = useState(true);
 
   // Reminder settings state
   var [reminder, setReminder] = useState({
@@ -126,6 +129,8 @@ function PengaturanPage() {
             apiKey: cfg.DUITKU_API_KEY || '',
             appUrl: cfg.APP_URL || ''
           });
+
+          setManualPaymentEnabled(cfg.MANUAL_PAYMENT_ENABLED !== 'false');
 
           setReminder({
             dueDays: cfg.REMINDER_DUE_DAYS || '3',
@@ -278,6 +283,8 @@ function PengaturanPage() {
       DUITKU_API_KEY: duitku.apiKey,
       DUITKU_IS_SANDBOX: String(duitku.isSandbox),
       APP_URL: duitku.appUrl,
+
+      MANUAL_PAYMENT_ENABLED: String(manualPaymentEnabled),
 
       REMINDER_DUE_DAYS: reminder.dueDays,
       REMINDER_AUTO_SEND: String(reminder.autoSend),
@@ -434,7 +441,9 @@ function PengaturanPage() {
             { id: 'email', label: 'Email SMTP', icon: 'mail' },
             { id: 'midtrans', label: 'Midtrans Gateway', icon: 'shield' },
             { id: 'duitku', label: 'Duitku Gateway', icon: 'account_balance_wallet' },
+            { id: 'manual', label: 'Pembayaran Manual', icon: 'payments' },
             { id: 'reminder', label: 'Pengingat Tagihan', icon: 'notifications' }
+
           ].map(function (tab) {
             var isActive = activeTab === tab.id;
             return (
@@ -953,7 +962,37 @@ function PengaturanPage() {
               </div>
             )}
 
-            {/* 6. REMINDER & TEMPLATE TAB */}
+            {/* 6. MANUAL PAYMENT TAB */}
+            {activeTab === 'manual' && (
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '6px' }}>Pembayaran Manual</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '24px' }}>
+                  Atur apakah pilihan pembayaran melalui QRIS dan transfer bank manual dapat digunakan pelanggan.
+                </p>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '14px 16px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: '700' }}>Aktifkan Pembayaran Manual</div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+                      {manualPaymentEnabled ? 'QRIS dan transfer bank manual tampil di halaman customer.' : 'Semua pilihan pembayaran manual disembunyikan dari halaman customer.'}
+                    </div>
+                  </div>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '24px', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={manualPaymentEnabled}
+                      onChange={function (e) { setManualPaymentEnabled(e.target.checked); }}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: manualPaymentEnabled ? 'var(--primary)' : '#ccc', transition: '.3s', borderRadius: '24px' }}>
+                      <span style={{ position: 'absolute', height: '18px', width: '18px', left: manualPaymentEnabled ? '26px' : '3px', bottom: '3px', backgroundColor: 'white', transition: '.3s', borderRadius: '50%' }} />
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* 7. REMINDER & TEMPLATE TAB */}
             {activeTab === 'reminder' && (
               <div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '6px' }}>Reminder & Pengingat Tagihan</h3>

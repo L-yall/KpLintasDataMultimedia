@@ -24,6 +24,7 @@ function CustomerPortalPage({ onLogout }) {
   var [uploading, setUploading] = useState(false);
   var [message, setMessage] = useState({ type: '', text: '' });
   var [paymentMethod, setPaymentMethod] = useState('midtrans');
+  var [manualPaymentEnabled, setManualPaymentEnabled] = useState(true);
   var [midtransClientKey, setMidtransClientKey] = useState('');
   var [midtransLoading, setMidtransLoading] = useState(false);
   var [duitkuLoading, setDuitkuLoading] = useState(false);
@@ -51,7 +52,17 @@ function CustomerPortalPage({ onLogout }) {
     { value: 'bri', label: 'Manual: Bank BRI', sublabel: 'Transfer Bank', icon: null, logo: process.env.PUBLIC_URL + '/BRI.jpg' },
     { value: 'mandiri', label: 'Manual: Bank Mandiri', sublabel: 'Transfer Bank', icon: null, logo: process.env.PUBLIC_URL + '/MANDIRI.png' },
     { value: 'bca', label: 'Manual: Bank BCA', sublabel: 'Transfer Bank', icon: null, logo: process.env.PUBLIC_URL + '/BCA.png' }
-  ];
+  ].filter(function (option) {
+    var manualMethods = ['qris', 'bri', 'mandiri', 'bca'];
+    return manualPaymentEnabled || manualMethods.indexOf(option.value) === -1;
+  });
+
+  useEffect(function () {
+    var manualMethods = ['qris', 'bri', 'mandiri', 'bca'];
+    if (!manualPaymentEnabled && manualMethods.indexOf(paymentMethod) !== -1) {
+      setPaymentMethod('midtrans');
+    }
+  }, [manualPaymentEnabled, paymentMethod]);
 
   // Close dropdown when clicking outside
   useEffect(function () {
@@ -117,6 +128,7 @@ function CustomerPortalPage({ onLogout }) {
       if (response.data.success) {
         var clientKey = response.data.clientKey;
         setMidtransClientKey(clientKey);
+        setManualPaymentEnabled(response.data.manualPaymentEnabled !== false);
         var isSandbox = response.data.isSandbox;
         var snapScriptUrl = isSandbox
           ? 'https://app.sandbox.midtrans.com/snap/snap.js'
@@ -271,7 +283,7 @@ function CustomerPortalPage({ onLogout }) {
     { paymentMethod: 'NC', paymentName: 'BNC (Neo Commerce) VA', paymentImage: 'https://images.duitku.com/hotlink-ok/NC.PNG', totalFee: '0' },
     { paymentMethod: 'AG', paymentName: 'Bank Artha Graha VA', paymentImage: 'https://images.duitku.com/hotlink-ok/AG.PNG', totalFee: '0' },
     { paymentMethod: 'SP', paymentName: 'Bank Sahabat Sampoerna VA', paymentImage: 'https://images.duitku.com/hotlink-ok/SP.PNG', totalFee: '0' },
-    
+
     // QRIS & E-Wallet
     { paymentMethod: 'LQ', paymentName: 'QRIS (Semua Bank & E-Wallet)', paymentImage: 'https://images.duitku.com/hotlink-ok/LINKAJA.PNG', totalFee: '0' },
     { paymentMethod: 'SP', paymentName: 'ShopeePay QRIS', paymentImage: 'https://images.duitku.com/hotlink-ok/SHOPEEPAY.PNG', totalFee: '0' },
@@ -1134,7 +1146,7 @@ function CustomerPortalPage({ onLogout }) {
             .snap-spin { animation: spin 0.8s linear infinite; }
             @keyframes spin { to { transform: rotate(360deg); } }
           `}</style>
-          
+
           <div className="snap-modal-card">
             {/* Top TEST Ribbon */}
             <div className="snap-test-ribbon">TEST</div>
@@ -1177,7 +1189,7 @@ function CustomerPortalPage({ onLogout }) {
                       </svg>
                     </button>
                   </div>
-                  
+
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                     <span style={{ fontSize: '11px', color: '#7f8fa4', fontWeight: 400 }}>
                       Order ID #{duitkuOrderId || ('TRX-' + (billing ? billing.id_tagihan : '0') + '-' + Date.now().toString().slice(-6))}
@@ -1645,7 +1657,7 @@ function CustomerPortalPage({ onLogout }) {
         {/* Topbar sticky header */}
         <header className="portal-topbar">
           <div className="portal-topbar-left">
-            <button className="portal-menu-toggle" onClick={function () { 
+            <button className="portal-menu-toggle" onClick={function () {
               if (window.innerWidth > 992) {
                 setIsDesktopCollapsed(!isDesktopCollapsed);
               } else {
@@ -1658,10 +1670,10 @@ function CustomerPortalPage({ onLogout }) {
           </div>
           <div className="portal-topbar-right">
             {profileData && (
-              <span className="status-badge" style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                background: '#ffffff', 
+              <span className="status-badge" style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: '#ffffff',
                 color: profileData.pppoe_status === 'active' ? 'var(--status-hijau)' : 'var(--status-merah)',
                 padding: '6px 12px',
                 borderRadius: '20px',

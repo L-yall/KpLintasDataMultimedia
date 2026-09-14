@@ -20,17 +20,17 @@ function getNextMonthSameDay(currentDueDate) {
   var originalDay = d.getDate();
   var currentMonth = d.getMonth();
   var currentYear = d.getFullYear();
-  
+
   var lastDayOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   var isLastDayOfMonth = originalDay === lastDayOfCurrentMonth;
-  
+
   var nextMonth = currentMonth + 1;
   var nextYear = currentYear;
   if (nextMonth > 11) {
     nextMonth = 0;
     nextYear += 1;
   }
-  
+
   var resultDate;
   if (isLastDayOfMonth) {
     resultDate = new Date(nextYear, nextMonth + 1, 0);
@@ -40,7 +40,7 @@ function getNextMonthSameDay(currentDueDate) {
       resultDate = new Date(nextYear, nextMonth + 1, 0);
     }
   }
-  
+
   // Format as YYYY-MM-DD using local timezone (not UTC) to avoid off-by-one in UTC+7
   var yy = resultDate.getFullYear();
   var mm = String(resultDate.getMonth() + 1).padStart(2, '0');
@@ -73,8 +73,8 @@ router.post('/duitku-callback', function (req, res) {
   var hmacSignature = crypto.createHmac('sha256', apiKey).update(stringToSign).digest('hex');
   var md5Signature = crypto.createHash('md5').update(merchantCode + amount + merchantOrderId + apiKey).digest('hex');
 
-  var isSignatureValid = (signature.toLowerCase() === hmacSignature.toLowerCase()) || 
-                         (signature.toLowerCase() === md5Signature.toLowerCase());
+  var isSignatureValid = (signature.toLowerCase() === hmacSignature.toLowerCase()) ||
+    (signature.toLowerCase() === md5Signature.toLowerCase());
 
   if (!isSignatureValid) {
     console.error('[Duitku Callback] Invalid Signature! Verification failed.');
@@ -276,11 +276,11 @@ router.get('/check-billing', function (req, res) {
     }
 
     var record = results[0];
-    
+
     // Mask the customer name for security (e.g. John Doe -> J**n D**e)
     var maskName = function (name) {
       if (!name) return '';
-      return name.split(' ').map(function(word) {
+      return name.split(' ').map(function (word) {
         if (word.length <= 2) return word[0] + '*';
         return word[0] + '*'.repeat(word.length - 2) + word[word.length - 1];
       }).join(' ');
@@ -397,8 +397,10 @@ router.get('/billing', function (req, res) {
     }
 
     if (results.length > 0) {
-      // Check if customer has paid any past bills
-      var checkPastPaidSql = "SELECT id_tagihan FROM tagihan WHERE id_pelanggan = ? AND status = 'lunas' LIMIT 1";
+      // // Check if customer has paid any past bills
+      // var checkPastPaidSql = "SELECT id_tagihan FROM tagihan WHERE id_pelanggan = ? AND status = 'lunas' LIMIT 1";
+      // Only treat the current billing period as paid.
+      var checkPastPaidSql = "SELECT id_tagihan FROM tagihan WHERE id_pelanggan = ? AND periode = DATE_FORMAT(CURDATE(), '%Y-%m') AND status = 'lunas' LIMIT 1";
       db.query(checkPastPaidSql, [id_pelanggan], function (pastErr, pastResults) {
         var isPaidThisMonth = pastResults && pastResults.length > 0;
         sendBillingResponse(results[0], isPaidThisMonth);
@@ -560,7 +562,7 @@ router.post('/pay', function (req, res) {
         }
 
         // Insert into notifikasi table to track payment pending notification
-        db.query("INSERT INTO notifikasi (id_pembayaran) VALUES (?)", [paymentResult.insertId], function(notifErr) {
+        db.query("INSERT INTO notifikasi (id_pembayaran) VALUES (?)", [paymentResult.insertId], function (notifErr) {
           if (notifErr) {
             console.error('[Notification Trigger] Failed to insert notification record:', notifErr.message);
           }
@@ -600,11 +602,13 @@ router.get('/midtrans-config', function (req, res) {
   var clientKey = ConfigService.get('MIDTRANS_CLIENT_KEY', process.env.MIDTRANS_CLIENT_KEY || '');
   var serverKey = ConfigService.get('MIDTRANS_SERVER_KEY', process.env.MIDTRANS_SERVER_KEY || '');
   var isSandboxConfig = ConfigService.get('MIDTRANS_IS_SANDBOX', process.env.MIDTRANS_IS_SANDBOX || 'true');
+  var manualPaymentEnabled = ConfigService.get('MANUAL_PAYMENT_ENABLED', 'true') === 'true';
   var isSandbox = isSandboxConfig === 'true' || serverKey.startsWith('SB-') || clientKey.startsWith('SB-');
   res.json({
     success: true,
     clientKey: clientKey,
-    isSandbox: isSandbox
+    isSandbox: isSandbox,
+    manualPaymentEnabled: manualPaymentEnabled
   });
 });
 
@@ -708,7 +712,7 @@ router.get('/duitku-payment-methods', async function (req, res) {
   var now = new Date();
   var pad = function (n) { return String(n).padStart(2, '0'); };
   var datetime = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' +
-                 pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
 
   var stringToSign = merchantCode + amount + datetime + apiKey;
   var signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
@@ -905,7 +909,7 @@ router.get('/payments', function (req, res) {
 });
 
 /* GET /api/customer/portal/invoice/:id_tagihan/pdf - Download or view PDF Invoice for Customer */
-router.get('/invoice/:id_tagihan/pdf', function(req, res) {
+router.get('/invoice/:id_tagihan/pdf', function (req, res) {
   var idTagihan = req.params.id_tagihan;
   var customerId = req.customerId;
   var PdfService = require('../services/pdfService');
@@ -916,7 +920,7 @@ router.get('/invoice/:id_tagihan/pdf', function(req, res) {
     JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan 
     WHERE t.id_tagihan = ? AND t.id_pelanggan = ?
   `;
-  db.query(sql, [idTagihan, customerId], async function(err, results) {
+  db.query(sql, [idTagihan, customerId], async function (err, results) {
     if (err || !results || results.length === 0) {
       return res.status(404).json({ success: false, message: 'Tagihan tidak ditemukan atau bukan milik Anda.' });
     }

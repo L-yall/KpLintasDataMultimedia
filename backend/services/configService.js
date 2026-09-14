@@ -124,6 +124,9 @@ var ConfigService = {
       DUITKU_API_KEY: this.get('DUITKU_API_KEY', ''),
       DUITKU_IS_SANDBOX: this.get('DUITKU_IS_SANDBOX', 'true'),
 
+      // Manual Payment Methods
+      MANUAL_PAYMENT_ENABLED: this.get('MANUAL_PAYMENT_ENABLED', 'true'),
+
       // Webhook / Callback Base URL (ngrok URL untuk development)
       APP_URL: this.get('APP_URL', ''),
 
