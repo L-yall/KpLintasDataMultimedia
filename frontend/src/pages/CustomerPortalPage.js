@@ -24,6 +24,7 @@ function CustomerPortalPage({ onLogout }) {
   var [uploading, setUploading] = useState(false);
   var [message, setMessage] = useState({ type: '', text: '' });
   var [paymentMethod, setPaymentMethod] = useState('midtrans');
+  var [activePaymentGateway, setActivePaymentGateway] = useState('midtrans');
   var [manualPaymentEnabled, setManualPaymentEnabled] = useState(true);
   var [midtransClientKey, setMidtransClientKey] = useState('');
   var [midtransLoading, setMidtransLoading] = useState(false);
@@ -54,15 +55,18 @@ function CustomerPortalPage({ onLogout }) {
     { value: 'bca', label: 'Manual: Bank BCA', sublabel: 'Transfer Bank', icon: null, logo: process.env.PUBLIC_URL + '/BCA.png' }
   ].filter(function (option) {
     var manualMethods = ['qris', 'bri', 'mandiri', 'bca'];
-    return manualPaymentEnabled || manualMethods.indexOf(option.value) === -1;
+    var gatewayVisible = ['midtrans', 'duitku'].indexOf(option.value) === -1 || option.value === activePaymentGateway;
+    return gatewayVisible && (manualPaymentEnabled || manualMethods.indexOf(option.value) === -1);
   });
 
   useEffect(function () {
     var manualMethods = ['qris', 'bri', 'mandiri', 'bca'];
     if (!manualPaymentEnabled && manualMethods.indexOf(paymentMethod) !== -1) {
-      setPaymentMethod('midtrans');
+      setPaymentMethod(activePaymentGateway !== 'none' ? activePaymentGateway : 'qris');
+    } else if (['midtrans', 'duitku'].indexOf(paymentMethod) !== -1 && paymentMethod !== activePaymentGateway) {
+      setPaymentMethod(activePaymentGateway !== 'none' ? activePaymentGateway : (manualPaymentEnabled ? 'qris' : 'midtrans'));
     }
-  }, [manualPaymentEnabled, paymentMethod]);
+  }, [manualPaymentEnabled, paymentMethod, activePaymentGateway]);
 
   // Close dropdown when clicking outside
   useEffect(function () {
@@ -129,6 +133,9 @@ function CustomerPortalPage({ onLogout }) {
         var clientKey = response.data.clientKey;
         setMidtransClientKey(clientKey);
         setManualPaymentEnabled(response.data.manualPaymentEnabled !== false);
+        var configuredGateway = ['midtrans', 'duitku', 'none'].indexOf(response.data.activeGateway) !== -1 ? response.data.activeGateway : 'midtrans';
+        setActivePaymentGateway(configuredGateway);
+        setPaymentMethod(configuredGateway !== 'none' ? configuredGateway : 'qris');
         var isSandbox = response.data.isSandbox;
         var snapScriptUrl = isSandbox
           ? 'https://app.sandbox.midtrans.com/snap/snap.js'

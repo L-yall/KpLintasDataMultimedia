@@ -63,6 +63,7 @@ function PengaturanPage() {
     apiKey: '',
     appUrl: ''
   });
+  var [activePaymentGateway, setActivePaymentGateway] = useState('midtrans');
 
   // Manual payment settings state
   var [manualPaymentEnabled, setManualPaymentEnabled] = useState(true);
@@ -129,6 +130,7 @@ function PengaturanPage() {
             apiKey: cfg.DUITKU_API_KEY || '',
             appUrl: cfg.APP_URL || ''
           });
+          setActivePaymentGateway(['midtrans', 'duitku'].indexOf(cfg.PAYMENT_GATEWAY_ACTIVE) !== -1 ? cfg.PAYMENT_GATEWAY_ACTIVE : 'midtrans');
 
           setManualPaymentEnabled(cfg.MANUAL_PAYMENT_ENABLED !== 'false');
 
@@ -283,6 +285,7 @@ function PengaturanPage() {
       DUITKU_API_KEY: duitku.apiKey,
       DUITKU_IS_SANDBOX: String(duitku.isSandbox),
       APP_URL: duitku.appUrl,
+      PAYMENT_GATEWAY_ACTIVE: activePaymentGateway,
 
       MANUAL_PAYMENT_ENABLED: String(manualPaymentEnabled),
 
@@ -307,6 +310,63 @@ function PengaturanPage() {
       .finally(function () {
         setSaving(false);
       });
+  };
+
+  var saveQuickSetting = function (key, value, onSuccess, onError) {
+    var token = localStorage.getItem('token');
+    axios.post(API_BASE_URL + '/api/pengaturan/config', { [key]: String(value) }, {
+      headers: { Authorization: 'Bearer ' + token }
+    }).then(function (res) {
+      if (res.data.success && onSuccess) onSuccess();
+    }).catch(function (err) {
+      if (onError) onError();
+      var msg = (err.response && err.response.data && err.response.data.message) || 'Gagal menyimpan pengaturan.';
+      setErrorMsg(msg);
+      setTimeout(function () { setErrorMsg(''); }, 4000);
+    });
+  };
+
+  var handleGatewayToggle = function (gateway, enabled) {
+    if (!enabled && activePaymentGateway === gateway) {
+      return;
+    }
+
+    var previousGateway = activePaymentGateway;
+    var nextGateway = enabled ? gateway : previousGateway;
+    setActivePaymentGateway(nextGateway);
+    saveQuickSetting('PAYMENT_GATEWAY_ACTIVE', nextGateway, function () {
+      setSuccessMsg('Gateway pembayaran berhasil diperbarui.');
+      setTimeout(function () { setSuccessMsg(''); }, 2500);
+    }, function () {
+      setActivePaymentGateway(previousGateway);
+    });
+  };
+
+  var handleManualPaymentToggle = function (enabled) {
+    var previousValue = manualPaymentEnabled;
+    setManualPaymentEnabled(enabled);
+    saveQuickSetting('MANUAL_PAYMENT_ENABLED', enabled, function () {
+      setSuccessMsg('Pembayaran manual berhasil diperbarui.');
+      setTimeout(function () { setSuccessMsg(''); }, 2500);
+    }, function () {
+      setManualPaymentEnabled(previousValue);
+    });
+  };
+
+  var renderQuickSwitch = function (isActive, onChange) {
+    return (
+      <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', width: '42px', height: '22px', margin: 0, flexShrink: 0 }} title={isActive ? 'ON' : 'OFF'}>
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={function (e) { onChange(e.target.checked); }}
+            style={{ opacity: 0, width: 0, height: 0 }}
+          />
+          <span style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isActive ? 'var(--primary)' : '#ccc', transition: '.3s', borderRadius: '24px' }}>
+            <span style={{ position: 'absolute', height: '16px', width: '16px', left: isActive ? '23px' : '3px', bottom: '3px', backgroundColor: 'white', transition: '.3s', borderRadius: '50%' }} />
+          </span>
+      </label>
+    );
   };
 
   // Test Mikrotik Connection
@@ -449,14 +509,14 @@ function PengaturanPage() {
             return (
               <div
                 key={tab.id}
-                onClick={function () { setActiveTab(tab.id); }}
+                onClick={function () { if (tab.id !== 'manual') setActiveTab(tab.id); }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
                   padding: '12px 16px',
                   borderRadius: '8px',
-                  cursor: 'pointer',
+                  cursor: tab.id === 'manual' ? 'default' : 'pointer',
                   fontWeight: '600',
                   fontSize: '0.88rem',
                   color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
@@ -477,7 +537,22 @@ function PengaturanPage() {
                 }}>
                   {tab.icon}
                 </span>
-                {tab.label}
+                <span style={{ flex: 1 }}>{tab.label}</span>
+                {tab.id === 'midtrans' && (
+                  <span onClick={function (e) { e.stopPropagation(); }}>
+                    {renderQuickSwitch(activePaymentGateway === 'midtrans', function (enabled) { handleGatewayToggle('midtrans', enabled); })}
+                  </span>
+                )}
+                {tab.id === 'duitku' && (
+                  <span onClick={function (e) { e.stopPropagation(); }}>
+                    {renderQuickSwitch(activePaymentGateway === 'duitku', function (enabled) { handleGatewayToggle('duitku', enabled); })}
+                  </span>
+                )}
+                {tab.id === 'manual' && (
+                  <span onClick={function (e) { e.stopPropagation(); }}>
+                    {renderQuickSwitch(manualPaymentEnabled, handleManualPaymentToggle)}
+                  </span>
+                )}
               </div>
             );
           })}
@@ -832,7 +907,6 @@ function PengaturanPage() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '24px' }}>
                   Konfigurasi kredensial API Midtrans Snap SDK untuk pembayaran otomatis via Snap Pop-Up.
                 </p>
-
                 <div className="form-group" style={{ marginBottom: '20px' }}>
                   <label>Environment Mode</label>
                   <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
@@ -896,7 +970,6 @@ function PengaturanPage() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '24px' }}>
                   Konfigurasi API Duitku Payment Gateway untuk pembayaran instan via QRIS, Virtual Account, E-Wallet, dan Minimarket.
                 </p>
-
                 <div className="form-group" style={{ marginBottom: '20px' }}>
                   <label>Environment Mode</label>
                   <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
@@ -970,25 +1043,6 @@ function PengaturanPage() {
                   Atur apakah pilihan pembayaran melalui QRIS dan transfer bank manual dapat digunakan pelanggan.
                 </p>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '14px 16px' }}>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: '700' }}>Aktifkan Pembayaran Manual</div>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '3px' }}>
-                      {manualPaymentEnabled ? 'QRIS dan transfer bank manual tampil di halaman customer.' : 'Semua pilihan pembayaran manual disembunyikan dari halaman customer.'}
-                    </div>
-                  </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '24px', margin: 0 }}>
-                    <input
-                      type="checkbox"
-                      checked={manualPaymentEnabled}
-                      onChange={function (e) { setManualPaymentEnabled(e.target.checked); }}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: manualPaymentEnabled ? 'var(--primary)' : '#ccc', transition: '.3s', borderRadius: '24px' }}>
-                      <span style={{ position: 'absolute', height: '18px', width: '18px', left: manualPaymentEnabled ? '26px' : '3px', bottom: '3px', backgroundColor: 'white', transition: '.3s', borderRadius: '50%' }} />
-                    </span>
-                  </label>
-                </div>
               </div>
             )}
 
