@@ -17,6 +17,9 @@ function NotifikasiPage({ socket, admin }) {
   var navigate = useNavigate();
   var location = useLocation();
   var isSuperAdmin = admin && admin.role === 'superadmin';
+  var unreadPaymentCount = notifs.filter(function (notif) {
+    return notif.status_baca === 0 && notif.tipe !== 'registrasi_masuk';
+  }).length;
 
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
@@ -148,14 +151,18 @@ function NotifikasiPage({ socket, admin }) {
       socket.on('pembayaran_masuk', function () {
         fetchNotifications();
       });
+      socket.on('registrasi_masuk', fetchNotifications);
+      socket.on('registrasi_updated', fetchNotifications);
       return function () {
         socket.off('pembayaran_masuk');
+        socket.off('registrasi_masuk', fetchNotifications);
+        socket.off('registrasi_updated', fetchNotifications);
       };
     }
   }, [socket]);
 
   async function handleMarkRead(notif) {
-    if (notif.status_baca === 1) return;
+    if (notif.status_baca === 1 || notif.tipe === 'registrasi_masuk') return;
     try {
       var response = await axios.put(`${API_BASE_URL}/api/notifikasi/${notif.id_notifikasi}/read`, {}, { headers: headers });
       if (response.data.success) {
@@ -175,13 +182,13 @@ function NotifikasiPage({ socket, admin }) {
   }
 
   async function handleMarkAllRead() {
-    var unreadCount = notifs.filter(function (n) { return n.status_baca === 0; }).length;
-    if (unreadCount === 0) return;
+    if (unreadPaymentCount === 0) return;
     try {
       var response = await axios.put(`${API_BASE_URL}/api/notifikasi/read-all`, {}, { headers: headers });
       if (response.data.success) {
         setNotifs(function (prev) {
           return prev.map(function (n) {
+            if (n.tipe === 'registrasi_masuk') return n;
             return { ...n, status_baca: 1 };
           });
         });
@@ -198,7 +205,8 @@ function NotifikasiPage({ socket, admin }) {
     if (searchQuery) {
       var q = searchQuery.toLowerCase();
       matchesSearch = (n.nama_pelanggan && n.nama_pelanggan.toLowerCase().includes(q)) ||
-        (n.periode && n.periode.toLowerCase().includes(q));
+        (n.periode && n.periode.toLowerCase().includes(q)) ||
+        (n.paket && n.paket.toLowerCase().includes(q));
     }
 
     if (!matchesSearch) return false;
@@ -209,10 +217,12 @@ function NotifikasiPage({ socket, admin }) {
       return n.status_baca === 0;
     } else if (filterStatus === 'read') {
       return n.status_baca === 1;
+    } else if (filterStatus === 'registrasi') {
+      return n.tipe === 'registrasi_masuk';
     } else if (filterStatus === 'manual') {
-      return !metodeInfo.isOnline;
+      return n.tipe !== 'registrasi_masuk' && !metodeInfo.isOnline;
     } else if (filterStatus === 'midtrans') {
-      return metodeInfo.isOnline;
+      return n.tipe !== 'registrasi_masuk' && metodeInfo.isOnline;
     }
 
     return true;
@@ -299,10 +309,10 @@ function NotifikasiPage({ socket, admin }) {
       `}</style>
       <div className="page-header">
         <div>
-          <h1>Notifikasi Pembayaran</h1>
-          <p>Daftar seluruh notifikasi pembayaran masuk dari pelanggan via transfer manual maupun otomatis Duitku & Midtrans.</p>
+          <h1>Notifikasi</h1>
+          <p>Pantau pembayaran masuk dan pendaftaran pelanggan yang menunggu tinjauan.</p>
         </div>
-        <button className="btn btn-primary" onClick={handleMarkAllRead} disabled={notifs.filter(function (n) { return n.status_baca === 0; }).length === 0} style={{
+        <button className="btn btn-primary" onClick={handleMarkAllRead} disabled={unreadPaymentCount === 0} style={{
           background: 'var(--md-primary-fixed)',
           color: 'var(--md-on-primary-fixed-variant)',
           fontWeight: '700'
@@ -324,7 +334,8 @@ function NotifikasiPage({ socket, admin }) {
           { id: 'unread', label: 'Belum Dibaca' },
           { id: 'read', label: 'Sudah Dibaca' },
           { id: 'manual', label: 'Transfer Manual' },
-          { id: 'midtrans', label: 'Otomatis Online' }
+          { id: 'midtrans', label: 'Otomatis Online' },
+          { id: 'registrasi', label: 'Pendaftaran' }
         ].map(function (tab) {
           var isActive = filterStatus === tab.id;
           return (
@@ -383,7 +394,7 @@ function NotifikasiPage({ socket, admin }) {
         ) : filteredNotifs.length === 0 ? (
           <div className="table-empty">
             <div className="table-empty-icon"><TemplateIcon name="bell" size={28} /></div>
-            <p>Tidak ada notifikasi pembayaran.</p>
+            <p>Tidak ada notifikasi sesuai filter.</p>
           </div>
         ) : (
           <table className="data-table">
@@ -403,6 +414,7 @@ function NotifikasiPage({ socket, admin }) {
             <tbody>
               {currentNotifs.map(function (notif, idx) {
                 var isUnread = notif.status_baca === 0;
+                var isRegistration = notif.tipe === 'registrasi_masuk';
                 var metodeInfo = getMetodeInfo(notif.bukti_file);
                 return (
                   <tr
@@ -414,17 +426,21 @@ function NotifikasiPage({ socket, admin }) {
                   >
                     <td style={{ color: 'var(--text-muted)' }}>{(notifPage - 1) * notificationsPerPage + idx + 1}</td>
                     <td>
-                      <span className={'status-badge ' + metodeInfo.class}>
-                        {metodeInfo.label}
+                      <span className={'status-badge ' + (isRegistration ? 'biru' : metodeInfo.class)}>
+                        {isRegistration ? 'Registrasi' : metodeInfo.label}
                       </span>
                     </td>
                     <td>{notif.nama_pelanggan || 'Pelanggan Dihapus'}</td>
-                    <td>{notif.periode}</td>
-                    <td>Rp {Number(notif.nominal).toLocaleString('id-ID')}</td>
+                    <td>{isRegistration ? notif.paket : notif.periode}</td>
+                    <td>{isRegistration ? '-' : 'Rp ' + Number(notif.nominal).toLocaleString('id-ID')}</td>
                     <td>{formatTanggal(notif.tanggal)}</td>
                     {filterStatus !== 'midtrans' && (
                       <td>
-                        {metodeInfo.isOnline ? (
+                        {isRegistration ? (
+                          <button className="btn btn-secondary btn-sm" onClick={function () { navigate('/dashboard/registrasi'); }}>
+                            <TemplateIcon name="person_add" size={14} style={{ marginRight: '6px' }} /> Tinjau
+                          </button>
+                        ) : metodeInfo.isOnline ? (
                           <button
                             className="btn btn-secondary btn-sm"
                             onClick={function () { handleMarkRead(notif); setViewMidtransDetail(notif); }}
@@ -443,7 +459,7 @@ function NotifikasiPage({ socket, admin }) {
                     )}
                     <td>
                       <span
-                        onClick={function () { handleMarkRead(notif); }}
+                        onClick={function () { if (!isRegistration) handleMarkRead(notif); }}
                         style={{
                           cursor: isUnread ? 'pointer' : 'default',
                           display: 'inline-flex',
@@ -452,12 +468,12 @@ function NotifikasiPage({ socket, admin }) {
                         }}
                         className={'status-badge ' + (isUnread ? 'merah' : 'abu')}
                       >
-                        {isUnread ? 'Belum Dibaca' : 'Sudah Dibaca'}
+                        {isRegistration ? 'Menunggu Tinjauan' : isUnread ? 'Belum Dibaca' : 'Sudah Dibaca'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        {isUnread && (
+                        {isUnread && !isRegistration && (
                           <button
                             className="btn btn-secondary btn-sm"
                             onClick={function () { handleMarkRead(notif); }}
@@ -468,15 +484,18 @@ function NotifikasiPage({ socket, admin }) {
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={function () {
-                            handleMarkRead(notif);
-                            if (metodeInfo.isOnline) {
+                            if (isRegistration) {
+                              navigate('/dashboard/registrasi');
+                            } else if (metodeInfo.isOnline) {
+                              handleMarkRead(notif);
                               setViewMidtransDetail(notif);
                             } else {
+                              handleMarkRead(notif);
                               setViewNotif(notif);
                             }
                           }}
                         >
-                          Lihat Detail
+                          {isRegistration ? 'Buka Antrean' : 'Lihat Detail'}
                         </button>
                       </div>
                     </td>

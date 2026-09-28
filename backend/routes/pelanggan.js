@@ -3,6 +3,32 @@ var router = express.Router();
 var bcrypt = require('bcryptjs');
 var Pelanggan = require('../models/Pelanggan');
 var verifyToken = require('../middleware/auth');
+var fs = require('fs');
+var path = require('path');
+var multer = require('multer');
+var db = require('../config/db');
+
+var customerPhotoDir = path.join(__dirname, '../public/uploads/foto-pelanggan');
+if (!fs.existsSync(customerPhotoDir)) {
+  fs.mkdirSync(customerPhotoDir, { recursive: true });
+}
+
+var customerPhotoUpload = multer({
+  storage: multer.diskStorage({
+    destination: customerPhotoDir,
+    filename: function (req, file, callback) {
+      var extension = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' }[file.mimetype];
+      callback(null, 'ktp-admin-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + extension);
+    }
+  }),
+  fileFilter: function (req, file, callback) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+      return callback(new Error('Foto KTP harus berformat JPG, PNG, atau WEBP.'));
+    }
+    callback(null, true);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
 
 // Semua route pelanggan butuh auth
 router.use(verifyToken);
@@ -46,6 +72,142 @@ router.get('/stats', function(req, res) {
   });
 });
 
+/* GET /api/pelanggan/registrasi/pending - Registrasi pelanggan yang menunggu tinjauan */
+router.get('/registrasi/pending', function(req, res) {
+  var sql = `
+    SELECT p.id_pelanggan, p.nama, p.alamat, p.no_hp, p.email, p.nik, p.foto,
+      p.paket, p.created_at, pl.harga
+    FROM pelanggan p
+    LEFT JOIN paket_layanan pl ON p.paket = pl.nama_paket
+    WHERE p.pppoe_username LIKE 'REG-%'
+    ORDER BY p.created_at ASC
+  `;
+  db.query(sql, function(err, results) {
+    if (err) return res.status(500).json({ success: false, message: 'Gagal mengambil registrasi pelanggan.' });
+    res.json({ success: true, data: results });
+  });
+});
+
+/* POST /api/pelanggan/registrasi/:id/approve - Setujui registrasi dan buat tagihan awal */
+router.post('/registrasi/:id/approve', async function(req, res) {
+  var id = Number(req.params.id);
+  var pppoeUsername = (req.body.pppoe_username || '').trim();
+  var dueDate = (req.body.due_date || '').trim();
+  if (!Number.isInteger(id) || id < 1) return res.status(400).json({ success: false, message: 'ID pelanggan tidak valid.' });
+  if (!pppoeUsername || pppoeUsername.length > 100 || pppoeUsername.startsWith('REG-')) {
+    return res.status(400).json({ success: false, message: 'PPPoE username yang valid wajib diisi.' });
+  }
+  var parsedDueDate = new Date(dueDate + 'T00:00:00Z');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate) || Number.isNaN(parsedDueDate.getTime()) || parsedDueDate.toISOString().slice(0, 10) !== dueDate) {
+    return res.status(400).json({ success: false, message: 'Tanggal jatuh tempo tidak valid.' });
+  }
+
+  var MikrotikService = require('../services/mikrotik');
+  var connection;
+  var transactionStarted = false;
+  function queryConnection(sql, values) {
+    return new Promise(function(resolve, reject) {
+      connection.query(sql, values, function(err, results) {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
+  }
+  function connectionAction(action) {
+    return new Promise(function(resolve, reject) {
+      connection[action](function(err) { err ? reject(err) : resolve(); });
+    });
+  }
+
+  try {
+    var pending = await new Promise(function(resolve, reject) {
+      db.query("SELECT id_pelanggan FROM pelanggan WHERE id_pelanggan = ? AND pppoe_username LIKE 'REG-%' LIMIT 1", [id], function(err, rows) {
+        if (err) return reject(err);
+        resolve(rows[0] || null);
+      });
+    });
+    if (!pending) return res.status(404).json({ success: false, message: 'Registrasi tidak ditemukan atau sudah diproses.' });
+
+    var existingUsername = await new Promise(function(resolve, reject) {
+      db.query('SELECT id_pelanggan FROM pelanggan WHERE pppoe_username = ? LIMIT 1', [pppoeUsername], function(err, rows) {
+        if (err) return reject(err);
+        resolve(rows[0] || null);
+      });
+    });
+    if (existingUsername) return res.status(400).json({ success: false, message: 'PPPoE username sudah digunakan pelanggan lain.' });
+
+    var pingResult = await MikrotikService.ping();
+    if (pingResult.online && !(await MikrotikService.validateSecret(pppoeUsername))) {
+      return res.status(400).json({ success: false, message: `PPPoE username "${pppoeUsername}" tidak ditemukan di router Mikrotik.` });
+    }
+
+    connection = await new Promise(function(resolve, reject) {
+      db.getConnection(function(err, result) { err ? reject(err) : resolve(result); });
+    });
+    await connectionAction('beginTransaction');
+    transactionStarted = true;
+
+    var lockedRows = await queryConnection("SELECT p.id_pelanggan, p.paket FROM pelanggan p WHERE p.id_pelanggan = ? AND p.pppoe_username LIKE 'REG-%' FOR UPDATE", [id]);
+    if (lockedRows.length === 0) {
+      await connectionAction('rollback');
+      transactionStarted = false;
+      return res.status(409).json({ success: false, message: 'Registrasi sudah diproses admin lain.' });
+    }
+    var customer = lockedRows[0];
+    var packageRows = await queryConnection('SELECT harga FROM paket_layanan WHERE nama_paket = ? AND aktif = 1 LIMIT 1', [customer.paket]);
+    if (!packageRows.length || Number(packageRows[0].harga) <= 0) {
+      await connectionAction('rollback');
+      transactionStarted = false;
+      return res.status(400).json({ success: false, message: 'Paket tidak aktif atau harga paket tidak valid.' });
+    }
+    var duplicateRows = await queryConnection('SELECT id_pelanggan FROM pelanggan WHERE pppoe_username = ? AND id_pelanggan <> ? LIMIT 1', [pppoeUsername, id]);
+    if (duplicateRows.length) {
+      await connectionAction('rollback');
+      transactionStarted = false;
+      return res.status(400).json({ success: false, message: 'PPPoE username sudah digunakan pelanggan lain.' });
+    }
+
+    await queryConnection("UPDATE pelanggan SET pppoe_username = ?, due_date = ?, status_tagihan = 'abu_abu', pppoe_status = 'unknown' WHERE id_pelanggan = ?", [pppoeUsername, dueDate, id]);
+    await queryConnection("INSERT INTO tagihan (id_pelanggan, periode, nominal, status, due_date) VALUES (?, ?, ?, 'belum_bayar', ?)", [id, dueDate.slice(0, 7), packageRows[0].harga, dueDate]);
+    await connectionAction('commit');
+    transactionStarted = false;
+
+    var SocketService = require('../services/socket');
+    SocketService.broadcast('registrasi_updated', { id_pelanggan: id });
+    SocketService.broadcast('pelanggan_updated', { id_pelanggan: id });
+    res.json({ success: true, message: 'Registrasi disetujui dan tagihan awal berhasil dibuat.' });
+  } catch (err) {
+    if (transactionStarted) {
+      try { await connectionAction('rollback'); } catch (rollbackError) { console.error('[Pelanggan] Gagal rollback persetujuan registrasi:', rollbackError.message); }
+    }
+    console.error('[Pelanggan] Gagal menyetujui registrasi:', err.message);
+    res.status(500).json({ success: false, message: 'Gagal menyetujui registrasi pelanggan.' });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+/* POST /api/pelanggan/registrasi/:id/reject - Tolak dan hapus data registrasi */
+router.post('/registrasi/:id/reject', function(req, res) {
+  var id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) return res.status(400).json({ success: false, message: 'ID pelanggan tidak valid.' });
+  db.query("SELECT foto FROM pelanggan WHERE id_pelanggan = ? AND pppoe_username LIKE 'REG-%' LIMIT 1", [id], function(err, rows) {
+    if (err) return res.status(500).json({ success: false, message: 'Gagal memeriksa registrasi pelanggan.' });
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Registrasi tidak ditemukan atau sudah diproses.' });
+    db.query("DELETE FROM pelanggan WHERE id_pelanggan = ? AND pppoe_username LIKE 'REG-%'", [id], function(deleteError, result) {
+      if (deleteError) return res.status(500).json({ success: false, message: 'Gagal menolak registrasi pelanggan.' });
+      if (!result.affectedRows) return res.status(409).json({ success: false, message: 'Registrasi sudah diproses admin lain.' });
+      var foto = rows[0].foto || '';
+      if (foto.startsWith('/uploads/foto-pelanggan/')) {
+        fs.unlink(path.join(customerPhotoDir, path.basename(foto)), function() {});
+      }
+      var SocketService = require('../services/socket');
+      SocketService.broadcast('registrasi_updated', { id_pelanggan: id });
+      res.json({ success: true, message: 'Registrasi ditolak dan data pendaftar dihapus.' });
+    });
+  });
+});
+
 /* GET /api/pelanggan/:id - Detail pelanggan */
 router.get('/:id', function(req, res) {
   Pelanggan.getById(req.params.id, function(err, pelanggan) {
@@ -62,24 +224,50 @@ router.get('/:id', function(req, res) {
 });
 
 /* POST /api/pelanggan - Tambah pelanggan baru */
-router.post('/', async function(req, res) {
-  var { nama, alamat, latitude, longitude, no_hp, email, password, pppoe_username, paket, due_date } = req.body;
+router.post('/', function(req, res, next) {
+  customerPhotoUpload.single('foto_ktp')(req, res, function(uploadError) {
+    if (uploadError) return res.status(400).json({ success: false, message: uploadError.message });
+    next();
+  });
+}, async function(req, res) {
+  var { nama, alamat, latitude, longitude, no_hp, email, password, nik, pppoe_username, paket, due_date } = req.body;
   var MikrotikService = require('../services/mikrotik');
+  var customerCreated = false;
+
+  function removeUploadedPhoto() {
+    if (req.file) fs.unlink(req.file.path, function() {});
+  }
 
   if (!nama || !no_hp || !email || !password) {
+    removeUploadedPhoto();
     return res.status(400).json({ success: false, message: 'Nama, nomor HP, email, dan password harus diisi.' });
   }
 
+  if (!/^\d{16}$/.test(nik || '') || !req.file) {
+    removeUploadedPhoto();
+    return res.status(400).json({ success: false, message: 'NIK 16 digit dan foto KTP wajib diisi.' });
+  }
+
   if (password.length < 6) {
+    removeUploadedPhoto();
     return res.status(400).json({ success: false, message: 'Password minimal 6 karakter.' });
   }
 
   try {
+    var existingNik = await new Promise((resolve, reject) => {
+      db.query('SELECT id_pelanggan FROM pelanggan WHERE nik = ? LIMIT 1', [nik], (err, rows) => err ? reject(err) : resolve(rows[0] || null));
+    });
+    if (existingNik) {
+      removeUploadedPhoto();
+      return res.status(400).json({ success: false, message: 'NIK sudah terdaftar.' });
+    }
+
     // 1. Cek duplikat no_hp
     var existingNoHp = await new Promise((resolve, reject) => {
       Pelanggan.findByNoHp(no_hp, (err, result) => err ? reject(err) : resolve(result));
     });
     if (existingNoHp) {
+      removeUploadedPhoto();
       return res.status(400).json({ success: false, message: 'Nomor HP sudah terdaftar.' });
     }
 
@@ -90,6 +278,7 @@ router.post('/', async function(req, res) {
         Pelanggan.findByEmail(emailNormalized, (err, result) => err ? reject(err) : resolve(result));
       });
       if (existingEmail) {
+        removeUploadedPhoto();
         return res.status(400).json({ success: false, message: 'Email sudah terdaftar.' });
       }
     }
@@ -100,6 +289,7 @@ router.post('/', async function(req, res) {
         Pelanggan.findByPppoe(pppoe_username, (err, result) => err ? reject(err) : resolve(result));
       });
       if (existingPppoe) {
+        removeUploadedPhoto();
         return res.status(400).json({ success: false, message: 'PPPoE Username sudah dikaitkan dengan pelanggan lain.' });
       }
 
@@ -108,6 +298,7 @@ router.post('/', async function(req, res) {
       if (pingRes.online) {
         var isValid = await MikrotikService.validateSecret(pppoe_username);
         if (!isValid) {
+          removeUploadedPhoto();
           return res.status(400).json({ success: false, message: `PPPoE Username "${pppoe_username}" tidak ditemukan di router Mikrotik.` });
         }
       } else {
@@ -127,11 +318,14 @@ router.post('/', async function(req, res) {
         no_hp: no_hp,
         email: email ? email.trim().toLowerCase() : null,
         password: passwordHash,
+        nik: nik,
+        foto: '/uploads/foto-pelanggan/' + req.file.filename,
         pppoe_username: pppoe_username || '',
         paket: paket,
         due_date: due_date
       }, (err, resObj) => err ? reject(err) : resolve(resObj));
     });
+    customerCreated = true;
 
     // 6. Buat tagihan awal otomatis jika due_date dan paket diset
     if (due_date && paket) {
@@ -169,14 +363,25 @@ router.post('/', async function(req, res) {
     });
 
   } catch (err) {
+    if (!customerCreated) removeUploadedPhoto();
     return res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 });
 
 /* PUT /api/pelanggan/:id - Update data pelanggan */
-router.put('/:id', async function(req, res) {
+router.put('/:id', function(req, res, next) {
+  customerPhotoUpload.single('foto_ktp')(req, res, function(uploadError) {
+    if (uploadError) return res.status(400).json({ success: false, message: uploadError.message });
+    next();
+  });
+}, async function(req, res) {
   var id = req.params.id;
   var MikrotikService = require('../services/mikrotik');
+  var updateSaved = false;
+
+  function removeUploadedPhoto() {
+    if (req.file) fs.unlink(req.file.path, function() {});
+  }
 
   try {
     // 1. Get existing customer
@@ -185,10 +390,28 @@ router.put('/:id', async function(req, res) {
     });
 
     if (!pelanggan) {
+      removeUploadedPhoto();
       return res.status(404).json({ success: false, message: 'Pelanggan tidak ditemukan.' });
     }
 
     var updates = { ...req.body };
+    if (updates.nik !== undefined) {
+      updates.nik = updates.nik ? updates.nik.trim() : null;
+      if (updates.nik && !/^\d{16}$/.test(updates.nik)) {
+        removeUploadedPhoto();
+        return res.status(400).json({ success: false, message: 'NIK harus terdiri dari 16 digit angka.' });
+      }
+      if (updates.nik && updates.nik !== pelanggan.nik) {
+        var duplicateNik = await new Promise((resolve, reject) => {
+          db.query('SELECT id_pelanggan FROM pelanggan WHERE nik = ? AND id_pelanggan <> ? LIMIT 1', [updates.nik, id], (err, rows) => err ? reject(err) : resolve(rows[0] || null));
+        });
+        if (duplicateNik) {
+          removeUploadedPhoto();
+          return res.status(400).json({ success: false, message: 'NIK sudah terdaftar.' });
+        }
+      }
+    }
+    if (req.file) updates.foto = '/uploads/foto-pelanggan/' + req.file.filename;
 
     // 2. Validate no_hp change
     if (updates.no_hp && updates.no_hp !== pelanggan.no_hp) {
@@ -196,6 +419,7 @@ router.put('/:id', async function(req, res) {
         Pelanggan.findByNoHp(updates.no_hp, (err, result) => err ? reject(err) : resolve(result));
       });
       if (existingNoHp && existingNoHp.id_pelanggan !== parseInt(id, 10)) {
+        removeUploadedPhoto();
         return res.status(400).json({ success: false, message: 'Nomor HP sudah terdaftar.' });
       }
     }
@@ -210,6 +434,7 @@ router.put('/:id', async function(req, res) {
           Pelanggan.findByEmail(emailVal, (err, result) => err ? reject(err) : resolve(result));
         });
         if (existingEmail && existingEmail.id_pelanggan !== parseInt(id, 10)) {
+          removeUploadedPhoto();
           return res.status(400).json({ success: false, message: 'Email sudah terdaftar.' });
         }
       }
@@ -226,6 +451,7 @@ router.put('/:id', async function(req, res) {
           Pelanggan.findByPppoe(pppoeVal, (err, result) => err ? reject(err) : resolve(result));
         });
         if (existingPppoe && existingPppoe.id_pelanggan !== parseInt(id, 10)) {
+          removeUploadedPhoto();
           return res.status(400).json({ success: false, message: 'PPPoE Username sudah dikaitkan dengan pelanggan lain.' });
         }
 
@@ -234,6 +460,7 @@ router.put('/:id', async function(req, res) {
         if (pingRes.online) {
           var isValid = await MikrotikService.validateSecret(pppoeVal);
           if (!isValid) {
+            removeUploadedPhoto();
             return res.status(400).json({ success: false, message: `PPPoE Username "${pppoeVal}" tidak ditemukan di router Mikrotik.` });
           }
         } else {
@@ -417,6 +644,10 @@ router.put('/:id', async function(req, res) {
     await new Promise((resolve, reject) => {
       Pelanggan.update(id, updates, (err, result) => err ? reject(err) : resolve(result));
     });
+    updateSaved = true;
+    if (req.file && pelanggan.foto) {
+      fs.unlink(path.join(customerPhotoDir, path.basename(pelanggan.foto)), function() {});
+    }
 
     // Trigger billing check immediately in background to update status & send reminder if due
     var CronService = require('../services/cronService');
@@ -428,6 +659,7 @@ router.put('/:id', async function(req, res) {
     });
 
   } catch (err) {
+    if (!updateSaved) removeUploadedPhoto();
     return res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 });

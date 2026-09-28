@@ -221,9 +221,14 @@ function LandingPage({ customer, onLogout }) {
                 </button>
               </>
             ) : (
-              <button className="landing-btn-primary" onClick={function () { navigate('/bayar'); }}>
-                <span className="material-symbols-outlined">login</span> {isMobile ? 'Login' : 'Login Pelanggan'}
-              </button>
+              <>
+                <button className="landing-btn-primary" onClick={function () { navigate('/bayar'); }}>
+                  <span className="material-symbols-outlined">login</span> {isMobile ? 'Login' : 'Login Pelanggan'}
+                </button>
+                <button className="landing-btn-outline landing-btn-register" onClick={function () { navigate('/registrasi'); }}>
+                  {isMobile ? 'Daftar' : 'Registrasi'}
+                </button>
+              </>
             )}
           </div>
         </div>

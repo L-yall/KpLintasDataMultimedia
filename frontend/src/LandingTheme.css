@@ -129,6 +129,11 @@
   color: var(--md-on-primary);
 }
 
+.landing-btn-register {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
 .landing-btn-ghost {
   border-color: var(--md-primary);
   color: var(--md-primary);

@@ -9,6 +9,7 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
   var { logoUrl } = useLogo();
   var [profileOpen, setProfileOpen] = useState(false);
   var [pendingCount, setPendingCount] = useState(0);
+  var [pendingRegistrationCount, setPendingRegistrationCount] = useState(0);
   var [pembayaranOpen, setPembayaranOpen] = useState(false);
 
   function getInitials(nama) {
@@ -30,6 +31,12 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
         }
       })
       .catch(function (err) { console.error('Sidebar error pending payment:', err); });
+
+    axios.get(API_BASE_URL + '/api/pelanggan/registrasi/pending', { headers: headers })
+      .then(function (res) {
+        if (res.data.success) setPendingRegistrationCount(res.data.data.length);
+      })
+      .catch(function (err) { console.error('Sidebar error pending registration:', err); });
   };
 
   useEffect(function () {
@@ -45,9 +52,13 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
       socket.on('pelanggan_updated', function () {
         fetchBadges();
       });
+      socket.on('registrasi_masuk', fetchBadges);
+      socket.on('registrasi_updated', fetchBadges);
       return function () {
         socket.off('pembayaran_masuk');
         socket.off('pelanggan_updated');
+        socket.off('registrasi_masuk', fetchBadges);
+        socket.off('registrasi_updated', fetchBadges);
       };
     }
   }, [socket]);
@@ -60,6 +71,7 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
       section: 'Utama',
       items: [
         { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+        { path: '/dashboard/registrasi', label: 'Pendaftaran', icon: 'person_add', badge: pendingRegistrationCount },
         { path: '/dashboard/pelanggan', label: 'Pelanggan', icon: 'group' },
         { path: '/dashboard/tagihan', label: 'Tagihan', icon: 'receipt_long' },
         {

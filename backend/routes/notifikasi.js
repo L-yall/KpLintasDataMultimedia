@@ -70,16 +70,33 @@ router.get('/', function(req, res) {
           };
         });
 
-      var allNotifs = [...results, ...virtualPendingNotifs];
-      
-      // Sort by date descending
-      allNotifs.sort(function(a, b) {
-        return new Date(b.tanggal) - new Date(a.tanggal);
-      });
+      db.query("SELECT id_pelanggan, nama, paket, created_at FROM pelanggan WHERE pppoe_username LIKE 'REG-%'", function(regErr, registrations) {
+        if (regErr) {
+          console.error('[Notification API] Error fetching pending registrations:', regErr.message);
+          return res.status(500).json({ success: false, message: 'Gagal mengambil registrasi pelanggan.' });
+        }
 
-      res.json({
-        success: true,
-        data: allNotifs
+        var registrationNotifs = registrations.map(function(registration) {
+          return {
+            tipe: 'registrasi_masuk',
+            id_notifikasi: 'virtual-reg-' + registration.id_pelanggan,
+            id_pelanggan: registration.id_pelanggan,
+            status_baca: 0,
+            tanggal: registration.created_at,
+            nama_pelanggan: registration.nama,
+            paket: registration.paket
+          };
+        });
+        var allNotifs = [...results, ...virtualPendingNotifs, ...registrationNotifs];
+
+        allNotifs.sort(function(a, b) {
+          return new Date(b.tanggal) - new Date(a.tanggal);
+        });
+
+        res.json({
+          success: true,
+          data: allNotifs
+        });
       });
     });
   });

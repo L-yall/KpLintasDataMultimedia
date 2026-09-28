@@ -15,6 +15,7 @@ var Pelanggan = {
         ) AS due_date
       FROM pelanggan p 
       LEFT JOIN paket_layanan pl ON p.paket = pl.nama_paket 
+      WHERE p.pppoe_username NOT LIKE 'REG-%'
       ORDER BY p.created_at DESC
     `;
     db.query(sql, function(err, results) {
@@ -49,8 +50,8 @@ var Pelanggan = {
   create: function(data, callback) {
     var sql = `
       INSERT INTO pelanggan 
-      (nama, alamat, latitude, longitude, no_hp, pppoe_username, paket, due_date, email, password) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (nama, alamat, latitude, longitude, no_hp, pppoe_username, paket, due_date, email, password, nik, foto)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     var values = [
       data.nama,
@@ -62,7 +63,9 @@ var Pelanggan = {
       data.paket || '',
       data.due_date || null,
       data.email || null,
-      data.password
+      data.password,
+      data.nik || null,
+      data.foto || null
     ];
     db.query(sql, values, function(err, result) {
       if (err) return callback(err, null);
@@ -86,6 +89,8 @@ var Pelanggan = {
     if (data.due_date !== undefined) { fields.push('due_date = ?'); values.push(data.due_date); }
     if (data.pppoe_status !== undefined) { fields.push('pppoe_status = ?'); values.push(data.pppoe_status); }
     if (data.email !== undefined) { fields.push('email = ?'); values.push(data.email); }
+    if (data.nik !== undefined) { fields.push('nik = ?'); values.push(data.nik); }
+    if (data.foto !== undefined) { fields.push('foto = ?'); values.push(data.foto); }
 
     if (fields.length === 0) {
       return callback(new Error('Tidak ada data yang diubah'), null);
@@ -146,7 +151,7 @@ var Pelanggan = {
 
   // Hitung jumlah pelanggan per status
   countByStatus: function(callback) {
-    var sql = 'SELECT status_tagihan, COUNT(*) as total FROM pelanggan GROUP BY status_tagihan';
+    var sql = "SELECT status_tagihan, COUNT(*) as total FROM pelanggan WHERE pppoe_username NOT LIKE 'REG-%' GROUP BY status_tagihan";
     db.query(sql, function(err, results) {
       if (err) return callback(err, null);
       callback(null, results);
@@ -155,7 +160,7 @@ var Pelanggan = {
 
   // Hitung total pelanggan
   countActive: function(callback) {
-    var sql = 'SELECT COUNT(*) as total FROM pelanggan';
+    var sql = "SELECT COUNT(*) as total FROM pelanggan WHERE pppoe_username NOT LIKE 'REG-%'";
     db.query(sql, function(err, results) {
       if (err) return callback(err, null);
       callback(null, results[0].total);

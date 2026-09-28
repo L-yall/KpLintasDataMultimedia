@@ -18,6 +18,7 @@ import ReminderLogPage from './pages/ReminderLogPage';
 import PembayaranPage from './pages/PembayaranPage';
 import LaporanPage from './pages/LaporanPage';
 import CustomerLoginPage from './pages/CustomerLoginPage';
+import CustomerRegistrationPage from './pages/CustomerRegistrationPage';
 import CustomerPortalPage from './pages/CustomerPortalPage';
 import LandingPage from './pages/LandingPage';
 import NotifikasiPage from './pages/NotifikasiPage';
@@ -25,6 +26,7 @@ import PengaturanPage from './pages/PengaturanPage';
 import TagihanPage from './pages/TagihanPage';
 import ProfilPage from './pages/ProfilPage';
 import KelolaAdminPage from './pages/KelolaAdminPage';
+import RegistrasiPelangganPage from './pages/RegistrasiPelangganPage';
 
 function App() {
   var location = useLocation();
@@ -199,6 +201,7 @@ function App() {
               <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
               <Route path="/admin/login" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage socket={socket} admin={admin} />} />
+              <Route path="/dashboard/registrasi" element={<RegistrasiPelangganPage socket={socket} />} />
               <Route path="/dashboard/pelanggan" element={<PelangganPage socket={socket} />} />
               <Route path="/dashboard/tagihan" element={<TagihanPage socket={socket} admin={admin} />} />
               <Route path="/dashboard/paket" element={<PaketPage />} />
@@ -247,6 +250,12 @@ function App() {
         customer && customerToken
           ? <Navigate to="/portal" replace />
           : <CustomerLoginPage onLogin={handleCustomerLogin} title="Portal Pelanggan" />
+      } />
+
+      <Route path="/registrasi" element={
+        customer && customerToken
+          ? <Navigate to="/portal" replace />
+          : <CustomerRegistrationPage />
       } />
 
       {/* Admin Login Route from Public Area */}

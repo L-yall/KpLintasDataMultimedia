@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 
 function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
+  var navigate = useNavigate();
   var [notifs, setNotifs] = useState([]);
   var [unreadCount, setUnreadCount] = useState(0);
   var [notifOpen, setNotifOpen] = useState(false);
@@ -55,9 +56,13 @@ function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
       socket.on('pelanggan_updated', function () {
         fetchNotifications();
       });
+      socket.on('registrasi_masuk', fetchNotifications);
+      socket.on('registrasi_updated', fetchNotifications);
       return function () {
         socket.off('pembayaran_masuk');
         socket.off('pelanggan_updated');
+        socket.off('registrasi_masuk', fetchNotifications);
+        socket.off('registrasi_updated', fetchNotifications);
       };
     }
   }, [socket]);
@@ -332,23 +337,27 @@ function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
                   ) : (
                     notifs.map(function (n) {
                       var isUnread = n.status_baca === 0;
+                      var isRegistration = n.tipe === 'registrasi_masuk';
                       var isMidtrans = n.bukti_file && n.bukti_file.includes('Midtrans');
-                      var title = isMidtrans ? 'Pembayaran Midtrans' : 'Verifikasi Pembayaran';
-                      var icon = 'payments';
-                      var iconBg = isMidtrans ? 'var(--status-hijau-bg)' : 'var(--status-kuning-bg)';
-                      var iconColor = isMidtrans ? 'var(--status-hijau)' : 'var(--status-kuning)';
+                      var title = isRegistration ? 'Pendaftaran Pelanggan' : isMidtrans ? 'Pembayaran Midtrans' : 'Verifikasi Pembayaran';
+                      var icon = isRegistration ? 'person_add' : 'payments';
+                      var iconBg = isRegistration ? 'var(--status-biru-bg, #e0f2fe)' : isMidtrans ? 'var(--status-hijau-bg)' : 'var(--status-kuning-bg)';
+                      var iconColor = isRegistration ? 'var(--primary)' : isMidtrans ? 'var(--status-hijau)' : 'var(--status-kuning)';
 
-                      var desc = isMidtrans
+                      var desc = isRegistration
+                        ? `${n.nama_pelanggan} mendaftar paket ${n.paket || '-'}`
+                        : isMidtrans
                         ? `Pembayaran otomatis via Midtrans dari ${n.nama_pelanggan} (Periode ${n.periode})`
                         : `Pembayaran baru dari ${n.nama_pelanggan} (Periode ${n.periode})`;
 
-                      var targetLink = `/dashboard/notifikasi?notifId=${n.id_notifikasi}`;
+                      var targetLink = isRegistration ? '/dashboard/registrasi' : `/dashboard/notifikasi?notifId=${n.id_notifikasi}`;
 
                       return (
                         <div
                           key={n.id_notifikasi}
                           onClick={function () {
-                            handleMarkRead(n);
+                            if (isRegistration) navigate(targetLink);
+                            else handleMarkRead(n);
                             setNotifOpen(false);
                           }}
                           style={{

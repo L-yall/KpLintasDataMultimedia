@@ -13,6 +13,8 @@ function PelangganPage({ socket }) {
   var [showModal, setShowModal] = useState(false);
   var [editMode, setEditMode] = useState(false);
   var [editId, setEditId] = useState(null);
+  var [fotoKtp, setFotoKtp] = useState(null);
+  var [fotoKtpExisting, setFotoKtpExisting] = useState('');
   var [deleteConfirm, setDeleteConfirm] = useState(null);
   var [formData, setFormData] = useState({
     nama: '',
@@ -20,6 +22,7 @@ function PelangganPage({ socket }) {
     no_hp: '',
     email: '',
     password: '',
+    nik: '',
     paket: '',
     pppoe_username: '',
     due_date: ''
@@ -100,8 +103,10 @@ function PelangganPage({ socket }) {
 
   function openAddModal() {
     setFormData({
-      nama: '', alamat: '', no_hp: '', email: '', password: '', paket: '', pppoe_username: '', due_date: ''
+      nama: '', alamat: '', no_hp: '', email: '', password: '', nik: '', paket: '', pppoe_username: '', due_date: ''
     });
+    setFotoKtp(null);
+    setFotoKtpExisting('');
     setFormError('');
     setEditMode(false);
     setEditId(null);
@@ -116,10 +121,13 @@ function PelangganPage({ socket }) {
       no_hp: item.no_hp || '',
       email: item.email || '',
       password: '',
+      nik: item.nik || '',
       paket: item.paket || '',
       pppoe_username: item.pppoe_username || '',
       due_date: item.due_date ? item.due_date.split('T')[0] : ''
     });
+    setFotoKtp(null);
+    setFotoKtpExisting(item.foto || '');
     setFormError('');
     setEditMode(true);
     setEditId(item.id_pelanggan);
@@ -141,14 +149,34 @@ function PelangganPage({ socket }) {
       setFormError('Nama, nomor HP, email, dan password wajib diisi.');
       return;
     }
+    if (!editMode && (!/^\d{16}$/.test(formData.nik) || !fotoKtp)) {
+      setFormError('NIK harus 16 digit dan foto KTP wajib diunggah.');
+      return;
+    }
+    if (editMode && formData.nik && !/^\d{16}$/.test(formData.nik)) {
+      setFormError('NIK harus terdiri dari 16 digit angka.');
+      return;
+    }
 
     try {
       if (editMode) {
-        await axios.put(`${API_BASE_URL}/api/pelanggan/` + editId, formData, { headers: headers });
+        if (fotoKtp) {
+          var updatePayload = new FormData();
+          Object.keys(formData).forEach(function (key) { updatePayload.append(key, formData[key]); });
+          updatePayload.append('foto_ktp', fotoKtp);
+          await axios.put(`${API_BASE_URL}/api/pelanggan/` + editId, updatePayload, { headers: headers });
+        } else {
+          await axios.put(`${API_BASE_URL}/api/pelanggan/` + editId, formData, { headers: headers });
+        }
       } else {
-        await axios.post(`${API_BASE_URL}/api/pelanggan`, formData, { headers: headers });
+        var payload = new FormData();
+        Object.keys(formData).forEach(function (key) { payload.append(key, formData[key]); });
+        payload.append('foto_ktp', fotoKtp);
+        await axios.post(`${API_BASE_URL}/api/pelanggan`, payload, { headers: headers });
       }
       setShowModal(false);
+      setFotoKtp(null);
+      setFotoKtpExisting('');
       fetchPelanggan();
     } catch (err) {
       var message = err.response?.data?.message || 'Terjadi kesalahan.';
@@ -554,6 +582,37 @@ function PelangganPage({ socket }) {
               </div>
             </div>
           )}
+          <div className="form-group">
+            <label>NIK{editMode ? '' : ' *'}</label>
+            <input
+              type="text"
+              name="nik"
+              inputMode="numeric"
+              pattern="[0-9]{16}"
+              minLength={16}
+              maxLength={16}
+              placeholder="Masukkan 16 digit NIK"
+              value={formData.nik}
+              onChange={handleChange}
+              required={!editMode}
+            />
+          </div>
+          <div className="form-group">
+            <label>Foto KTP{editMode ? '' : ' *'}</label>
+            {editMode && fotoKtpExisting && (
+              <a href={API_BASE_URL + fotoKtpExisting} target="_blank" rel="noreferrer">
+                <img src={API_BASE_URL + fotoKtpExisting} alt="Foto KTP saat ini" style={{ display: 'block', maxWidth: '180px', maxHeight: '120px', objectFit: 'contain', marginBottom: '10px' }} />
+              </a>
+            )}
+            <input
+              type="file"
+              name="foto_ktp"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={function (event) { setFotoKtp(event.target.files[0] || null); }}
+              required={!editMode}
+            />
+            <small>{editMode && fotoKtpExisting ? 'Pilih file hanya jika ingin mengganti foto. ' : ''}Format JPG, PNG, atau WEBP. Maksimal 5 MB.</small>
+          </div>
           <div className="form-group">
             <label>Alamat Pemasangan WiFi</label>
             <textarea

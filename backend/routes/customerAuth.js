@@ -5,8 +5,120 @@ var jwt = require('jsonwebtoken');
 var Pelanggan = require('../models/Pelanggan');
 var Otp = require('../models/Otp');
 var EmailService = require('../services/emailService');
+var fs = require('fs');
+var path = require('path');
+var multer = require('multer');
+var db = require('../config/db');
 
 var rateLimit = require('express-rate-limit');
+
+var registrationUploadDir = path.join(__dirname, '../public/uploads/foto-pelanggan');
+if (!fs.existsSync(registrationUploadDir)) {
+  fs.mkdirSync(registrationUploadDir, { recursive: true });
+}
+
+var registrationUpload = multer({
+  storage: multer.diskStorage({
+    destination: registrationUploadDir,
+    filename: function (req, file, callback) {
+      var extension = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' }[file.mimetype];
+      callback(null, 'pelanggan-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + extension);
+    }
+  }),
+  fileFilter: function (req, file, callback) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+      return callback(new Error('Foto harus berformat JPG, PNG, atau WEBP.'));
+    }
+    callback(null, true);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
+
+/* POST /api/customer/auth/register */
+router.post('/register', function (req, res, next) {
+  registrationUpload.single('foto')(req, res, function (uploadError) {
+    if (uploadError) {
+      return res.status(400).json({ success: false, message: uploadError.message });
+    }
+    next();
+  });
+}, async function (req, res) {
+  var nama = (req.body.nama || '').trim();
+  var noHp = (req.body.no_hp || '').trim();
+  var email = normalizeEmail(req.body.email);
+  var alamat = (req.body.alamat || '').trim();
+  var nik = (req.body.nik || '').trim();
+  var paket = (req.body.paket || '').trim();
+  var password = req.body.password || '';
+
+  function removeUploadedPhoto() {
+    if (req.file) fs.unlink(req.file.path, function () {});
+  }
+
+  if (!nama || !noHp || !email || !password || !alamat || !nik || !paket || !req.file) {
+    removeUploadedPhoto();
+    return res.status(400).json({ success: false, message: 'Semua data dan foto wajib diisi.' });
+  }
+  if (!/^\d{16}$/.test(nik)) {
+    removeUploadedPhoto();
+    return res.status(400).json({ success: false, message: 'NIK harus terdiri dari 16 digit angka.' });
+  }
+  if (password.length < 6) {
+    removeUploadedPhoto();
+    return res.status(400).json({ success: false, message: 'Password minimal 6 karakter.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    removeUploadedPhoto();
+    return res.status(400).json({ success: false, message: 'Format email tidak valid.' });
+  }
+
+  try {
+    var existing = await new Promise(function (resolve, reject) {
+      db.query('SELECT no_hp, email, nik FROM pelanggan WHERE no_hp = ? OR email = ? OR nik = ? LIMIT 1', [noHp, email, nik], function (err, rows) {
+        if (err) return reject(err);
+        resolve(rows[0] || null);
+      });
+    });
+    if (existing) {
+      removeUploadedPhoto();
+      var duplicateMessage = existing.no_hp === noHp ? 'Nomor HP sudah terdaftar.' :
+        existing.email === email ? 'Email sudah terdaftar.' : 'NIK sudah terdaftar.';
+      return res.status(400).json({ success: false, message: duplicateMessage });
+    }
+
+    var selectedPackage = await new Promise(function (resolve, reject) {
+      db.query('SELECT nama_paket FROM paket_layanan WHERE nama_paket = ? AND aktif = 1 LIMIT 1', [paket], function (err, rows) {
+        if (err) return reject(err);
+        resolve(rows[0] || null);
+      });
+    });
+    if (!selectedPackage) {
+      removeUploadedPhoto();
+      return res.status(400).json({ success: false, message: 'Paket layanan tidak tersedia.' });
+    }
+
+    var passwordHash = await bcrypt.hash(password, 10);
+    var foto = '/uploads/foto-pelanggan/' + req.file.filename;
+    var pendingUsername = 'REG-' + Date.now() + '-' + Math.round(Math.random() * 1e9);
+    var registration = await new Promise(function (resolve, reject) {
+      db.query(
+        "INSERT INTO pelanggan (nama, alamat, no_hp, pppoe_username, paket, due_date, email, password, nik, foto, status_tagihan, pppoe_status) VALUES (?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, 'abu_abu', 'unknown')",
+        [nama, alamat, noHp, pendingUsername, paket, email, passwordHash, nik, foto],
+        function (err, result) {
+          if (err) return reject(err);
+          resolve(result);
+        }
+      );
+    });
+
+    require('../services/socket').broadcast('registrasi_masuk', { id_pelanggan: registration.insertId, nama: nama });
+    res.status(201).json({ success: true, message: 'Registrasi berhasil. Tim kami akan memproses permintaan layanan Anda.' });
+  } catch (err) {
+    removeUploadedPhoto();
+    console.error('[CustomerAuth] Gagal registrasi pelanggan:', err);
+    res.status(500).json({ success: false, message: 'Registrasi gagal diproses. Silakan coba kembali.' });
+  }
+});
 
 var otpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 menit
@@ -128,6 +240,9 @@ router.post('/request-otp', otpLimiter, function(req, res) {
     }
 
     var customer = results[0];
+    if ((customer.pppoe_username || '').startsWith('REG-')) {
+      return res.status(403).json({ success: false, message: 'Registrasi Anda masih menunggu persetujuan admin.' });
+    }
 
     bcrypt.compare(password, customer.password || '', function(passwordErr, isMatch) {
       if (passwordErr || !isMatch) {
@@ -193,6 +308,9 @@ router.post('/verify-otp', function(req, res) {
     }
 
     var customer = results[0];
+    if ((customer.pppoe_username || '').startsWith('REG-')) {
+      return res.status(403).json({ success: false, message: 'Registrasi Anda masih menunggu persetujuan admin.' });
+    }
 
     // Verify OTP using email
     Otp.verifyOtp(customer.email, otp, function(verifyErr, otpRecord) {
