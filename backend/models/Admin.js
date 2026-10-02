@@ -12,7 +12,7 @@ var Admin = {
 
   // Update password admin berdasarkan email
   updatePasswordByEmail: function(email, passwordHash, callback) {
-    var sql = 'UPDATE admin SET password_hash = ? WHERE email = ?';
+    var sql = 'UPDATE admin SET password = ? WHERE email = ?';
     db.query(sql, [passwordHash, email], function(err, result) {
       if (err) return callback(err, null);
       callback(null, result);
@@ -21,9 +21,9 @@ var Admin = {
 
   // Buat admin baru
   create: function(data, callback) {
-    var sql = 'INSERT INTO admin (password_hash, nama, role, status, email) VALUES (?, ?, ?, ?, ?)';
+    var sql = 'INSERT INTO admin (password, nama, role, status, email) VALUES (?, ?, ?, ?, ?)';
     var values = [
-      data.password_hash,
+      data.password,
       data.nama,
       data.role || 'admin',
       data.status || 'aktif',
@@ -71,7 +71,7 @@ var Admin = {
     });
   },
 
-  // Cari admin berdasarkan ID (termasuk password_hash untuk verifikasi)
+  // Cari admin berdasarkan ID, termasuk password untuk verifikasi
   findByIdWithPassword: function(id, callback) {
     var sql = 'SELECT * FROM admin WHERE id_admin = ?';
     db.query(sql, [id], function(err, results) {
@@ -101,7 +101,7 @@ var Admin = {
 
   // Update password admin
   updatePassword: function(id, passwordHash, callback) {
-    var sql = 'UPDATE admin SET password_hash = ? WHERE id_admin = ?';
+    var sql = 'UPDATE admin SET password = ? WHERE id_admin = ?';
     db.query(sql, [passwordHash, id], function(err, result) {
       if (err) return callback(err, null);
       callback(null, result);

@@ -18,6 +18,7 @@ function LoginPage({ onLogin }) {
   var [newPassword, setNewPassword] = useState('');
   var [confirmPassword, setConfirmPassword] = useState('');
   var [error, setError] = useState('');
+  var [successMsg, setSuccessMsg] = useState('');
   var [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
@@ -48,9 +49,11 @@ function LoginPage({ onLogin }) {
   async function requestResetOtp(e) {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/forgot-password/request-otp`, { email: email });
+      var response = await axios.post(`${API_BASE_URL}/api/auth/forgot-password/request-otp`, { email: email });
+      setSuccessMsg((response.data.message || 'OTP reset password telah dikirim ke email.') + ' Jika tidak ditemukan di Kotak Masuk, silakan cek folder Spam.');
       setForgotStep(2);
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal mengirim OTP.');
@@ -101,18 +104,25 @@ function LoginPage({ onLogin }) {
     setForgotMode(false);
     setForgotStep(1);
     setError('');
+    setSuccessMsg('');
   }
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <div className="login-card">
+    <div className={forgotMode ? 'login-page login-page-forgot' : 'login-page'}>
+      <div className={forgotMode ? 'login-container login-container-forgot' : 'login-container'}>
+        <div className={forgotMode ? 'login-card login-card-forgot' : 'login-card'}>
           <div className="login-logo">
             <img
               src={logoUrl}
               alt="Logo Lintas Data Multimedia"
               className="login-logo-img"
             />
+            {forgotMode && (
+              <>
+                <h1>Portal Pembayaran</h1>
+                <p>ESP Lintas Data Multimedia</p>
+              </>
+            )}
           </div>
 
           {error && (
@@ -121,29 +131,33 @@ function LoginPage({ onLogin }) {
             </div>
           )}
 
+          {successMsg && !error && (
+            <div className="login-success">{successMsg}</div>
+          )}
+
           {forgotMode ? (
             forgotStep === 1 ? (
-              <form className="login-form" onSubmit={requestResetOtp}>
+              <form className="forgot-password-form" onSubmit={requestResetOtp}>
                 <div className="form-group">
-                  <label><TemplateIcon name="mail" size={14} style={{ marginRight: '6px' }} /> Email Admin</label>
-                  <input type="email" placeholder="Masukkan email admin" value={email} onChange={function (e) { setEmail(e.target.value); }} required autoFocus />
+                  <label>Email Admin</label>
+                  <input type="email" placeholder="Contoh: user@email.com" value={email} onChange={function (e) { setEmail(e.target.value); }} required autoFocus />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="forgot-password-submit" disabled={loading}>
                   {loading ? 'Mengirim OTP...' : 'Kirim OTP'}
                 </button>
-                <button type="button" className="btn btn-secondary" onClick={switchToLogin}>Kembali ke Login</button>
+                <button type="button" className="forgot-password-back" onClick={switchToLogin}>Kembali ke Login</button>
               </form>
             ) : forgotStep === 2 ? (
-              <form className="login-form" onSubmit={verifyResetOtp}>
+              <form className="forgot-password-form" onSubmit={verifyResetOtp}>
                 <div className="form-group">
                   <label>Kode OTP</label>
                   <input type="text" inputMode="numeric" maxLength="6" value={forgotOtp} onChange={function (e) { setForgotOtp(e.target.value); }} required autoFocus />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Memverifikasi OTP...' : 'Verifikasi OTP'}</button>
-                <button type="button" className="btn btn-secondary" onClick={switchToLogin}>Kembali ke Login</button>
+                <button type="submit" className="forgot-password-submit" disabled={loading}>{loading ? 'Memverifikasi OTP...' : 'Verifikasi OTP'}</button>
+                <button type="button" className="forgot-password-back" onClick={switchToLogin}>Kembali ke Login</button>
               </form>
             ) : (
-              <form className="login-form" onSubmit={resetPassword}>
+              <form className="forgot-password-form" onSubmit={resetPassword}>
                 <div className="form-group">
                   <label>Password Baru</label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -212,10 +226,10 @@ function LoginPage({ onLogin }) {
                     </button>
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="forgot-password-submit" disabled={loading}>
                   {loading ? 'Mengubah Password...' : 'Ubah Password'}
                 </button>
-                <button type="button" className="btn btn-secondary" onClick={switchToLogin}>Kembali ke Login</button>
+                <button type="button" className="forgot-password-back" onClick={switchToLogin}>Kembali ke Login</button>
               </form>
             )
           ) : (

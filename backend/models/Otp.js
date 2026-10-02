@@ -1,66 +1,59 @@
-var db = require('../config/db');
+var crypto = require('crypto');
+
+var otpStore = new Map();
+var OTP_TTL_MS = 5 * 60 * 1000;
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function hashOtp(otp) {
+  return crypto.createHash('sha256').update(String(otp)).digest();
+}
+
+function removeExpiredOtps(now) {
+  otpStore.forEach(function (record, email) {
+    if (record.expiresAt <= now) otpStore.delete(email);
+  });
+}
+
+function matchesOtp(record, otp) {
+  return crypto.timingSafeEqual(record.hash, hashOtp(otp));
+}
 
 var Otp = {
-  // Simpan OTP baru untuk email
-  createOtp: function(email, otp, callback) {
-    // Hapus OTP lama terlebih dahulu agar tidak menumpuk
-    var deleteSql = 'DELETE FROM customer_otp WHERE email = ?';
-    db.query(deleteSql, [email], function(err) {
-      if (err) return callback(err);
-
-      // Set expiry to 5 minutes from now
-      var expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-      var insertSql = 'INSERT INTO customer_otp (email, otp, expires_at) VALUES (?, ?, ?)';
-      
-      db.query(insertSql, [email, otp, expiresAt], function(err, result) {
-        if (err) return callback(err);
-        callback(null, result);
-      });
+  createOtp: function (email, otp, callback) {
+    var now = Date.now();
+    var normalizedEmail = normalizeEmail(email);
+    removeExpiredOtps(now);
+    otpStore.set(normalizedEmail, {
+      hash: hashOtp(otp),
+      expiresAt: now + OTP_TTL_MS
     });
+    callback(null);
   },
 
-  // Verifikasi OTP
-  checkOtp: function(email, otp, callback) {
-    var sql = `
-      SELECT * FROM customer_otp
-      WHERE email = ? AND otp = ?
-    `;
-    db.query(sql, [email, otp], function(err, results) {
-      if (err) return callback(err, null);
-      if (results.length === 0) return callback(null, null);
-
-      var expiresAt = new Date(results[0].expires_at);
-      if (expiresAt < new Date()) return callback(null, null);
-      callback(null, results[0]);
-    });
+  checkOtp: function (email, otp, callback) {
+    var normalizedEmail = normalizeEmail(email);
+    var record = otpStore.get(normalizedEmail);
+    if (!record || record.expiresAt <= Date.now()) {
+      otpStore.delete(normalizedEmail);
+      return callback(null, null);
+    }
+    if (!matchesOtp(record, otp)) return callback(null, null);
+    callback(null, { email: normalizedEmail, expires_at: new Date(record.expiresAt) });
   },
 
-  // Verifikasi OTP dan hapus setelah digunakan
-  verifyOtp: function(email, otp, callback) {
-    var sql = `
-      SELECT * FROM customer_otp 
-      WHERE email = ? AND otp = ?
-    `;
-    db.query(sql, [email, otp], function(err, results) {
-      if (err) return callback(err, null);
-      if (results.length === 0) {
-        return callback(null, null); // OTP invalid
-      }
-      
-      var otpRecord = results[0];
-      var now = new Date();
-      var expiresAt = new Date(otpRecord.expires_at);
-      
-      if (expiresAt < now) {
-        return callback(null, null); // OTP expired
-      }
-      
-      // Hapus OTP setelah berhasil digunakan
-      var deleteSql = 'DELETE FROM customer_otp WHERE email = ?';
-      db.query(deleteSql, [email], function() {
-        callback(null, otpRecord);
-      });
-    });
+  verifyOtp: function (email, otp, callback) {
+    var normalizedEmail = normalizeEmail(email);
+    var record = otpStore.get(normalizedEmail);
+    if (!record || record.expiresAt <= Date.now()) {
+      otpStore.delete(normalizedEmail);
+      return callback(null, null);
+    }
+    if (!matchesOtp(record, otp)) return callback(null, null);
+    otpStore.delete(normalizedEmail);
+    callback(null, { email: normalizedEmail, expires_at: new Date(record.expiresAt) });
   }
 };
 

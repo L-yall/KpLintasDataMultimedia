@@ -49,7 +49,7 @@ router.post('/', function (req, res) {
       }
 
       Admin.create({
-        password_hash: hashedPassword,
+        password: hashedPassword,
         nama: nama.trim(),
         role: finalRole,
         status: 'aktif',

@@ -230,7 +230,7 @@ router.post('/', function(req, res, next) {
     next();
   });
 }, async function(req, res) {
-  var { nama, alamat, latitude, longitude, no_hp, email, password, nik, pppoe_username, paket, due_date } = req.body;
+  var { nama, alamat, no_hp, email, password, nik, pppoe_username, paket, due_date } = req.body;
   var MikrotikService = require('../services/mikrotik');
   var customerCreated = false;
 
@@ -313,8 +313,6 @@ router.post('/', function(req, res, next) {
       Pelanggan.create({
         nama: nama,
         alamat: alamat,
-        latitude: latitude,
-        longitude: longitude,
         no_hp: no_hp,
         email: email ? email.trim().toLowerCase() : null,
         password: passwordHash,

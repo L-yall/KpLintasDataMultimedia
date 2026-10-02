@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.0
+-- version 5.2.3
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Sep 25, 2026 at 07:16 AM
--- Server version: 8.0.44
--- PHP Version: 8.1.10
+-- Generation Time: Oct 01, 2026 at 09:10 AM
+-- Server version: 8.4.3
+-- PHP Version: 8.3.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -30,7 +30,7 @@ SET time_zone = "+00:00";
 CREATE TABLE `admin` (
   `id_admin` int UNSIGNED NOT NULL,
   `nama` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `role` enum('superadmin','admin') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'admin',
   `status` enum('aktif','nonaktif') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'aktif',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -42,24 +42,9 @@ CREATE TABLE `admin` (
 -- Dumping data for table `admin`
 --
 
-INSERT INTO `admin` (`id_admin`, `nama`, `password_hash`, `role`, `status`, `created_at`, `updated_at`, `email`) VALUES
+INSERT INTO `admin` (`id_admin`, `nama`, `password`, `role`, `status`, `created_at`, `updated_at`, `email`) VALUES
 (1, 'Administrator', '$2b$10$L4siK.NKLGUV76soKiRiyO9k8MebLarYOyiG7TMRhPnvQ0.tLv9va', 'superadmin', 'aktif', '2026-07-01 10:46:15', '2026-09-21 14:51:21', 'alfanetvalorant@gmail.com'),
-(2, 'admin1', '$2b$10$tOSVi7LdhXcH232ezM1iC.tFFJY09H3ZLHlwGeIb9sCKuAwc0qbUq', 'admin', 'aktif', '2026-09-07 13:21:20', '2026-09-21 15:03:39', 'ldmsijaya@gmail.com');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `customer_otp`
---
-
-CREATE TABLE `customer_otp` (
-  `id` int NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `no_hp` varchar(20) DEFAULT NULL,
-  `otp` varchar(6) NOT NULL,
-  `expires_at` datetime NOT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+(2, 'admin1', '$2b$10$yCATYXoE0P.XImIx1h1hVuSACCBSK5YowMoD8wXUD5Q3Q7o4kLOiu', 'admin', 'aktif', '2026-09-07 13:21:20', '2026-10-01 11:10:56', 'ldmsijaya@gmail.com');
 
 -- --------------------------------------------------------
 
@@ -118,7 +103,8 @@ INSERT INTO `notifikasi` (`id_notifikasi`, `id_pembayaran`, `id_admin`, `status_
 (29, 49, NULL, 1, '2026-09-10 13:52:15'),
 (30, 50, NULL, 1, '2026-09-10 13:57:57'),
 (31, 51, NULL, 1, '2026-09-22 12:51:27'),
-(32, 52, NULL, 1, '2026-09-24 11:38:16');
+(32, 52, NULL, 1, '2026-09-24 11:38:16'),
+(34, 53, NULL, 1, '2026-10-01 11:58:08');
 
 -- --------------------------------------------------------
 
@@ -127,7 +113,7 @@ INSERT INTO `notifikasi` (`id_notifikasi`, `id_pembayaran`, `id_admin`, `status_
 --
 
 CREATE TABLE `paket_layanan` (
-  `id` int NOT NULL,
+  `id_paket` int NOT NULL,
   `nama_paket` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `harga` decimal(12,0) NOT NULL,
   `kecepatan` varchar(50) DEFAULT NULL,
@@ -140,12 +126,12 @@ CREATE TABLE `paket_layanan` (
 -- Dumping data for table `paket_layanan`
 --
 
-INSERT INTO `paket_layanan` (`id`, `nama_paket`, `harga`, `kecepatan`, `deskripsi`, `aktif`, `created_at`) VALUES
-(2, 'Paket 20 Mbps', '185000', '20 Mbps', '\nKecepatan 20 Mbps\nUnlimited tanpa FUP\nDukungan 24/7\nInstalasi Gratis\n', 1, '2026-07-01 03:48:02'),
-(3, 'Paket 30 Mbps', '200000', '30 Mbps', '\nKecepatan 30 Mbps\nUnlimited tanpa FUP\nDukungan 24/7\nInstalasi Gratis\n', 1, '2026-07-01 03:48:02'),
-(4, 'Paket 50 Mbps', '250000', '50 Mbps', '\nKecepatan 50 Mbps\nUnlimited tanpa FUP\nDukungan 24/7\nInstalasi Gratis', 1, '2026-07-06 06:27:05'),
-(5, 'Paket 75 Mbps', '330000', '75 Mbps', '\nKecepatan 75 Mbps\nUnlimited tanpa FUP\nDukungan 24/7\nInstalasi Gratis', 1, '2026-07-06 06:27:38'),
-(6, 'Paket Gamer 100 Mbps', '385000', '100Mbps', '\nKecepatan 100 Mbps\nUnlimited tanpa FUP\nDukungan Prioritas 24/7\nInstalasi Gratis', 1, '2026-07-06 06:28:10');
+INSERT INTO `paket_layanan` (`id_paket`, `nama_paket`, `harga`, `kecepatan`, `deskripsi`, `aktif`, `created_at`) VALUES
+(2, 'Paket 20 Mbps', 185000, '20 Mbps', '\nKecepatan 20 Mbps\nUnlimited tanpa FUP\nDukungan 24/7\nInstalasi Gratis\n', 1, '2026-07-01 03:48:02'),
+(3, 'Paket 30 Mbps', 200000, '30 Mbps', '\nKecepatan 30 Mbps\nUnlimited tanpa FUP\nDukungan 24/7\nInstalasi Gratis\n', 1, '2026-07-01 03:48:02'),
+(4, 'Paket 50 Mbps', 250000, '50 Mbps', '\nKecepatan 50 Mbps\nUnlimited tanpa FUP\nDukungan 24/7\nInstalasi Gratis', 1, '2026-07-06 06:27:05'),
+(5, 'Paket 75 Mbps', 330000, '75 Mbps', '\nKecepatan 75 Mbps\nUnlimited tanpa FUP\nDukungan 24/7\nInstalasi Gratis', 1, '2026-07-06 06:27:38'),
+(6, 'Paket Gamer 100 Mbps', 385000, '100Mbps', '\nKecepatan 100 Mbps\nUnlimited tanpa FUP\nDukungan Prioritas 24/7\nInstalasi Gratis', 1, '2026-07-06 06:28:10');
 
 -- --------------------------------------------------------
 
@@ -167,8 +153,8 @@ CREATE TABLE `pelanggan` (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `nik` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `foto` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+  `nik` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `foto` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -176,9 +162,11 @@ CREATE TABLE `pelanggan` (
 --
 
 INSERT INTO `pelanggan` (`id_pelanggan`, `nama`, `alamat`, `no_hp`, `pppoe_username`, `pppoe_status`, `paket`, `status_tagihan`, `due_date`, `created_at`, `updated_at`, `email`, `password`, `nik`, `foto`) VALUES
-(3, 'Satya', 'Jl. Pemuda, Surabaya Pusat', '+62 851-8200-1676', 'pelanggan 2', 'inactive', 'Paket 75 Mbps', 'hijau', '2027-02-11', '2026-07-01 15:40:33', '2026-09-10 13:57:57', 'namaprojek.testing@gmail.com', '$2b$10$wtLZpTZTIuWubUTZluHwZuTGjdYgbok2inLFpf87o1rX.2kSbG54.', NULL, NULL),
-(4, 'Nikenn ', 'Jl. Ahmad Yani, Surabaya Selatan', '+62 896-7763-1704', 'pelanggan 3', 'inactive', 'Paket 30 Mbps', 'kuning', '2026-09-26', '2026-07-01 15:41:21', '2026-09-24 15:01:14', 'rahmatillahkurniawan@gmail.com', '$2b$10$5kFkZPDDLBoZGxBk.fbQzeChtezhqwml9JRCnCJkjW6M2AVi2Eex2', NULL, NULL),
-(5, 'rassy', 'Saronggi, Sumenep', '+6288989588135', 'pelanggan 1', 'inactive', 'Paket Gamer 100 Mbps', 'hijau', '2026-12-25', '2026-07-06 11:55:52', '2026-09-07 12:39:42', 'rassyhvre@gmail.com', '$2b$10$wtLZpTZTIuWubUTZluHwZuTGjdYgbok2inLFpf87o1rX.2kSbG54.', NULL, NULL);
+(3, 'Satya', 'Jl. Pemuda, Surabaya Pusat', '+62 851-8200-1676', 'pelanggan 2', 'inactive', 'Paket 75 Mbps', 'hijau', '2027-02-11', '2026-07-01 15:40:33', '2026-10-01 11:58:49', 'namaprojek.testing@gmail.com', '$2b$10$wtLZpTZTIuWubUTZluHwZuTGjdYgbok2inLFpf87o1rX.2kSbG54.', NULL, NULL),
+(4, 'Nikenn ', 'Jl. Ahmad Yani, Surabaya Selatan', '+62 896-7763-1704', 'pelanggan 3', 'inactive', 'Paket 30 Mbps', 'merah', '2026-09-26', '2026-07-01 15:41:21', '2026-09-28 11:58:43', 'rahmatillahkurniawan@gmail.com', '$2b$10$5kFkZPDDLBoZGxBk.fbQzeChtezhqwml9JRCnCJkjW6M2AVi2Eex2', NULL, NULL),
+(5, 'rassy', 'Saronggi, Sumenep', '+6288989588135', 'pelanggan 1', 'inactive', 'Paket Gamer 100 Mbps', 'hijau', '2026-12-25', '2026-07-06 11:55:52', '2026-09-07 12:39:42', 'rassyhvre@gmail.com', '$2b$10$wtLZpTZTIuWubUTZluHwZuTGjdYgbok2inLFpf87o1rX.2kSbG54.', NULL, NULL),
+(7, 'Niken', 'tftgfhggfcervtbuyniui', '0882010110391', 'REG-1790581555946-552692905', 'inactive', 'Paket 50 Mbps', 'merah', '2026-09-28', '2026-09-28 14:45:55', '2026-09-30 16:10:32', 'rahmatillahniken@gmail.com', '$2b$10$LQZCJNYcD.nBy6vfJasheuvEsVAIdqAtFTe2Rg2.C6F5CFriGYMgS', '1234567890123456', '/uploads/foto-pelanggan/pelanggan-1790581555780-310585917.jpg'),
+(8, 'anggris', 'sdad', '6666666666666', 'REG-1790830047149-55204030', 'unknown', 'Paket Gamer 100 Mbps', 'abu_abu', '2026-10-01', '2026-10-01 11:47:27', '2026-10-01 11:47:27', 'sadas@gmail.com', '$2b$10$oCa8KtpGcwZpaT/xd7BkWOYwNK10w7Cfm1yLDYjfYHjG9oaS/h9ga', '1234567890123450', '/uploads/foto-pelanggan/pelanggan-1790830047049-211780467.jpg');
 
 -- --------------------------------------------------------
 
@@ -224,7 +212,8 @@ INSERT INTO `pembayaran` (`id_pembayaran`, `id_tagihan`, `id_admin`, `bukti_file
 (49, 79, NULL, 'Duitku / SP / success', 'diterima', NULL, '2026-09-10 13:52:15', '2026-09-10 13:52:15', 0),
 (50, 80, NULL, 'Duitku / LQ / success', 'diterima', NULL, '2026-09-10 13:57:57', '2026-09-10 13:57:57', 0),
 (51, 67, NULL, 'Midtrans / snap_finish / settlement', 'diterima', NULL, '2026-09-22 12:51:27', '2026-09-22 12:51:27', 0),
-(52, 67, 1, '/uploads/bukti/bukti-1790224696308-959484259.jpeg', 'diterima', NULL, '2026-09-24 11:38:16', '2026-09-24 11:51:55', 0);
+(52, 67, 1, '/uploads/bukti/bukti-1790224696308-959484259.jpeg', 'diterima', NULL, '2026-09-24 11:38:16', '2026-09-24 11:51:55', 0),
+(53, 81, 2, '/uploads/bukti/bukti-1790830688368-651513638.png', 'ditolak', 'gak jelas ', '2026-10-01 11:58:08', '2026-10-01 11:58:47', 0);
 
 -- --------------------------------------------------------
 
@@ -233,7 +222,7 @@ INSERT INTO `pembayaran` (`id_pembayaran`, `id_tagihan`, `id_admin`, `bukti_file
 --
 
 CREATE TABLE `pengaturan` (
-  `kunci` varchar(100) NOT NULL,
+  `id_pengaturan` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `nilai` text,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -242,7 +231,7 @@ CREATE TABLE `pengaturan` (
 -- Dumping data for table `pengaturan`
 --
 
-INSERT INTO `pengaturan` (`kunci`, `nilai`, `updated_at`) VALUES
+INSERT INTO `pengaturan` (`id_pengaturan`, `nilai`, `updated_at`) VALUES
 ('ALAMAT_ISP', 'Jl. Raya Saronggi No. 45, Sumenep, Jawa Timur', '2026-07-31 08:07:30'),
 ('APP_URL', 'https://retract-gratitude-unwind.ngrok-free.dev', '2026-09-10 06:03:21'),
 ('DUITKU_API_KEY', 'd4e37143fbf2da8a1274c3d99911cec9', '2026-07-31 08:07:30'),
@@ -290,8 +279,8 @@ CREATE TABLE `pengeluaran` (
 --
 
 INSERT INTO `pengeluaran` (`id_pengeluaran`, `id_admin`, `kategori`, `nominal`, `tipe`, `tanggal`, `keterangan`, `created_at`) VALUES
-(1, 1, 'Air', '20000.00', 'tidak_fix', '2026-07-06', NULL, '2026-07-07 15:27:56'),
-(2, 1, 'Listrik', '400000.00', 'fix', '2026-07-08', NULL, '2026-07-08 11:19:18');
+(1, 1, 'Air', 20000.00, 'tidak_fix', '2026-07-06', NULL, '2026-07-07 15:27:56'),
+(2, 1, 'Listrik', 400000.00, 'fix', '2026-07-08', NULL, '2026-07-08 11:19:18');
 
 -- --------------------------------------------------------
 
@@ -300,7 +289,7 @@ INSERT INTO `pengeluaran` (`id_pengeluaran`, `id_admin`, `kategori`, `nominal`, 
 --
 
 CREATE TABLE `rekening_pembayaran` (
-  `id` int NOT NULL,
+  `id_rekening` int NOT NULL,
   `nama_bank` varchar(100) NOT NULL,
   `nomor_rekening` varchar(50) NOT NULL,
   `atas_nama` varchar(150) NOT NULL,
@@ -313,7 +302,7 @@ CREATE TABLE `rekening_pembayaran` (
 -- Dumping data for table `rekening_pembayaran`
 --
 
-INSERT INTO `rekening_pembayaran` (`id`, `nama_bank`, `nomor_rekening`, `atas_nama`, `is_active`, `created_at`, `updated_at`) VALUES
+INSERT INTO `rekening_pembayaran` (`id_rekening`, `nama_bank`, `nomor_rekening`, `atas_nama`, `is_active`, `created_at`, `updated_at`) VALUES
 (1, 'Bank BRI', '0346-01-001962-50-8', 'ESP Lintas Data Multimedia', 1, '2026-09-23 06:41:25', '2026-09-23 06:41:25'),
 (2, 'Bank Mandiri', '131-00-1572912-3', 'ESP Lintas Data Multimedia', 1, '2026-09-23 06:41:25', '2026-09-23 06:41:25'),
 (3, 'Bank BCA', '869-0577-888', 'ESP Lintas Data Multimedia', 1, '2026-09-23 06:41:25', '2026-09-23 06:41:25');
@@ -338,7 +327,13 @@ CREATE TABLE `reminder_log` (
 
 INSERT INTO `reminder_log` (`id_reminder`, `id_pelanggan`, `tanggal_kirim`, `status_kirim`, `pesan`) VALUES
 (43, 4, '2026-09-24 11:55:30', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* akan jatuh tempo dalam *1 hari* (26 September 2026).\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
-(44, 4, '2026-09-25 11:05:53', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n⚠️ *JATUH TEMPO HARI INI* ⚠️\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* telah jatuh tempo pada hari ini (26 September 2026).\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.');
+(44, 4, '2026-09-25 11:05:53', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n⚠️ *JATUH TEMPO HARI INI* ⚠️\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* telah jatuh tempo pada hari ini (26 September 2026).\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(45, 4, '2026-09-28 11:58:51', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* TELAH LEWAT JATUH TEMPO pada tanggal 26 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(46, 6, '2026-09-28 13:41:45', 'terkirim', 'Halo rahm,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 385.000* TELAH LEWAT JATUH TEMPO pada tanggal 27 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(47, 4, '2026-09-30 15:45:39', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* TELAH LEWAT JATUH TEMPO pada tanggal 26 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(48, 7, '2026-09-30 16:10:40', 'terkirim', 'Halo Niken,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 250.000* TELAH LEWAT JATUH TEMPO pada tanggal 27 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(49, 4, '2026-10-01 10:11:10', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* TELAH LEWAT JATUH TEMPO pada tanggal 26 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(50, 7, '2026-10-01 10:11:22', 'terkirim', 'Halo Niken,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 250.000* TELAH LEWAT JATUH TEMPO pada tanggal 27 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.');
 
 -- --------------------------------------------------------
 
@@ -362,33 +357,29 @@ CREATE TABLE `tagihan` (
 --
 
 INSERT INTO `tagihan` (`id_tagihan`, `id_pelanggan`, `periode`, `nominal`, `status`, `due_date`, `created_at`, `updated_at`) VALUES
-(60, 5, '2026-08', '385000.00', 'lunas', '2026-08-02', '2026-07-31 15:09:28', '2026-08-10 11:32:44'),
-(61, 5, '2026-09', '385000.00', 'lunas', '2026-08-31', '2026-08-10 11:32:44', '2026-08-10 11:46:07'),
-(62, 5, '2026-10', '385000.00', 'lunas', '2026-09-29', '2026-08-10 11:46:07', '2026-08-14 13:21:58'),
-(63, 5, '2026-11', '385000.00', 'lunas', '2026-10-28', '2026-08-14 13:21:58', '2026-08-14 13:42:30'),
-(64, 5, '2026-12', '385000.00', 'lunas', '2026-11-26', '2026-08-14 13:42:30', '2026-08-14 13:44:21'),
-(65, 5, '2027-01', '385000.00', 'belum_bayar', '2026-12-25', '2026-08-14 13:44:21', '2026-08-14 13:44:21'),
-(66, 3, '2026-07', '330000.00', 'lunas', '2026-07-22', '2026-09-07 12:55:58', '2026-09-07 16:12:10'),
-(67, 4, '2026-09', '200000.00', 'belum_bayar', '2026-09-26', '2026-09-07 12:55:58', '2026-09-24 11:55:05'),
-(68, 3, '2026-08', '330000.00', 'lunas', '2026-08-22', '2026-09-07 16:12:10', '2026-09-07 16:12:50'),
-(69, 3, '2026-09', '330000.00', 'lunas', '2026-09-11', '2026-09-07 16:12:50', '2026-09-08 15:13:08'),
-(74, 3, '2026-10', '330000.00', 'lunas', '2026-10-11', '2026-09-08 15:13:08', '2026-09-09 13:26:33'),
-(75, 4, '2026-10', '200000.00', 'lunas', '2026-10-09', '2026-09-08 15:41:30', '2026-09-08 16:12:19'),
-(76, 4, '2026-11', '200000.00', 'lunas', '2026-11-09', '2026-09-08 16:12:19', '2026-09-08 16:18:33'),
-(78, 3, '2026-11', '330000.00', 'lunas', '2026-11-11', '2026-09-09 13:26:33', '2026-09-10 13:06:17'),
-(79, 3, '2026-12', '330000.00', 'lunas', '2026-12-11', '2026-09-10 13:06:17', '2026-09-10 13:52:15'),
-(80, 3, '2027-01', '330000.00', 'lunas', '2027-01-11', '2026-09-10 13:52:15', '2026-09-10 13:57:57'),
-(81, 3, '2027-02', '330000.00', 'belum_bayar', '2027-02-11', '2026-09-10 13:57:57', '2026-09-10 13:57:57');
+(60, 5, '2026-08', 385000.00, 'lunas', '2026-08-02', '2026-07-31 15:09:28', '2026-08-10 11:32:44'),
+(61, 5, '2026-09', 385000.00, 'lunas', '2026-08-31', '2026-08-10 11:32:44', '2026-08-10 11:46:07'),
+(62, 5, '2026-10', 385000.00, 'lunas', '2026-09-29', '2026-08-10 11:46:07', '2026-08-14 13:21:58'),
+(63, 5, '2026-11', 385000.00, 'lunas', '2026-10-28', '2026-08-14 13:21:58', '2026-08-14 13:42:30'),
+(64, 5, '2026-12', 385000.00, 'lunas', '2026-11-26', '2026-08-14 13:42:30', '2026-08-14 13:44:21'),
+(65, 5, '2027-01', 385000.00, 'belum_bayar', '2026-12-25', '2026-08-14 13:44:21', '2026-08-14 13:44:21'),
+(66, 3, '2026-07', 330000.00, 'lunas', '2026-07-22', '2026-09-07 12:55:58', '2026-09-07 16:12:10'),
+(67, 4, '2026-09', 200000.00, 'terlambat', '2026-09-26', '2026-09-07 12:55:58', '2026-09-28 11:58:38'),
+(68, 3, '2026-08', 330000.00, 'lunas', '2026-08-22', '2026-09-07 16:12:10', '2026-09-07 16:12:50'),
+(69, 3, '2026-09', 330000.00, 'lunas', '2026-09-11', '2026-09-07 16:12:50', '2026-09-08 15:13:08'),
+(74, 3, '2026-10', 330000.00, 'lunas', '2026-10-11', '2026-09-08 15:13:08', '2026-09-09 13:26:33'),
+(75, 4, '2026-10', 200000.00, 'lunas', '2026-10-09', '2026-09-08 15:41:30', '2026-09-08 16:12:19'),
+(76, 4, '2026-11', 200000.00, 'lunas', '2026-11-09', '2026-09-08 16:12:19', '2026-09-08 16:18:33'),
+(78, 3, '2026-11', 330000.00, 'lunas', '2026-11-11', '2026-09-09 13:26:33', '2026-09-10 13:06:17'),
+(79, 3, '2026-12', 330000.00, 'lunas', '2026-12-11', '2026-09-10 13:06:17', '2026-09-10 13:52:15'),
+(80, 3, '2027-01', 330000.00, 'lunas', '2027-01-11', '2026-09-10 13:52:15', '2026-09-10 13:57:57'),
+(81, 3, '2027-02', 330000.00, 'belum_bayar', '2027-02-11', '2026-09-10 13:57:57', '2026-10-01 11:58:47'),
+(88, 6, '2026-09', 385000.00, 'terlambat', '2026-09-27', '2026-09-28 13:41:10', '2026-09-28 13:41:20'),
+(89, 7, '2026-09', 250000.00, 'terlambat', '2026-09-27', '2026-09-30 15:45:26', '2026-09-30 16:10:27');
 
 --
 -- Indexes for dumped tables
 --
-
---
--- Indexes for table `customer_otp`
---
-ALTER TABLE `customer_otp`
-  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `laporan_bulanan`
@@ -412,7 +403,7 @@ ALTER TABLE `notifikasi`
 -- Indexes for table `paket_layanan`
 --
 ALTER TABLE `paket_layanan`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id_paket`);
 
 --
 -- Indexes for table `pelanggan`
@@ -440,7 +431,7 @@ ALTER TABLE `pembayaran`
 -- Indexes for table `pengaturan`
 --
 ALTER TABLE `pengaturan`
-  ADD PRIMARY KEY (`kunci`);
+  ADD PRIMARY KEY (`id_pengaturan`);
 
 --
 -- Indexes for table `pengeluaran`
@@ -455,7 +446,7 @@ ALTER TABLE `pengeluaran`
 -- Indexes for table `rekening_pembayaran`
 --
 ALTER TABLE `rekening_pembayaran`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id_rekening`);
 
 --
 -- Indexes for table `reminder_log`
@@ -479,12 +470,6 @@ ALTER TABLE `tagihan`
 --
 
 --
--- AUTO_INCREMENT for table `customer_otp`
---
-ALTER TABLE `customer_otp`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
-
---
 -- AUTO_INCREMENT for table `laporan_bulanan`
 --
 ALTER TABLE `laporan_bulanan`
@@ -494,25 +479,25 @@ ALTER TABLE `laporan_bulanan`
 -- AUTO_INCREMENT for table `notifikasi`
 --
 ALTER TABLE `notifikasi`
-  MODIFY `id_notifikasi` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `id_notifikasi` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `paket_layanan`
 --
 ALTER TABLE `paket_layanan`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_paket` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `pelanggan`
 --
 ALTER TABLE `pelanggan`
-  MODIFY `id_pelanggan` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_pelanggan` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `pembayaran`
 --
 ALTER TABLE `pembayaran`
-  MODIFY `id_pembayaran` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id_pembayaran` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
 -- AUTO_INCREMENT for table `pengeluaran`
@@ -524,19 +509,19 @@ ALTER TABLE `pengeluaran`
 -- AUTO_INCREMENT for table `rekening_pembayaran`
 --
 ALTER TABLE `rekening_pembayaran`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_rekening` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `reminder_log`
 --
 ALTER TABLE `reminder_log`
-  MODIFY `id_reminder` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
+  MODIFY `id_reminder` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT for table `tagihan`
 --
 ALTER TABLE `tagihan`
-  MODIFY `id_tagihan` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
+  MODIFY `id_tagihan` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=90;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

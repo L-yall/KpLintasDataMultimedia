@@ -156,8 +156,8 @@ router.get('/qris', function (req, res) {
 router.get('/rekening', function (req, res) {
   var activeOnly = req.query.active_only === 'true';
   var sql = activeOnly
-    ? 'SELECT * FROM rekening_pembayaran WHERE is_active = 1 ORDER BY id ASC'
-    : 'SELECT * FROM rekening_pembayaran ORDER BY id ASC';
+    ? 'SELECT *, id_rekening AS id FROM rekening_pembayaran WHERE is_active = 1 ORDER BY id_rekening ASC'
+    : 'SELECT *, id_rekening AS id FROM rekening_pembayaran ORDER BY id_rekening ASC';
 
   db.query(sql, function (err, results) {
     if (err) {
@@ -333,6 +333,7 @@ router.post('/rekening', function (req, res) {
       message: 'Rekening pembayaran berhasil ditambahkan!',
       data: {
         id: result.insertId,
+        id_rekening: result.insertId,
         nama_bank: nama_bank.trim(),
         nomor_rekening: nomor_rekening.trim(),
         atas_nama: atas_nama.trim(),
@@ -355,7 +356,7 @@ router.put('/rekening/:id', function (req, res) {
   }
 
   var activeVal = is_active === false || is_active === 0 || is_active === '0' ? 0 : 1;
-  var sql = 'UPDATE rekening_pembayaran SET nama_bank = ?, nomor_rekening = ?, atas_nama = ?, is_active = ? WHERE id = ?';
+  var sql = 'UPDATE rekening_pembayaran SET nama_bank = ?, nomor_rekening = ?, atas_nama = ?, is_active = ? WHERE id_rekening = ?';
   db.query(sql, [nama_bank.trim(), nomor_rekening.trim(), atas_nama.trim(), activeVal, id], function (err, result) {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -373,7 +374,7 @@ router.put('/rekening/:id', function (req, res) {
 /* DELETE /api/pengaturan/rekening/:id - Delete bank account */
 router.delete('/rekening/:id', function (req, res) {
   var { id } = req.params;
-  var sql = 'DELETE FROM rekening_pembayaran WHERE id = ?';
+  var sql = 'DELETE FROM rekening_pembayaran WHERE id_rekening = ?';
   db.query(sql, [id], function (err, result) {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });

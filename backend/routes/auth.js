@@ -117,7 +117,7 @@ router.post('/seed', function(req, res) {
       }
 
       Admin.create({
-        password_hash: hashedPassword,
+        password: hashedPassword,
         nama: nama,
         email: email
       }, function(createErr, admin) {
@@ -156,7 +156,7 @@ router.post('/login', function(req, res) {
       return res.status(403).json({ success: false, message: 'Akun Anda dinonaktifkan. Silakan hubungi Super Admin.' });
     }
 
-    bcrypt.compare(password, admin.password_hash, function(compareErr, isMatch) {
+    bcrypt.compare(password, admin.password, function(compareErr, isMatch) {
       if (compareErr) {
         return res.status(500).json({ success: false, message: 'Error saat verifikasi password.' });
       }
@@ -253,7 +253,7 @@ router.put('/password', verifyToken, function(req, res) {
       return res.status(500).json({ success: false, message: 'Admin tidak ditemukan.' });
     }
 
-    bcrypt.compare(currentPassword, admin.password_hash, function(compareErr, isMatch) {
+    bcrypt.compare(currentPassword, admin.password, function(compareErr, isMatch) {
       if (compareErr) {
         return res.status(500).json({ success: false, message: 'Error saat verifikasi password.' });
       }

@@ -41,6 +41,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
   async function handleRequestOtp(e) {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
     setLoading(true);
 
     try {
@@ -50,7 +51,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
       });
 
       if (response.data.success) {
-        setSuccessMsg(response.data.message);
+        setSuccessMsg(response.data.message + ' Jika tidak ditemukan di Kotak Masuk, silakan cek folder Spam.');
         setStep(2);
       }
     } catch (err) {
@@ -87,9 +88,11 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
   async function requestResetOtp(e) {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/api/customer/auth/forgot-password/request-otp`, { email: email });
+      var response = await axios.post(`${API_BASE_URL}/api/customer/auth/forgot-password/request-otp`, { email: email });
+      setSuccessMsg((response.data.message || 'OTP reset password telah dikirim ke email Anda.') + ' Jika tidak ditemukan di Kotak Masuk, silakan cek folder Spam.');
       setForgotStep(2);
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal mengirim OTP.');

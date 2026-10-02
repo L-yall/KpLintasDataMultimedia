@@ -14,47 +14,10 @@ pool.getConnection((err, connection) => {
   } else {
     console.log('Koneksi ke database dashboard_isp berhasil!');
 
-    // Pengecekan dan penambahan kolom latitude & longitude secara aman jika belum ada
-    connection.query("SHOW COLUMNS FROM pelanggan LIKE 'latitude'", (colErr, rows) => {
-      if (!colErr && rows.length === 0) {
-        connection.query("ALTER TABLE pelanggan ADD COLUMN latitude DECIMAL(10,8) NULL AFTER alamat", (alterErr) => {
-          if (!alterErr) console.log('[DB Migration] Kolom latitude berhasil ditambahkan ke tabel pelanggan.');
-        });
-      }
-    });
-
-    connection.query("SHOW COLUMNS FROM pelanggan LIKE 'longitude'", (colErr, rows) => {
-      if (!colErr && rows.length === 0) {
-        connection.query("ALTER TABLE pelanggan ADD COLUMN longitude DECIMAL(11,8) NULL AFTER latitude", (alterErr) => {
-          if (!alterErr) console.log('[DB Migration] Kolom longitude berhasil ditambahkan ke tabel pelanggan.');
-        });
-      }
-    });
-
-    // Pengecekan tabel customer_otp
-    connection.query(`
-      CREATE TABLE IF NOT EXISTS customer_otp (
-        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        email VARCHAR(255) NOT NULL,
-        no_hp VARCHAR(20) NULL,
-        otp VARCHAR(6) NOT NULL,
-        expires_at DATETIME NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `, () => {
-      connection.query("SHOW COLUMNS FROM customer_otp LIKE 'id'", (colErr, rows) => {
-        if (!colErr && rows && rows.length > 0 && (!rows[0].Key.includes('PRI') || !rows[0].Extra.includes('auto_increment'))) {
-          connection.query("ALTER TABLE customer_otp MODIFY id INT NOT NULL AUTO_INCREMENT PRIMARY KEY", (err) => {
-            if (!err) console.log('[DB Migration] customer_otp id disetel ke AUTO_INCREMENT PRIMARY KEY.');
-          });
-        }
-      });
-    });
-
     // Pengecekan tabel pengaturan
     connection.query(`
       CREATE TABLE IF NOT EXISTS pengaturan (
-        kunci VARCHAR(100) PRIMARY KEY,
+        id_pengaturan VARCHAR(100) PRIMARY KEY,
         nilai TEXT,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -63,7 +26,7 @@ pool.getConnection((err, connection) => {
     // Pengecekan tabel rekening_pembayaran
     connection.query(`
       CREATE TABLE IF NOT EXISTS rekening_pembayaran (
-        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        id_rekening INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
         nama_bank VARCHAR(100) NOT NULL,
         nomor_rekening VARCHAR(50) NOT NULL,
         atas_nama VARCHAR(150) NOT NULL,

@@ -11,7 +11,7 @@ var ConfigService = {
     return new Promise(function (resolve, reject) {
       var createTableSql = `
         CREATE TABLE IF NOT EXISTS pengaturan (
-          kunci VARCHAR(100) PRIMARY KEY,
+          id_pengaturan VARCHAR(100) PRIMARY KEY,
           nilai TEXT,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -22,16 +22,16 @@ var ConfigService = {
           return resolve(false);
         }
 
-        db.query('SELECT kunci, nilai FROM pengaturan', function (selectErr, rows) {
+        db.query('SELECT id_pengaturan, nilai FROM pengaturan', function (selectErr, rows) {
           if (selectErr) {
             console.error('[ConfigService] Gagal memuat data dari tabel pengaturan:', selectErr.message);
             return resolve(false);
           }
 
           rows.forEach(function (row) {
-            cache[row.kunci] = row.nilai;
+            cache[row.id_pengaturan] = row.nilai;
             // Overwrite process.env agar modul yang baca process.env tetap mendapatkan nilai terbaru
-            process.env[row.kunci] = row.nilai;
+            process.env[row.id_pengaturan] = row.nilai;
           });
 
           isInitialized = true;
@@ -63,7 +63,7 @@ var ConfigService = {
     return new Promise(function (resolve, reject) {
       var valStr = value !== undefined && value !== null ? String(value) : '';
       var sql = `
-        INSERT INTO pengaturan (kunci, nilai) 
+        INSERT INTO pengaturan (id_pengaturan, nilai)
         VALUES (?, ?) 
         ON DUPLICATE KEY UPDATE nilai = VALUES(nilai)
       `;

@@ -3,7 +3,7 @@ var db = require('../config/db');
 var PaketLayanan = {
   // Ambil semua paket layanan
   getAll: function (callback) {
-    var sql = 'SELECT * FROM paket_layanan ORDER BY harga ASC';
+    var sql = 'SELECT *, id_paket AS id FROM paket_layanan ORDER BY harga ASC';
     db.query(sql, function (err, results) {
       if (err) return callback(err, null);
       callback(null, results);
@@ -12,7 +12,7 @@ var PaketLayanan = {
 
   // Ambil hanya paket yang aktif
   getActive: function (callback) {
-    var sql = 'SELECT * FROM paket_layanan WHERE aktif = 1 ORDER BY harga ASC';
+    var sql = 'SELECT *, id_paket AS id FROM paket_layanan WHERE aktif = 1 ORDER BY harga ASC';
     db.query(sql, function (err, results) {
       if (err) return callback(err, null);
       callback(null, results);
@@ -21,7 +21,7 @@ var PaketLayanan = {
 
   // Ambil paket berdasarkan ID
   getById: function (id, callback) {
-    var sql = 'SELECT * FROM paket_layanan WHERE id = ?';
+    var sql = 'SELECT *, id_paket AS id FROM paket_layanan WHERE id_paket = ?';
     db.query(sql, [id], function (err, results) {
       if (err) return callback(err, null);
       callback(null, results[0] || null);
@@ -34,7 +34,7 @@ var PaketLayanan = {
     var values = [data.nama_paket, data.harga, data.kecepatan || null, data.deskripsi || null];
     db.query(sql, values, function (err, result) {
       if (err) return callback(err, null);
-      callback(null, { id: result.insertId, ...data });
+      callback(null, { id: result.insertId, id_paket: result.insertId, ...data });
     });
   },
 
@@ -54,7 +54,7 @@ var PaketLayanan = {
     }
 
     values.push(id);
-    var sql = 'UPDATE paket_layanan SET ' + fields.join(', ') + ' WHERE id = ?';
+    var sql = 'UPDATE paket_layanan SET ' + fields.join(', ') + ' WHERE id_paket = ?';
     db.query(sql, values, function (err, result) {
       if (err) return callback(err, null);
       callback(null, result);
@@ -63,7 +63,7 @@ var PaketLayanan = {
 
   // Hapus paket secara permanen
   delete: function (id, callback) {
-    var sql = 'DELETE FROM paket_layanan WHERE id = ?';
+    var sql = 'DELETE FROM paket_layanan WHERE id_paket = ?';
     db.query(sql, [id], function (err, result) {
       if (err) return callback(err, null);
       callback(null, result);

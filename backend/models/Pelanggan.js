@@ -50,14 +50,12 @@ var Pelanggan = {
   create: function(data, callback) {
     var sql = `
       INSERT INTO pelanggan 
-      (nama, alamat, latitude, longitude, no_hp, pppoe_username, paket, due_date, email, password, nik, foto)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (nama, alamat, no_hp, pppoe_username, paket, due_date, email, password, nik, foto)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     var values = [
       data.nama,
       data.alamat || '',
-      data.latitude !== undefined && data.latitude !== '' ? data.latitude : null,
-      data.longitude !== undefined && data.longitude !== '' ? data.longitude : null,
       data.no_hp,
       data.pppoe_username || '',
       data.paket || '',
@@ -80,8 +78,6 @@ var Pelanggan = {
 
     if (data.nama !== undefined) { fields.push('nama = ?'); values.push(data.nama); }
     if (data.alamat !== undefined) { fields.push('alamat = ?'); values.push(data.alamat); }
-    if (data.latitude !== undefined) { fields.push('latitude = ?'); values.push(data.latitude !== '' ? data.latitude : null); }
-    if (data.longitude !== undefined) { fields.push('longitude = ?'); values.push(data.longitude !== '' ? data.longitude : null); }
     if (data.no_hp !== undefined) { fields.push('no_hp = ?'); values.push(data.no_hp); }
     if (data.pppoe_username !== undefined) { fields.push('pppoe_username = ?'); values.push(data.pppoe_username); }
     if (data.paket !== undefined) { fields.push('paket = ?'); values.push(data.paket); }
