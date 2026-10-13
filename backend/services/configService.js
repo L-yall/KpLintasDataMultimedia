@@ -1,7 +1,17 @@
 var db = require('../config/db');
 var logger = require('../utils/logger');
 
-var cache = {};
+var cache = {
+  MIKROTIK_HOST: process.env.MIKROTIK_HOST || '',
+  MIKROTIK_PORT: process.env.MIKROTIK_PORT || '8728',
+  MIKROTIK_USER: process.env.MIKROTIK_USER || '',
+  MIKROTIK_PASS: process.env.MIKROTIK_PASS || '',
+  PAYMENT_GATEWAY_ACTIVE: process.env.PAYMENT_GATEWAY_ACTIVE || 'none',
+  EMAIL_USER: process.env.EMAIL_USER || '',
+  EMAIL_PASS: process.env.EMAIL_PASS || '',
+  EMAIL_FROM: process.env.EMAIL_FROM || '',
+  APP_URL: process.env.APP_URL || ''
+};
 var isInitialized = false;
 
 var ConfigService = {

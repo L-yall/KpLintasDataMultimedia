@@ -801,6 +801,18 @@ function CustomerPortalPage({ onLogout }) {
 
   var selectedOpt = getSelectedOption();
 
+  var effectiveMethod = singleGatewayPayment ? singlePaymentMethod : paymentMethod;
+  var isPayLoading = effectiveMethod === 'midtrans' ? midtransLoading : false;
+  var payIcon = effectiveMethod === 'duitku' ? 'account_balance_wallet' : 'payments';
+
+  function handlePayNow() {
+    if (effectiveMethod === 'duitku') {
+      handleOpenDuitkuModal();
+    } else {
+      handleMidtransPay();
+    }
+  }
+
   function renderTabContent() {
     if (activeTab === 'billing') {
       if (loading) {
@@ -861,8 +873,55 @@ function CustomerPortalPage({ onLogout }) {
             <div style={{ fontSize: '2.5rem', fontWeight: 800, margin: '8px 0', color: 'var(--md-primary)', letterSpacing: '-1px' }}>
               Rp {Number(billing.nominal).toLocaleString('id-ID')}
             </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--md-on-surface-variant)', marginTop: 12 }}>
-              Batas Jatuh Tempo: <strong style={{ color: 'var(--md-on-surface)' }}>{new Date(billing.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: 16,
+              flexWrap: 'wrap',
+              gap: 12
+            }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--md-on-surface-variant)' }}>
+                Batas Jatuh Tempo: <strong style={{ color: 'var(--md-on-surface)' }}>{new Date(billing.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+              </div>
+
+              {billing.status !== 'menunggu_verifikasi' && (singleGatewayPayment || paymentMethod === 'midtrans' || paymentMethod === 'duitku') && (
+                <button
+                  type="button"
+                  onClick={handlePayNow}
+                  disabled={isPayLoading}
+                  style={{
+                    background: 'var(--md-primary-container, #006876)',
+                    color: 'var(--md-on-primary-container, #ffffff)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md, 8px)',
+                    padding: '10px 22px',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    cursor: isPayLoading ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    fontFamily: "'Open Sans', sans-serif",
+                    boxShadow: '0 2px 8px rgba(0, 104, 118, 0.25)',
+                    transition: 'all 0.2s ease',
+                    opacity: isPayLoading ? 0.7 : 1
+                  }}
+                  onMouseEnter={function (e) {
+                    if (!isPayLoading) e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={function (e) {
+                    if (!isPayLoading) e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  {isPayLoading ? (
+                    <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>hourglass_top</span> Menghubungkan...</>
+                  ) : (
+                    <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>{payIcon}</span> Bayar Sekarang</>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
@@ -946,11 +1005,6 @@ function CustomerPortalPage({ onLogout }) {
             </div>
           )}
 
-          {billing.status !== 'menunggu_verifikasi' && singleGatewayPayment && (
-            <div style={{ marginTop: 20 }}>
-              {renderPaymentDetail(false)}
-            </div>
-          )}
 
           {/* Upload Proof */}
           {paymentMethod !== 'midtrans' && paymentMethod !== 'duitku' && (

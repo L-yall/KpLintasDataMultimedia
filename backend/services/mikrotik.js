@@ -2,8 +2,11 @@ var RouterOSAPI = require('node-routeros').RouterOSAPI;
 var ConfigService = require('./configService');
 var logger = require('../utils/logger');
 
+var cachedPing = null;
+var lastPingTime = 0;
+
 // Helper function to establish connection, write command, close connection, and return data
-async function executeCommand(command, params, customConfig) {
+async function executeCommand(command, params, customConfig, customTimeout) {
   var host = (customConfig && customConfig.host) || ConfigService.get('MIKROTIK_HOST', process.env.MIKROTIK_HOST);
   var user = (customConfig && customConfig.user) || ConfigService.get('MIKROTIK_USER', process.env.MIKROTIK_USER);
   var pass = (customConfig && customConfig.pass) || ConfigService.get('MIKROTIK_PASS', process.env.MIKROTIK_PASS);
@@ -18,7 +21,7 @@ async function executeCommand(command, params, customConfig) {
     user: user,
     password: pass,
     port: port,
-    timeout: 5
+    timeout: customTimeout || 5
   });
 
   try {
@@ -36,11 +39,17 @@ async function executeCommand(command, params, customConfig) {
 
 var MikrotikService = {
   // Check if router is reachable (ping)
-  ping: async function(customConfig) {
+  ping: async function(customConfig, skipCache) {
+    // Gunakan cache singkat (10s) jika status router sedang offline/stabil untuk mencegah spam socket timeout
+    if (!customConfig && !skipCache && cachedPing && (Date.now() - lastPingTime < 10000)) {
+      return cachedPing;
+    }
+
     try {
-      var data = await executeCommand('/system/resource/print', null, customConfig);
+      // Gunakan timeout cepat (2s) untuk ping agar tidak menghambat sistem jika router offline
+      var data = await executeCommand('/system/resource/print', null, customConfig, 2);
       if (data && data.length > 0) {
-        return {
+        var resOnline = {
           online: true,
           version: data[0].version || 'Unknown',
           board: data[0]['board-name'] || 'Mikrotik',
@@ -48,13 +57,22 @@ var MikrotikService = {
           cpu_load: parseInt(data[0]['cpu-load'] || 0, 10),
           architecture: data[0]['architecture-name'] || 'MMIPS'
         };
+        cachedPing = resOnline;
+        lastPingTime = Date.now();
+        return resOnline;
       }
-      return { online: false, error: 'Respon router kosong' };
+      var resEmpty = { online: false, error: 'Respon router kosong' };
+      cachedPing = resEmpty;
+      lastPingTime = Date.now();
+      return resEmpty;
     } catch (err) {
-      return {
+      var resErr = {
         online: false,
         error: err.message || 'Koneksi gagal'
       };
+      cachedPing = resErr;
+      lastPingTime = Date.now();
+      return resErr;
     }
   },
 

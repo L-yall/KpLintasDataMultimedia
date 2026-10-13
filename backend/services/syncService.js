@@ -12,8 +12,11 @@ var SyncService = {
 
     logger.info('SYNC', 'Background PPPoE Sync aktif (interval: 30s)');
     
-    // Run sync immediately on startup, then every 30 seconds
-    this.sync();
+    // Beri jeda 1.5 detik agar server HTTP selesai binding port sebelum sync pertama
+    setTimeout(() => {
+      this.sync();
+    }, 1500);
+
     syncInterval = setInterval(() => {
       this.sync();
     }, 30000);

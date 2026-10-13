@@ -31,12 +31,6 @@ var CronService = {
       ]
     });
     
-    // Pastikan seluruh pelanggan aktif memiliki lembar tagihan berjalan di tabel tagihan
-    BillingService.ensureActiveBills();
-
-    // Run evaluation immediately on startup
-    this.checkAndSendReminders();
-    
     // Schedule to run every day at 07:00 AM
     cron.schedule('0 7 * * *', () => {
       logger.info('CRON', 'Menjalankan evaluasi harian tagihan (07:00 WIB)...');
@@ -45,6 +39,12 @@ var CronService = {
       scheduled: true,
       timezone: 'Asia/Jakarta'
     });
+
+    // Jalankan verifikasi tagihan dan evaluasi di background (non-blocking agar npm start instan)
+    setTimeout(() => {
+      BillingService.ensureActiveBills();
+      this.checkAndSendReminders();
+    }, 2500);
   },
 
   checkAndSendReminders: async function() {
@@ -59,6 +59,15 @@ var CronService = {
 
       if (unpaidBills.length > 0) {
         logger.info('CRON', `Mengevaluasi ${unpaidBills.length} tagihan aktif belum lunas...`);
+      }
+
+      // Periksa konektivitas MikroTik sekali saja untuk seluruh tagihan (mencegah timeout berulang kali)
+      var pingRes = await MikrotikService.ping();
+      var isRouterOnline = pingRes && pingRes.online;
+      if (!isRouterOnline) {
+        logger.stateChange('cron_mikrotik_status', 'offline', () => {
+          logger.warn('CRON', `Router MikroTik tidak terjangkau (${pingRes.error || 'offline'}), penyesuaian isolir PPPoE otomatis dilewati.`);
+        });
       }
 
       for (var i = 0; i < unpaidBills.length; i++) {
@@ -80,8 +89,8 @@ var CronService = {
             });
           }
 
-          // ISOLIR MIKROTIK OTOMATIS: Matikan secret PPPoE & putus sesi jika menunggak
-          if (bill.pppoe_username) {
+          // ISOLIR MIKROTIK OTOMATIS: Matikan secret PPPoE & putus sesi jika menunggak (hanya jika router online)
+          if (bill.pppoe_username && isRouterOnline) {
             try {
               var isolirResult = await MikrotikService.disableSecret(bill.pppoe_username);
               if (isolirResult && isolirResult.success) {
