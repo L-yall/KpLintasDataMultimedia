@@ -1,14 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { useLogo } from '../context/LogoContext';
 import './CustomerRegistrationPage.css';
 
 function CustomerRegistrationPage() {
+  var location = useLocation();
+  var searchParams = new URLSearchParams(location.search);
+  var targetPaketFromQuery = (location.state && location.state.paket) || searchParams.get('paket') || '';
+
   var { logoUrl } = useLogo();
   var [packages, setPackages] = useState([]);
-  var [form, setForm] = useState({ nama: '', no_hp: '', email: '', password: '', alamat: '', nik: '', paket: '' });
+  var [form, setForm] = useState({
+    nama: '',
+    no_hp: '',
+    email: '',
+    password: '',
+    alamat: '',
+    nik: '',
+    paket: targetPaketFromQuery
+  });
   var [foto, setFoto] = useState(null);
   var [loadingPackages, setLoadingPackages] = useState(true);
   var [submitting, setSubmitting] = useState(false);
@@ -22,7 +34,13 @@ function CustomerRegistrationPage() {
         setPackages(availablePackages);
         if (availablePackages.length) {
           setForm(function (current) {
-            return Object.assign({}, current, { paket: current.paket || availablePackages[0].nama_paket });
+            var selectedPkg = current.paket || targetPaketFromQuery;
+            var matched = availablePackages.find(function (p) {
+              return (p.nama_paket || '').trim().toLowerCase() === selectedPkg.trim().toLowerCase();
+            });
+            return Object.assign({}, current, {
+              paket: matched ? matched.nama_paket : availablePackages[0].nama_paket
+            });
           });
         }
       })
@@ -32,7 +50,7 @@ function CustomerRegistrationPage() {
       .finally(function () {
         setLoadingPackages(false);
       });
-  }, []);
+  }, [targetPaketFromQuery]);
 
   function handleChange(event) {
     var field = event.target.name;

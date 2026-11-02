@@ -22,14 +22,17 @@ function escapeHtml(value) {
  * Creates a Nodemailer transporter instance dynamically using ConfigService or custom options
  */
 function getTransporter(customAuth) {
-  var emailUser = (customAuth && customAuth.user) || ConfigService.get('EMAIL_USER', process.env.EMAIL_USER);
-  var emailPass = (customAuth && customAuth.pass) || ConfigService.get('EMAIL_PASS', process.env.EMAIL_PASS);
-  var smtpHost = (customAuth && customAuth.host) || ConfigService.get('SMTP_HOST', process.env.SMTP_HOST);
-  var smtpPort = (customAuth && customAuth.port) || ConfigService.get('SMTP_PORT', process.env.SMTP_PORT);
+  var emailUser = (customAuth && customAuth.user) || ConfigService.get('EMAIL_USER') || process.env.EMAIL_USER;
+  var emailPass = (customAuth && customAuth.pass) || ConfigService.get('EMAIL_PASS') || process.env.EMAIL_PASS;
+  var smtpHost = (customAuth && customAuth.host) || ConfigService.get('SMTP_HOST') || process.env.SMTP_HOST;
+  var smtpPort = (customAuth && customAuth.port) || ConfigService.get('SMTP_PORT') || process.env.SMTP_PORT;
 
   if (!emailUser || !emailPass) {
     return null;
   }
+
+  var cleanUser = String(emailUser).trim();
+  var cleanPass = String(emailPass).trim();
 
   if (smtpHost) {
     var portNum = parseInt(smtpPort, 10) || 587;
@@ -38,8 +41,8 @@ function getTransporter(customAuth) {
       port: portNum,
       secure: portNum === 465,
       auth: {
-        user: emailUser,
-        pass: emailPass
+        user: cleanUser,
+        pass: cleanPass
       },
       tls: {
         rejectUnauthorized: false
@@ -50,8 +53,8 @@ function getTransporter(customAuth) {
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: emailUser,
-      pass: emailPass
+      user: cleanUser,
+      pass: cleanPass
     }
   });
 }
@@ -66,7 +69,16 @@ var EmailService = {
    * @param {Object} customAuth - Optional custom SMTP credentials for testing
    */
   sendEmail: async function (toEmail, subject, htmlContent, attachments, customAuth) {
-    var fromName = (customAuth && customAuth.from) || ConfigService.get('EMAIL_FROM', process.env.EMAIL_FROM) || 'ESP Lintas Data <24percobaan24@gmail.com>';
+    // Jika cache belum terisi kredensial, coba muat ulang dari database
+    if (!customAuth && (!ConfigService.get('EMAIL_USER') || !ConfigService.get('EMAIL_PASS'))) {
+      try {
+        await ConfigService.init();
+      } catch (initErr) {
+        console.warn('[Email Service] ConfigService.init warn:', initErr.message);
+      }
+    }
+
+    var fromName = (customAuth && customAuth.from) || ConfigService.get('EMAIL_FROM') || process.env.EMAIL_FROM || 'ESP Lintas Data <24percobaan24@gmail.com>';
     var transporter = getTransporter(customAuth);
 
     console.log('[Email Service] Menyiapkan email ke ' + toEmail + ' | Subject: ' + subject);
@@ -74,15 +86,15 @@ var EmailService = {
     // Sandbox mode if credentials are missing
     if (!transporter) {
       console.log('========================================================');
-      console.log('⚠️  EMAIL_USER/EMAIL_PASS tidak terkonfigurasi. Mode SANDBOX.');
-      console.log('Tujuan: ' + toEmail);
-      console.log('Subject: ' + subject);
-      if (attachments && attachments.length) {
-        console.log('Attachments: ' + attachments.map(function(a) { return a.filename; }).join(', '));
-      }
-      console.log('Body:\n' + htmlContent);
+      console.warn('⚠️  EMAIL_USER/EMAIL_PASS tidak terkonfigurasi di database atau .env.');
+      console.warn('Tujuan: ' + toEmail);
+      console.warn('Subject: ' + subject);
       console.log('========================================================');
-      return { success: true, status: 'simulated', message: 'Simulated success (Sandbox mode: EMAIL_USER/EMAIL_PASS belum diisi)' };
+      return { 
+        success: false, 
+        status: 'simulated', 
+        error: 'Konfigurasi EMAIL_USER / EMAIL_PASS belum tersedia di sistem.' 
+      };
     }
 
     try {

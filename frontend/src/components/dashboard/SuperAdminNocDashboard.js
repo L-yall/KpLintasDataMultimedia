@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
 import TemplateIcon from '../TemplateIcon';
@@ -6,6 +7,42 @@ import TemplateIcon from '../TemplateIcon';
 function SuperAdminNocDashboard({ socket, admin }) {
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
+
+  // Financial Overview States (Finance Super Admin)
+  var [finSummary, setFinSummary] = useState({ total_pemasukan: 0, total_pengeluaran: 0, laba_bersih: 0, total_menunggu: 0 });
+  var [financeLoading, setFinanceLoading] = useState(true);
+
+  var formatUang = function (val) {
+    return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
+  };
+
+  var fetchFinanceSummary = async function () {
+    try {
+      var today = new Date();
+      var currentMonthStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+      var res = await axios.get(API_BASE_URL + '/api/reports/summary?periode=' + currentMonthStr, { headers });
+      if (res.data.success) {
+        var data = res.data.data;
+        if (data.total_pemasukan === 0 && data.total_pengeluaran === 0 && today.getDate() <= 3) {
+          var y = today.getFullYear();
+          var m = today.getMonth(); // 0-indexed: previous month
+          if (m === 0) { m = 12; y--; }
+          var prevMonthStr = y + '-' + String(m).padStart(2, '0');
+          var prevRes = await axios.get(API_BASE_URL + '/api/reports/summary?periode=' + prevMonthStr, { headers });
+          if (prevRes.data.success && (prevRes.data.data.total_pemasukan > 0 || prevRes.data.data.total_pengeluaran > 0)) {
+            setFinSummary(prevRes.data.data);
+            setFinanceLoading(false);
+            return;
+          }
+        }
+        setFinSummary(data);
+      }
+    } catch (e) {
+      console.error('Gagal mengambil data ringkasan finansial superadmin:', e);
+    } finally {
+      setFinanceLoading(false);
+    }
+  };
 
   // Telemetry States
   var [resources, setResources] = useState(null);
@@ -69,9 +106,13 @@ function SuperAdminNocDashboard({ socket, admin }) {
 
   useEffect(function () {
     fetchAllTelemetry();
+    fetchFinanceSummary();
 
     // Auto-refresh interval (every 15 seconds for NOC live feed)
-    var interval = setInterval(fetchAllTelemetry, 15000);
+    var interval = setInterval(function () {
+      fetchAllTelemetry();
+      fetchFinanceSummary();
+    }, 15000);
 
     // Socket events
     if (socket) {
@@ -86,6 +127,10 @@ function SuperAdminNocDashboard({ socket, admin }) {
       socket.on('pelanggan_updated', function () {
         fetchAllTelemetry();
       });
+
+      socket.on('pengeluaran_masuk', fetchFinanceSummary);
+      socket.on('pengeluaran_updated', fetchFinanceSummary);
+      socket.on('pembayaran_masuk', fetchFinanceSummary);
     }
 
     return function () {
@@ -94,6 +139,9 @@ function SuperAdminNocDashboard({ socket, admin }) {
         socket.off('mikrotik_ping');
         socket.off('pppoe_summary');
         socket.off('pelanggan_updated');
+        socket.off('pengeluaran_masuk', fetchFinanceSummary);
+        socket.off('pengeluaran_updated', fetchFinanceSummary);
+        socket.off('pembayaran_masuk', fetchFinanceSummary);
       }
     };
   }, [socket]);
@@ -534,7 +582,78 @@ function SuperAdminNocDashboard({ socket, admin }) {
         </div>
       </section>
 
-      {/* 2. Hardware Resource & Capacity Gauges */}
+      {/* 2. Executive Financial & Cashflow Overview (Finance Super Admin) */}
+      <section className="animate-fadeIn" style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-xl)',
+        padding: '20px 24px',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(0, 104, 118, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <TemplateIcon name="chart-up" size={20} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Ringkasan Finansial Eksekutif</h3>
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Arus kas masuk & pengeluaran operasional (Finance Super Admin)
+              </p>
+            </div>
+          </div>
+          <Link to="/dashboard/laporan" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+            <span>Buka Laporan Keuangan</span> <TemplateIcon name="arrow-right" size={14} />
+          </Link>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
+          {/* Pemasukan */}
+          <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: 'var(--radius-lg)', borderLeft: '4px solid var(--status-hijau, #10b981)' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Pemasukan</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--status-hijau, #10b981)', marginTop: '4px' }}>
+              {financeLoading ? '...' : formatUang(finSummary.total_pemasukan)}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Dari tagihan pelanggan lunas</div>
+          </div>
+
+          {/* Pengeluaran Disetujui */}
+          <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: 'var(--radius-lg)', borderLeft: '4px solid var(--status-merah, #ef4444)' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Pengeluaran</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--status-merah, #ef4444)', marginTop: '4px' }}>
+              {financeLoading ? '...' : formatUang(finSummary.total_pengeluaran)}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Pengeluaran operasional disetujui</div>
+          </div>
+
+          {/* Laba Bersih */}
+          <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: 'var(--radius-lg)', borderLeft: '4px solid var(--primary, #006876)' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Laba Bersih (Profit)</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: finSummary.laba_bersih >= 0 ? 'var(--primary)' : 'var(--status-merah)', marginTop: '4px' }}>
+              {financeLoading ? '...' : formatUang(finSummary.laba_bersih)}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Saldo kas bersih bulan ini</div>
+          </div>
+
+          {/* Menunggu Validasi */}
+          <div style={{
+            background: finSummary.total_menunggu > 0 ? 'rgba(234, 179, 8, 0.1)' : 'var(--bg-secondary)',
+            padding: '16px',
+            borderRadius: 'var(--radius-lg)',
+            borderLeft: '4px solid var(--status-kuning, #eab308)'
+          }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Menunggu Validasi</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--status-kuning, #ca8a04)', marginTop: '4px' }}>
+              {financeLoading ? '...' : formatUang(finSummary.total_menunggu)}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              {finSummary.total_menunggu > 0 ? 'Perlu tindakan validasi Superadmin' : 'Semua pengeluaran tervalidasi'}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Hardware Resource & Capacity Gauges */}
       <section className="noc-gauge-grid">
         {/* CPU Load Card */}
         <div className="noc-card animate-fadeIn">

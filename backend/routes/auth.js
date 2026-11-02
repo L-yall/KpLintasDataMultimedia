@@ -24,7 +24,7 @@ function sendPasswordResetOtp(email, callback) {
         otp: otpCode,
         purpose: 'reset password'
       });
-      callback(null, sendResult.success);
+      callback(null, sendResult.success && sendResult.status === 'terkirim');
     });
   });
 }

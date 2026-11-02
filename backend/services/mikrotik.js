@@ -32,14 +32,14 @@ async function executeCommand(command, params, customConfig, customTimeout) {
   } catch (err) {
     try {
       await conn.close();
-    } catch (e) {}
+    } catch (e) { }
     throw err;
   }
 }
 
 var MikrotikService = {
   // Check if router is reachable (ping)
-  ping: async function(customConfig, skipCache) {
+  ping: async function (customConfig, skipCache) {
     // Gunakan cache singkat (10s) jika status router sedang offline/stabil untuk mencegah spam socket timeout
     if (!customConfig && !skipCache && cachedPing && (Date.now() - lastPingTime < 10000)) {
       return cachedPing;
@@ -77,7 +77,7 @@ var MikrotikService = {
   },
 
   // Get full hardware resources & telemetry (/system/resource)
-  getResources: async function() {
+  getResources: async function () {
     try {
       var data = await executeCommand('/system/resource/print');
       if (data && data.length > 0) {
@@ -139,26 +139,26 @@ var MikrotikService = {
   },
 
   // Get Interfaces telemetry (/interface/print)
-  getInterfaces: async function() {
+  getInterfaces: async function () {
     try {
       var data = await executeCommand('/interface/print');
       if (Array.isArray(data) && data.length > 0) {
         return {
-          data: data.map(function(item) {
-          return {
-            id: item['.id'],
-            name: item.name,
-            type: item.type,
-            running: item.running === 'true' || item.running === true,
-            disabled: item.disabled === 'true' || item.disabled === true,
-            mtu: item.mtu || 1500,
-            mac_address: item['mac-address'] || '-',
-            rx_byte: parseInt(item['rx-byte'] || 0, 10),
-            tx_byte: parseInt(item['tx-byte'] || 0, 10),
-            rx_packet: parseInt(item['rx-packet'] || 0, 10),
-            tx_packet: parseInt(item['tx-packet'] || 0, 10),
-            comment: item.comment || ''
-          };
+          data: data.map(function (item) {
+            return {
+              id: item['.id'],
+              name: item.name,
+              type: item.type,
+              running: item.running === 'true' || item.running === true,
+              disabled: item.disabled === 'true' || item.disabled === true,
+              mtu: item.mtu || 1500,
+              mac_address: item['mac-address'] || '-',
+              rx_byte: parseInt(item['rx-byte'] || 0, 10),
+              tx_byte: parseInt(item['tx-byte'] || 0, 10),
+              rx_packet: parseInt(item['rx-packet'] || 0, 10),
+              tx_packet: parseInt(item['tx-packet'] || 0, 10),
+              comment: item.comment || ''
+            };
           }),
           source: 'router'
         };
@@ -170,18 +170,18 @@ var MikrotikService = {
   },
 
   // Get Live RouterOS Logs (/log/print)
-  getLogs: async function() {
+  getLogs: async function () {
     try {
       var data = await executeCommand('/log/print');
       if (Array.isArray(data) && data.length > 0) {
         return {
-          data: data.slice(-50).reverse().map(function(item) {
-          return {
-            id: item['.id'],
-            time: item.time,
-            topics: item.topics,
-            message: item.message
-          };
+          data: data.slice(-50).reverse().map(function (item) {
+            return {
+              id: item['.id'],
+              time: item.time,
+              topics: item.topics,
+              message: item.message
+            };
           }),
           source: 'router'
         };
@@ -193,7 +193,7 @@ var MikrotikService = {
   },
 
   // Get Node.js and Server Infrastructure Health
-  getServerHealth: async function() {
+  getServerHealth: async function () {
     var os = require('os');
     var db = require('../config/db');
     var uptimeSec = Math.floor(process.uptime());
@@ -203,8 +203,8 @@ var MikrotikService = {
     var dbLatency = 0;
     var dbStatus = 'connected';
     try {
-      await new Promise(function(resolve, reject) {
-        db.query('SELECT 1', function(err) {
+      await new Promise(function (resolve, reject) {
+        db.query('SELECT 1', function (err) {
           if (err) return reject(err);
           resolve();
         });
@@ -232,7 +232,7 @@ var MikrotikService = {
   },
 
   // Get all PPPoE Secrets (/ppp/secret)
-  getSecrets: async function() {
+  getSecrets: async function () {
     try {
       var data = await executeCommand('/ppp/secret/print');
       return Array.isArray(data) ? data : [];
@@ -243,7 +243,7 @@ var MikrotikService = {
   },
 
   // Get all active PPPoE connections (/ppp/active)
-  getActiveConnections: async function() {
+  getActiveConnections: async function () {
     try {
       var data = await executeCommand('/ppp/active/print');
       return Array.isArray(data) ? data : [];
@@ -254,12 +254,12 @@ var MikrotikService = {
   },
 
   // Find Secret case-insensitively
-  findSecret: async function(username) {
+  findSecret: async function (username) {
     if (!username) return null;
     var target = String(username).trim().toLowerCase();
     try {
       var secrets = await this.getSecrets();
-      return secrets.find(function(s) {
+      return secrets.find(function (s) {
         return (s.name || '').trim().toLowerCase() === target;
       }) || null;
     } catch (err) {
@@ -268,7 +268,7 @@ var MikrotikService = {
   },
 
   // Check if secret exists
-  validateSecret: async function(username) {
+  validateSecret: async function (username) {
     try {
       var secret = await this.findSecret(username);
       return !!secret;
@@ -278,7 +278,7 @@ var MikrotikService = {
   },
 
   // Pastikan Profile ISOLIR dan Firewall Filter Drop Rule tersedia di MikroTik
-  ensureIsolirConfig: async function() {
+  ensureIsolirConfig: async function () {
     try {
       // 1. Cek atau buat profile ISOLIR
       var profiles = await executeCommand('/ppp/profile/print', ['?name=ISOLIR']);
@@ -313,7 +313,7 @@ var MikrotikService = {
   },
 
   // Enable PPPoE Secret (Buka Isolir: Kembalikan ke Profile Default & Internet Normal TANPA Disconnect)
-  enableSecret: async function(username) {
+  enableSecret: async function (username) {
     if (!username) {
       logger.warn('MIKROTIK', 'Perintah enableSecret dilewati: username kosong.');
       return { success: false, reason: 'empty_username' };
@@ -323,14 +323,12 @@ var MikrotikService = {
       if (secret) {
         var secretId = secret['.id'];
         var actualName = secret.name;
-
         // 1. Kembalikan Profile ke 'default' dan pastikan disabled=no
         await executeCommand('/ppp/secret/set', [
           '=.id=' + secretId,
           '=profile=default',
           '=disabled=no'
         ]);
-
         // 2. Ambil IP sesi aktif user saat ini (jika sedang online)
         var activeConns = await this.getActiveConnections();
         var target = actualName.toLowerCase();
@@ -340,7 +338,6 @@ var MikrotikService = {
             currentActiveIps.push(activeConns[k].address.trim());
           }
         }
-
         // 3. Hapus IP dari firewall address-list ISOLIR
         try {
           var addrList = await executeCommand('/ip/firewall/address-list/print', [
@@ -357,14 +354,12 @@ var MikrotikService = {
                   await executeCommand('/ip/firewall/address-list/remove', [
                     '=.id=' + item['.id']
                   ]);
-                } catch (remErr) {}
+                } catch (remErr) { }
               }
             }
           }
-        } catch (e) {}
+        } catch (e) { }
 
-        // Catatan: TIDAK MEMUTUS SESI (disconnectSession) agar koneksi Dial-up di laptop
-        // tetap 100% "Connected" tanpa perlu klik manual reconnect.
         logger.success('MIKROTIK', `PPPoE '${actualName}' isolir dibuka (Profile: default, internet seketika aktif tanpa disconnect).`);
         return { success: true, secretName: actualName, isIsolated: false };
       }
@@ -375,9 +370,8 @@ var MikrotikService = {
       throw err;
     }
   },
-
   // Disable PPPoE Secret (Isolir Cerdas: Blokir internet via Firewall TANPA Disconnect)
-  disableSecret: async function(username) {
+  disableSecret: async function (username) {
     if (!username) {
       logger.warn('MIKROTIK', 'Perintah disableSecret dilewati: username kosong.');
       return { success: false, reason: 'empty_username' };
@@ -400,7 +394,7 @@ var MikrotikService = {
         // 2. Tambahkan IP aktif ke address-list ISOLIR jika sedang online
         var activeConns = await this.getActiveConnections();
         var target = actualName.toLowerCase();
-        var matchingConns = activeConns.filter(function(conn) {
+        var matchingConns = activeConns.filter(function (conn) {
           return (conn.name || '').trim().toLowerCase() === target;
         });
 
@@ -413,17 +407,17 @@ var MikrotikService = {
                 '=address=' + ip,
                 '=comment=' + actualName
               ]);
-            } catch (e) {}
+            } catch (e) { }
           }
         }
 
         // Catatan: TIDAK MEMUTUS SESI (disconnectSession)! Sesi PPPoE di laptop tetap
         // berstatus "Connected", namun internet langsung mati karena terblokir firewall ISOLIR.
         logger.warn('MIKROTIK', `PPPoE '${actualName}' diisolir (Profile: ISOLIR, internet diblokir via Firewall, status Dial-up tetap Connected).`);
-        return { 
-          success: true, 
-          secretName: actualName, 
-          isIsolated: true 
+        return {
+          success: true,
+          secretName: actualName,
+          isIsolated: true
         };
       }
       logger.warn('MIKROTIK', `Secret '${username}' tidak ditemukan di router, isolir dilewati.`);
@@ -435,14 +429,14 @@ var MikrotikService = {
   },
 
   // Disconnect active PPPoE session (Hard Kick dengan verifikasi tuntas)
-  disconnectSession: async function(username) {
+  disconnectSession: async function (username) {
     if (!username) return { success: false, kickedCount: 0 };
     var target = String(username).trim().toLowerCase();
 
     try {
       // 1. Cari seluruh sesi aktif yang cocok (case-insensitive)
       var activeConns = await this.getActiveConnections();
-      var matchingConns = activeConns.filter(function(conn) {
+      var matchingConns = activeConns.filter(function (conn) {
         return (conn.name || '').trim().toLowerCase() === target;
       });
 
@@ -461,10 +455,10 @@ var MikrotikService = {
       }
 
       // 3. Verifikasi ulang setelah jeda 250ms untuk memastikan tidak ada ghost session
-      await new Promise(function(resolve) { setTimeout(resolve, 250); });
+      await new Promise(function (resolve) { setTimeout(resolve, 250); });
 
       var verifyConns = await this.getActiveConnections();
-      var remaining = verifyConns.filter(function(conn) {
+      var remaining = verifyConns.filter(function (conn) {
         return (conn.name || '').trim().toLowerCase() === target;
       });
 

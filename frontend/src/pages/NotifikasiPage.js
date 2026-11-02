@@ -153,10 +153,14 @@ function NotifikasiPage({ socket, admin }) {
       });
       socket.on('registrasi_masuk', fetchNotifications);
       socket.on('registrasi_updated', fetchNotifications);
+      socket.on('pengeluaran_masuk', fetchNotifications);
+      socket.on('pengeluaran_updated', fetchNotifications);
       return function () {
         socket.off('pembayaran_masuk');
         socket.off('registrasi_masuk', fetchNotifications);
         socket.off('registrasi_updated', fetchNotifications);
+        socket.off('pengeluaran_masuk', fetchNotifications);
+        socket.off('pengeluaran_updated', fetchNotifications);
       };
     }
   }, [socket]);
@@ -206,7 +210,9 @@ function NotifikasiPage({ socket, admin }) {
       var q = searchQuery.toLowerCase();
       matchesSearch = (n.nama_pelanggan && n.nama_pelanggan.toLowerCase().includes(q)) ||
         (n.periode && n.periode.toLowerCase().includes(q)) ||
-        (n.paket && n.paket.toLowerCase().includes(q));
+        (n.paket && n.paket.toLowerCase().includes(q)) ||
+        (n.kategori && n.kategori.toLowerCase().includes(q)) ||
+        (n.nama_admin && n.nama_admin.toLowerCase().includes(q));
     }
 
     if (!matchesSearch) return false;
@@ -219,10 +225,12 @@ function NotifikasiPage({ socket, admin }) {
       return n.status_baca === 1;
     } else if (filterStatus === 'registrasi') {
       return n.tipe === 'registrasi_masuk';
+    } else if (filterStatus === 'pengeluaran') {
+      return n.tipe === 'pengeluaran_masuk';
     } else if (filterStatus === 'manual') {
-      return n.tipe !== 'registrasi_masuk' && !metodeInfo.isOnline;
+      return n.tipe !== 'registrasi_masuk' && n.tipe !== 'pengeluaran_masuk' && !metodeInfo.isOnline;
     } else if (filterStatus === 'midtrans') {
-      return n.tipe !== 'registrasi_masuk' && metodeInfo.isOnline;
+      return n.tipe !== 'registrasi_masuk' && n.tipe !== 'pengeluaran_masuk' && metodeInfo.isOnline;
     }
 
     return true;
@@ -335,7 +343,8 @@ function NotifikasiPage({ socket, admin }) {
           { id: 'read', label: 'Sudah Dibaca' },
           { id: 'manual', label: 'Transfer Manual' },
           { id: 'midtrans', label: 'Otomatis Online' },
-          { id: 'registrasi', label: 'Pendaftaran' }
+          { id: 'registrasi', label: 'Pendaftaran' },
+          ...(isSuperAdmin ? [{ id: 'pengeluaran', label: 'Pengeluaran Masuk' }] : [])
         ].map(function (tab) {
           var isActive = filterStatus === tab.id;
           return (
@@ -415,6 +424,7 @@ function NotifikasiPage({ socket, admin }) {
               {currentNotifs.map(function (notif, idx) {
                 var isUnread = notif.status_baca === 0;
                 var isRegistration = notif.tipe === 'registrasi_masuk';
+                var isExpense = notif.tipe === 'pengeluaran_masuk';
                 var metodeInfo = getMetodeInfo(notif.bukti_file);
                 return (
                   <tr
@@ -426,12 +436,12 @@ function NotifikasiPage({ socket, admin }) {
                   >
                     <td style={{ color: 'var(--text-muted)' }}>{(notifPage - 1) * notificationsPerPage + idx + 1}</td>
                     <td>
-                      <span className={'status-badge ' + (isRegistration ? 'biru' : metodeInfo.class)}>
-                        {isRegistration ? 'Registrasi' : metodeInfo.label}
+                      <span className={'status-badge ' + (isRegistration ? 'biru' : isExpense ? 'kuning' : metodeInfo.class)}>
+                        {isRegistration ? 'Registrasi' : isExpense ? 'Pengeluaran' : metodeInfo.label}
                       </span>
                     </td>
-                    <td>{notif.nama_pelanggan || 'Pelanggan Dihapus'}</td>
-                    <td>{isRegistration ? notif.paket : notif.periode}</td>
+                    <td>{isExpense ? `Diajukan: ${notif.nama_admin || 'Admin Operasional'}` : (notif.nama_pelanggan || 'Pelanggan Dihapus')}</td>
+                    <td>{isRegistration ? notif.paket : isExpense ? `${notif.kategori} (${notif.tipe_pengeluaran === 'fix' ? 'Fix' : 'Tidak Fix'})` : notif.periode}</td>
                     <td>{isRegistration ? '-' : 'Rp ' + Number(notif.nominal).toLocaleString('id-ID')}</td>
                     <td>{formatTanggal(notif.tanggal)}</td>
                     {filterStatus !== 'midtrans' && (
@@ -439,6 +449,10 @@ function NotifikasiPage({ socket, admin }) {
                         {isRegistration ? (
                           <button className="btn btn-secondary btn-sm" onClick={function () { navigate('/dashboard/registrasi'); }}>
                             <TemplateIcon name="person_add" size={14} style={{ marginRight: '6px' }} /> Tinjau
+                          </button>
+                        ) : isExpense ? (
+                          <button className="btn btn-secondary btn-sm" onClick={function () { navigate('/dashboard/laporan'); }}>
+                            <TemplateIcon name="document" size={14} style={{ marginRight: '6px' }} /> Tinjau di Laporan
                           </button>
                         ) : metodeInfo.isOnline ? (
                           <button
@@ -459,21 +473,21 @@ function NotifikasiPage({ socket, admin }) {
                     )}
                     <td>
                       <span
-                        onClick={function () { if (!isRegistration) handleMarkRead(notif); }}
+                        onClick={function () { if (!isRegistration && !isExpense) handleMarkRead(notif); }}
                         style={{
-                          cursor: isUnread ? 'pointer' : 'default',
+                          cursor: isUnread && !isExpense ? 'pointer' : 'default',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px'
                         }}
                         className={'status-badge ' + (isUnread ? 'merah' : 'abu')}
                       >
-                        {isRegistration ? 'Menunggu Tinjauan' : isUnread ? 'Belum Dibaca' : 'Sudah Dibaca'}
+                        {isRegistration ? 'Menunggu Tinjauan' : isExpense ? 'Menunggu Validasi' : isUnread ? 'Belum Dibaca' : 'Sudah Dibaca'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        {isUnread && !isRegistration && (
+                        {isUnread && !isRegistration && !isExpense && (
                           <button
                             className="btn btn-secondary btn-sm"
                             onClick={function () { handleMarkRead(notif); }}
@@ -486,6 +500,8 @@ function NotifikasiPage({ socket, admin }) {
                           onClick={function () {
                             if (isRegistration) {
                               navigate('/dashboard/registrasi');
+                            } else if (isExpense) {
+                              navigate('/dashboard/laporan');
                             } else if (metodeInfo.isOnline) {
                               handleMarkRead(notif);
                               setViewMidtransDetail(notif);
@@ -495,7 +511,7 @@ function NotifikasiPage({ socket, admin }) {
                             }
                           }}
                         >
-                          {isRegistration ? 'Buka Antrean' : 'Lihat Detail'}
+                          {isRegistration ? 'Buka Antrean' : isExpense ? 'Validasi' : 'Lihat Detail'}
                         </button>
                       </div>
                     </td>

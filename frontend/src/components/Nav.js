@@ -58,11 +58,15 @@ function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
       });
       socket.on('registrasi_masuk', fetchNotifications);
       socket.on('registrasi_updated', fetchNotifications);
+      socket.on('pengeluaran_masuk', fetchNotifications);
+      socket.on('pengeluaran_updated', fetchNotifications);
       return function () {
         socket.off('pembayaran_masuk');
         socket.off('pelanggan_updated');
         socket.off('registrasi_masuk', fetchNotifications);
         socket.off('registrasi_updated', fetchNotifications);
+        socket.off('pengeluaran_masuk', fetchNotifications);
+        socket.off('pengeluaran_updated', fetchNotifications);
       };
     }
   }, [socket]);
@@ -338,25 +342,50 @@ function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
                     notifs.map(function (n) {
                       var isUnread = n.status_baca === 0;
                       var isRegistration = n.tipe === 'registrasi_masuk';
+                      var isExpense = n.tipe === 'pengeluaran_masuk';
                       var isMidtrans = n.bukti_file && n.bukti_file.includes('Midtrans');
-                      var title = isRegistration ? 'Pendaftaran Pelanggan' : isMidtrans ? 'Pembayaran Midtrans' : 'Verifikasi Pembayaran';
-                      var icon = isRegistration ? 'person_add' : 'payments';
-                      var iconBg = isRegistration ? 'var(--status-biru-bg, #e0f2fe)' : isMidtrans ? 'var(--status-hijau-bg)' : 'var(--status-kuning-bg)';
-                      var iconColor = isRegistration ? 'var(--primary)' : isMidtrans ? 'var(--status-hijau)' : 'var(--status-kuning)';
+                      var title = isRegistration
+                        ? 'Pendaftaran Pelanggan'
+                        : isExpense
+                        ? 'Pengajuan Pengeluaran'
+                        : isMidtrans
+                        ? 'Pembayaran Midtrans'
+                        : 'Verifikasi Pembayaran';
+                      var icon = isRegistration ? 'person_add' : isExpense ? 'receipt_long' : 'payments';
+                      var iconBg = isRegistration
+                        ? 'var(--status-biru-bg, #e0f2fe)'
+                        : isExpense
+                        ? 'var(--status-merah-bg, #fee2e2)'
+                        : isMidtrans
+                        ? 'var(--status-hijau-bg)'
+                        : 'var(--status-kuning-bg)';
+                      var iconColor = isRegistration
+                        ? 'var(--primary)'
+                        : isExpense
+                        ? 'var(--status-merah, #ef4444)'
+                        : isMidtrans
+                        ? 'var(--status-hijau)'
+                        : 'var(--status-kuning)';
 
                       var desc = isRegistration
                         ? `${n.nama_pelanggan} mendaftar paket ${n.paket || '-'}`
+                        : isExpense
+                        ? `Pengeluaran ${n.kategori} (Rp ${Number(n.nominal).toLocaleString('id-ID')}) oleh ${n.nama_admin || 'Admin'} - Perlu Validasi`
                         : isMidtrans
                         ? `Pembayaran otomatis via Midtrans dari ${n.nama_pelanggan} (Periode ${n.periode})`
                         : `Pembayaran baru dari ${n.nama_pelanggan} (Periode ${n.periode})`;
 
-                      var targetLink = isRegistration ? '/dashboard/registrasi' : `/dashboard/notifikasi?notifId=${n.id_notifikasi}`;
+                      var targetLink = isRegistration
+                        ? '/dashboard/registrasi'
+                        : isExpense
+                        ? '/dashboard/laporan?action=pengeluaran'
+                        : `/dashboard/notifikasi?notifId=${n.id_notifikasi}`;
 
                       return (
                         <div
                           key={n.id_notifikasi}
                           onClick={function () {
-                            if (isRegistration) navigate(targetLink);
+                            if (isRegistration || isExpense) navigate(targetLink);
                             else handleMarkRead(n);
                             setNotifOpen(false);
                           }}

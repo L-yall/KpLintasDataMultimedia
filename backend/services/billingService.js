@@ -279,10 +279,7 @@ var BillingService = {
 
             conn.release();
 
-            // ====================================================
-            // PROSES PASCA TRANSAKSI (MikroTik, Email, WebSocket)
-            // ====================================================
-
+            // PROSES SETELAH TRANSAKSI (MikroTik, Email, WebSocket)
             // 8. Buka blokir / aktifkan PPPoE di MikroTik
             var pppoeStatus = 'unknown';
             if (bill.pppoe_username) {

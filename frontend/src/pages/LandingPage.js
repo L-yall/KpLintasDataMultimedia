@@ -588,11 +588,6 @@ function LandingPage({ customer, onLogout }) {
           </div>
           <div className="landing-pricing-grid">
             {packages.map(function (pkg, idx) {
-              var whatsappMessage = 'Halo, saya ingin mendaftar dan memesan paket internet berikut dari Lintas Data Multimedia:\n\n' +
-                'Nama Paket: ' + pkg.name + '\n' +
-                'Harga: Rp ' + pkg.price + '/bulan\n' +
-                'Kecepatan: ' + (pkg.speed || '-') + '\n' +
-                'Deskripsi: ' + (pkg.description || pkg.features.join(', '));
               return (
                 <div className={'landing-pricing-card' + (pkg.popular ? ' landing-pricing-card--popular' : '')} key={idx}>
                   {pkg.popular && <div className="landing-pricing-badge">Terpopuler</div>}
@@ -607,9 +602,16 @@ function LandingPage({ customer, onLogout }) {
                       return <li key={i}><span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--md-primary)' }}>check_circle</span> {f}</li>;
                     })}
                   </ul>
-                  <a href={'https://wa.me/6285722422448?text=' + encodeURIComponent(whatsappMessage)} target="_blank" rel="noopener noreferrer" className={pkg.popular ? 'landing-btn-primary' : 'landing-btn-ghost'} style={{ width: '100%', justifyContent: 'center' }}>
-                    Daftar dan Pesan Via WhatsApp
-                  </a>
+                  <button
+                    type="button"
+                    onClick={function () {
+                      navigate('/registrasi?paket=' + encodeURIComponent(pkg.name), { state: { paket: pkg.name } });
+                    }}
+                    className={pkg.popular ? 'landing-btn-primary' : 'landing-btn-ghost'}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    Pesan Paket Sekarang
+                  </button>
                 </div>
               );
             })}

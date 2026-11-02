@@ -23,6 +23,8 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
   var [error, setError] = useState('');
   var [successMsg, setSuccessMsg] = useState('');
   var [loading, setLoading] = useState(false);
+  var [resendCooldown, setResendCooldown] = useState(0);
+  var [resending, setResending] = useState(false);
 
   var [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -36,7 +38,20 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
     };
   }, []);
 
-
+  // Timer cooldown pengiriman ulang OTP
+  useEffect(function () {
+    var timer = null;
+    if (resendCooldown > 0) {
+      timer = setInterval(function () {
+        setResendCooldown(function (prev) {
+          return prev <= 1 ? 0 : prev - 1;
+        });
+      }, 1000);
+    }
+    return function () {
+      if (timer) clearInterval(timer);
+    };
+  }, [resendCooldown]);
 
   async function handleRequestOtp(e) {
     e.preventDefault();
@@ -53,11 +68,35 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
       if (response.data.success) {
         setSuccessMsg(response.data.message + ' Jika tidak ditemukan di Kotak Masuk, silakan cek folder Spam.');
         setStep(2);
+        setResendCooldown(60);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal mengirim OTP. Pastikan email Anda terdaftar.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResendOtp() {
+    if (resendCooldown > 0 || resending) return;
+    setError('');
+    setSuccessMsg('');
+    setResending(true);
+
+    try {
+      var response = await axios.post(`${API_BASE_URL}/api/customer/auth/request-otp`, {
+        email: email,
+        password: password
+      });
+
+      if (response.data.success) {
+        setSuccessMsg('Kode OTP baru telah berhasil dikirim ulang ke Email Anda! Silakan cek Kotak Masuk atau folder Spam.');
+        setResendCooldown(60);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Gagal mengirim ulang OTP. Silakan coba kembali.');
+    } finally {
+      setResending(false);
     }
   }
 
@@ -94,10 +133,27 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
       var response = await axios.post(`${API_BASE_URL}/api/customer/auth/forgot-password/request-otp`, { email: email });
       setSuccessMsg((response.data.message || 'OTP reset password telah dikirim ke email Anda.') + ' Jika tidak ditemukan di Kotak Masuk, silakan cek folder Spam.');
       setForgotStep(2);
+      setResendCooldown(60);
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal mengirim OTP.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResendForgotOtp() {
+    if (resendCooldown > 0 || resending) return;
+    setError('');
+    setSuccessMsg('');
+    setResending(true);
+    try {
+      var response = await axios.post(`${API_BASE_URL}/api/customer/auth/forgot-password/request-otp`, { email: email });
+      setSuccessMsg('Kode OTP reset password baru telah berhasil dikirim ke email Anda! Silakan cek Kotak Masuk atau folder Spam.');
+      setResendCooldown(60);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Gagal mengirim ulang OTP.');
+    } finally {
+      setResending(false);
     }
   }
 
@@ -118,6 +174,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
       setNewPassword('');
       setConfirmPassword('');
       setPassword('');
+      setResendCooldown(0);
       setSuccessMsg('Password berhasil diubah. Silakan login.');
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal mengubah password.');
@@ -143,6 +200,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
   function switchToLogin() {
     setForgotMode(false);
     setForgotStep(1);
+    setResendCooldown(0);
     setError('');
     setSuccessMsg('');
   }
@@ -247,9 +305,52 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
               </form>
             ) : forgotStep === 2 ? (
               <form onSubmit={verifyResetOtp}>
-                <div style={{ marginBottom: 20 }}>
+                <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: 6 }}>Kode OTP</label>
                   <input type="text" inputMode="numeric" maxLength="6" value={forgotOtp} onChange={function (e) { setForgotOtp(e.target.value); }} required autoFocus style={{ width: '100%', padding: '14px 16px', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '1.2rem', textAlign: 'center', letterSpacing: 6, background: 'var(--md-surface-container-low)' }} />
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 20,
+                  padding: '10px 14px',
+                  background: 'var(--md-surface-container-low)',
+                  borderRadius: 'var(--radius-md)'
+                }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)' }}>
+                    Belum menerima kode OTP?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleResendForgotOtp}
+                    disabled={resendCooldown > 0 || resending}
+                    style={{
+                      background: resendCooldown > 0 || resending ? 'transparent' : 'rgba(0, 104, 118, 0.08)',
+                      border: 'none',
+                      color: resendCooldown > 0 || resending ? 'var(--md-outline)' : 'var(--md-primary)',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: resendCooldown > 0 || resending ? 'not-allowed' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      transition: 'all 0.2s ease',
+                      fontFamily: "'Open Sans', sans-serif"
+                    }}
+                  >
+                    {resending ? (
+                      <><span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'pulse 1s infinite' }}>hourglass_top</span> Mengirim...</>
+                    ) : resendCooldown > 0 ? (
+                      <><span className="material-symbols-outlined" style={{ fontSize: 16 }}>schedule</span> Kirim Ulang ({resendCooldown}s)</>
+                    ) : (
+                      <><span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span> Kirim Ulang Kode OTP</>
+                    )}
+                  </button>
                 </div>
                 <button type="submit" disabled={loading} style={{ width: '100%', padding: 14, border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--md-primary-container)', color: 'var(--md-on-primary-container)', fontWeight: 700 }}>{loading ? 'Memverifikasi OTP...' : 'Verifikasi OTP'}</button>
                 <button type="button" onClick={switchToLogin} style={{ width: '100%', marginTop: 10, padding: 12, border: '1px solid var(--md-outline-variant)', borderRadius: 'var(--radius-md)', background: 'var(--md-surface-container)', fontWeight: 600 }}>Kembali ke Login</button>
@@ -435,7 +536,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
             </form>
           ) : (
             <form onSubmit={handleVerifyOtp}>
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 12 }}>
                 <label style={{
                   fontSize: '0.85rem',
                   fontWeight: 500,
@@ -466,6 +567,52 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
                   }}
                 />
               </div>
+
+              {/* Area Info dan Tombol Kirim Ulang OTP */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 8,
+                marginBottom: 20,
+                padding: '10px 14px',
+                background: 'var(--md-surface-container-low)',
+                borderRadius: 'var(--radius-md)'
+              }}>
+                <span style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)' }}>
+                  Belum menerima kode OTP?
+                </span>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendCooldown > 0 || resending}
+                  style={{
+                    background: resendCooldown > 0 || resending ? 'transparent' : 'rgba(0, 104, 118, 0.08)',
+                    border: 'none',
+                    color: resendCooldown > 0 || resending ? 'var(--md-outline)' : 'var(--md-primary)',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: resendCooldown > 0 || resending ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '6px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    transition: 'all 0.2s ease',
+                    fontFamily: "'Open Sans', sans-serif"
+                  }}
+                >
+                  {resending ? (
+                    <><span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'pulse 1s infinite' }}>hourglass_top</span> Mengirim...</>
+                  ) : resendCooldown > 0 ? (
+                    <><span className="material-symbols-outlined" style={{ fontSize: 16 }}>schedule</span> Kirim Ulang ({resendCooldown}s)</>
+                  ) : (
+                    <><span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span> Kirim Ulang Kode OTP</>
+                  )}
+                </button>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -494,6 +641,7 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
                   <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>verified_user</span> Masuk</>
                 )}
               </button>
+
               <button
                 type="button"
                 onClick={function () { setStep(1); setError(''); setSuccessMsg(''); }}
@@ -503,10 +651,11 @@ function CustomerLoginPage({ onLogin, title = "Portal Pembayaran" }) {
                   color: 'var(--md-on-surface)',
                   border: '1px solid var(--md-outline-variant)',
                   borderRadius: 'var(--radius-md)',
-                  padding: '12px',
+                  padding: '12px 16px',
                   fontSize: '0.9rem',
                   fontWeight: 600,
                   cursor: 'pointer',
+                  transition: 'all 0.2s ease',
                   fontFamily: "'Open Sans', sans-serif"
                 }}
               >

@@ -151,6 +151,22 @@ pool.getConnection((err, connection) => {
       });
     });
 
+    // Pengecekan kolom tabel pengeluaran (bukti_nota, status, catatan_validasi, validated_by, validated_at)
+    var pengeluaranCols = [
+      ['bukti_nota', 'VARCHAR(255) DEFAULT NULL'],
+      ['status', "ENUM('menunggu_persetujuan', 'disetujui', 'ditolak') DEFAULT 'menunggu_persetujuan'"],
+      ['catatan_validasi', 'TEXT DEFAULT NULL'],
+      ['validated_by', 'INT UNSIGNED DEFAULT NULL'],
+      ['validated_at', 'DATETIME DEFAULT NULL']
+    ];
+    pengeluaranCols.forEach(function (item) {
+      connection.query('SHOW COLUMNS FROM pengeluaran LIKE ?', [item[0]], function (err, rows) {
+        if (!err && rows && rows.length === 0) {
+          connection.query('ALTER TABLE pengeluaran ADD COLUMN ' + item[0] + ' ' + item[1], function () {});
+        }
+      });
+    });
+
     connection.release(); 
   }
 });

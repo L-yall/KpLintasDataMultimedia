@@ -5,11 +5,17 @@ import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
 
 function LaporanPage() {
+  var currentAdmin = JSON.parse(localStorage.getItem('admin') || '{}');
+  var isSuperAdmin = currentAdmin && currentAdmin.role === 'superadmin';
+
   var today = new Date();
+  var todayStr = today.toISOString().split('T')[0];
+  var yesterdayDate = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  var yesterdayStr = yesterdayDate.toISOString().split('T')[0];
   var defaultPeriode = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
 
   var [periode, setPeriode] = useState(defaultPeriode);
-  var [summary, setSummary] = useState({ total_pemasukan: 0, total_pengeluaran: 0, laba_bersih: 0 });
+  var [summary, setSummary] = useState({ total_pemasukan: 0, total_pengeluaran: 0, total_menunggu: 0, laba_bersih: 0 });
   var [incomes, setIncomes] = useState([]);
   var [expenses, setExpenses] = useState([]);
   var [chartData, setChartData] = useState([]);
@@ -24,15 +30,24 @@ function LaporanPage() {
 
   // Modals state for CRUD Expenses
   var [showAddModal, setShowAddModal] = useState(false);
-  var [showEditModal, setShowEditModal] = useState(false);
-  var [editTarget, setEditTarget] = useState(null);
+  // Filter 30 Hari Mandiri (Pengeluaran & Pemasukan terpisah)
+  var [filterPengeluaran30Hari, setFilterPengeluaran30Hari] = useState(true);
+  var [filterPemasukan30Hari, setFilterPemasukan30Hari] = useState(true);
 
   // Form fields
   var [kategori, setKategori] = useState('');
   var [nominal, setNominal] = useState('');
   var [tipe, setTipe] = useState('tidak_fix');
-  var [tanggal, setTanggal] = useState(today.toISOString().split('T')[0]);
+  var [tanggal, setTanggal] = useState(todayStr);
   var [keterangan, setKeterangan] = useState('');
+  var [buktiNotaFile, setBuktiNotaFile] = useState(null);
+  var [buktiNotaPreview, setBuktiNotaPreview] = useState(null);
+  var [previewNotaUrl, setPreviewNotaUrl] = useState(null);
+
+  // Kategori berkala yang pernah dicatat
+  var [berkalaList, setBerkalaList] = useState([]);
+  var [selectedBerkala, setSelectedBerkala] = useState('');
+  var [isNewBerkala, setIsNewBerkala] = useState(false);
 
   var [actionLoading, setActionLoading] = useState(false);
   var [exporting, setExporting] = useState(false);
@@ -77,12 +92,24 @@ function LaporanPage() {
   }, [periode]);
 
   useEffect(function () {
+    fetchBerkalaList();
     var query = new URLSearchParams(window.location.search);
     if (query.get('action') === 'pengeluaran') {
       resetForm();
       setShowAddModal(true);
     }
   }, []);
+
+  async function fetchBerkalaList() {
+    try {
+      var res = await axios.get(`${API_BASE_URL}/api/pengeluaran/kategori-berkala`, { headers: headers });
+      if (res.data.success) {
+        setBerkalaList(res.data.data);
+      }
+    } catch (e) {
+      console.error('Gagal mengambil daftar pengeluaran berkala:', e);
+    }
+  }
 
   async function fetchData() {
     setLoading(true);
@@ -111,22 +138,66 @@ function LaporanPage() {
     }
   }
 
+  function handleFileChange(e) {
+    var file = e.target.files && e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Ukuran file bukti nota maksimal 5MB.');
+        e.target.value = '';
+        return;
+      }
+      setBuktiNotaFile(file);
+      if (file.type.startsWith('image/')) {
+        setBuktiNotaPreview(URL.createObjectURL(file));
+      } else {
+        setBuktiNotaPreview(null);
+      }
+    } else {
+      setBuktiNotaFile(null);
+      setBuktiNotaPreview(null);
+    }
+  }
+
   async function handleAddExpense(e) {
     e.preventDefault();
+    if (!buktiNotaFile) {
+      alert('Bukti pengeluaran atau nota wajib diunggah.');
+      return;
+    }
+
+    if (!isSuperAdmin) {
+      if (tanggal < yesterdayStr) {
+        alert('Maksimal input pengeluaran adalah 1 hari setelah tanggal transaksi/nota (Maksimal tanggal ' + yesterdayStr + ').');
+        return;
+      }
+      if (tanggal > todayStr) {
+        alert('Tanggal pengeluaran tidak boleh melebihi tanggal hari ini.');
+        return;
+      }
+    }
+
     setActionLoading(true);
     try {
-      var response = await axios.post(`${API_BASE_URL}/api/pengeluaran`, {
-        kategori: kategori,
-        nominal: Number(nominal),
-        tipe: tipe,
-        tanggal: tanggal,
-        keterangan: keterangan
-      }, { headers: headers });
+      var formData = new FormData();
+      formData.append('kategori', kategori);
+      formData.append('nominal', nominal);
+      formData.append('tipe', tipe);
+      formData.append('tanggal', tanggal);
+      formData.append('keterangan', keterangan);
+      formData.append('bukti_nota', buktiNotaFile);
+
+      var response = await axios.post(`${API_BASE_URL}/api/pengeluaran`, formData, {
+        headers: {
+          ...headers,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
 
       alert(response.data.message);
       setShowAddModal(false);
       resetForm();
       fetchData();
+      fetchBerkalaList();
     } catch (err) {
       alert('Gagal mencatat pengeluaran: ' + (err.response?.data?.message || err.message));
     } finally {
@@ -134,59 +205,88 @@ function LaporanPage() {
     }
   }
 
-  async function handleEditExpense(e) {
-    e.preventDefault();
+
+  async function handleValidateExpense(status, item) {
+    var confirmMsg = status === 'disetujui'
+      ? `Apakah Anda yakin ingin MENYETUJUI pengeluaran "${item.kategori}" sebesar ${formatUang(item.nominal)}?\n\nPengeluaran ini akan langsung memotong saldo pemasukan/kas pada laporan keuangan.`
+      : `Apakah Anda yakin ingin MENOLAK pengeluaran "${item.kategori}" sebesar ${formatUang(item.nominal)}?`;
+
+    var catatan = '';
+    if (status === 'ditolak') {
+      var inputCatatan = window.prompt('Masukkan alasan penolakan pengeluaran (opsional):', '');
+      if (inputCatatan === null) return;
+      catatan = inputCatatan;
+    } else {
+      if (!window.confirm(confirmMsg)) return;
+    }
+
     setActionLoading(true);
     try {
-      var response = await axios.put(`${API_BASE_URL}/api/pengeluaran/${editTarget.id_pengeluaran}`, {
-        kategori: kategori,
-        nominal: Number(nominal),
-        tipe: tipe,
-        tanggal: tanggal,
-        keterangan: keterangan
+      var response = await axios.put(`${API_BASE_URL}/api/pengeluaran/${item.id_pengeluaran}/validasi`, {
+        status: status,
+        catatan_validasi: catatan
       }, { headers: headers });
 
       alert(response.data.message);
-      setShowEditModal(false);
-      resetForm();
       fetchData();
     } catch (err) {
-      alert('Gagal mengupdate pengeluaran: ' + (err.response?.data?.message || err.message));
+      alert('Gagal memvalidasi pengeluaran: ' + (err.response?.data?.message || err.message));
     } finally {
       setActionLoading(false);
     }
   }
 
-  async function handleDeleteExpense(id) {
-    if (!window.confirm('Apakah Anda yakin ingin MENGHAPUS pengeluaran ini?')) {
-      return;
-    }
-    try {
-      var response = await axios.delete(`${API_BASE_URL}/api/pengeluaran/${id}`, { headers: headers });
-      alert(response.data.message);
-      fetchData();
-    } catch (err) {
-      alert('Gagal menghapus pengeluaran: ' + (err.response?.data?.message || err.message));
-    }
-  }
 
-  function handleOpenEdit(item) {
-    setEditTarget(item);
-    setKategori(item.kategori || '');
-    setNominal(item.nominal || '');
-    setTipe(item.tipe || 'tidak_fix');
-    setTanggal(item.tanggal ? (typeof item.tanggal === 'string' ? item.tanggal.split('T')[0] : new Date(item.tanggal).toISOString().split('T')[0]) : '');
-    setKeterangan(item.keterangan || '');
-    setShowEditModal(true);
-  }
 
   function resetForm() {
     setKategori('');
     setNominal('');
     setTipe('tidak_fix');
-    setTanggal(today.toISOString().split('T')[0]);
+    setTanggal(todayStr);
     setKeterangan('');
-    setEditTarget(null);
+    setBuktiNotaFile(null);
+    setBuktiNotaPreview(null);
+    setSelectedBerkala('');
+    setIsNewBerkala(false);
+  }
+
+  function handleTipeChange(e) {
+    var newTipe = e.target.value;
+    setTipe(newTipe);
+    if (newTipe === 'fix') {
+      fetchBerkalaList();
+      if (berkalaList.length > 0) {
+        setSelectedBerkala('');
+        setIsNewBerkala(false);
+        setKategori('');
+      } else {
+        setIsNewBerkala(true);
+      }
+    } else {
+      setSelectedBerkala('');
+      setIsNewBerkala(false);
+    }
+  }
+
+  function handleSelectBerkala(e) {
+    var val = e.target.value;
+    setSelectedBerkala(val);
+    if (val === '__NEW__') {
+      setIsNewBerkala(true);
+      setKategori('');
+      setNominal('');
+    } else if (val) {
+      setIsNewBerkala(false);
+      var found = berkalaList.find(function (b) { return b.kategori === val; });
+      if (found) {
+        setKategori(found.kategori);
+        setNominal(found.nominal ? String(Math.round(found.nominal)) : '');
+        if (found.keterangan) setKeterangan(found.keterangan);
+      }
+    } else {
+      setIsNewBerkala(false);
+      setKategori('');
+    }
   }
 
   async function handleExportExcel() {
@@ -257,11 +357,29 @@ function LaporanPage() {
     );
   }
 
-  var totalExpensesPages = Math.ceil(expenses.length / 10) || 1;
-  var currentExpenses = expenses.slice((expensePage - 1) * 10, expensePage * 10);
+  var now = new Date();
+  var thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(now.getDate() - 30);
+  thirtyDaysAgo.setHours(0, 0, 0, 0);
+  var thirtyDaysAgoTime = thirtyDaysAgo.getTime();
 
-  var totalIncomesPages = Math.ceil(incomes.length / 10) || 1;
-  var currentIncomes = incomes.slice((incomePage - 1) * 10, incomePage * 10);
+  var displayedExpenses = expenses.filter(function (item) {
+    if (!filterPengeluaran30Hari) return true;
+    var txDate = item.tanggal ? new Date(item.tanggal) : (item.created_at ? new Date(item.created_at) : new Date());
+    return txDate.getTime() >= thirtyDaysAgoTime;
+  });
+
+  var displayedIncomes = incomes.filter(function (item) {
+    if (!filterPemasukan30Hari) return true;
+    var txDate = item.updated_at ? new Date(item.updated_at) : new Date();
+    return txDate.getTime() >= thirtyDaysAgoTime;
+  });
+
+  var totalExpensesPages = Math.ceil(displayedExpenses.length / 10) || 1;
+  var currentExpenses = displayedExpenses.slice((expensePage - 1) * 10, expensePage * 10);
+
+  var totalIncomesPages = Math.ceil(displayedIncomes.length / 10) || 1;
+  var currentIncomes = displayedIncomes.slice((incomePage - 1) * 10, incomePage * 10);
 
   var totalLogsPages = Math.ceil(reportLogs.length / 10) || 1;
   var currentLogs = reportLogs.slice((logPage - 1) * 10, logPage * 10);
@@ -344,6 +462,44 @@ function LaporanPage() {
         </div>
       </div>
 
+      {/* Notifikasi Transaksi Periode Baru / Kosong */}
+      {!loading && displayedExpenses.length === 0 && displayedIncomes.length === 0 && (() => {
+        var currentPeriodeParts = periode.split('-');
+        var prevMonthDate = new Date(parseInt(currentPeriodeParts[0], 10), parseInt(currentPeriodeParts[1], 10) - 2, 1);
+        var prevMonthStr = prevMonthDate.getFullYear() + '-' + String(prevMonthDate.getMonth() + 1).padStart(2, '0');
+        var prevMonthName = prevMonthDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+        var activeMonthName = new Date(parseInt(currentPeriodeParts[0], 10), parseInt(currentPeriodeParts[1], 10) - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+        return (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            padding: '14px 18px',
+            background: 'rgba(2, 136, 209, 0.08)',
+            border: '1px solid rgba(2, 136, 209, 0.25)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '24px',
+            fontSize: '0.88rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <TemplateIcon name="info" size={20} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+              <div>
+                <strong>Informasi Periode:</strong> Anda sedang berada di filter periode <strong>{activeMonthName}</strong>. Data transaksi operasional yang dicatat sebelumnya berada pada periode <strong>{prevMonthName}</strong>.
+              </div>
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={function () { setPeriode(prevMonthStr); }}
+              style={{ fontSize: '0.82rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <TemplateIcon name="calendar" size={14} /> Buka Laporan {prevMonthName}
+            </button>
+          </div>
+        );
+      })()}
+
       {/* Summary Cards */}
       <div className="stats-grid" style={{ marginBottom: '24px' }}>
         <div className="stat-card">
@@ -360,7 +516,14 @@ function LaporanPage() {
           <div className="stat-info">
             <span className="stat-label">Total Pengeluaran</span>
             <h3>{loading ? '...' : formatUang(summary.total_pengeluaran)}</h3>
-            <span className="stat-desc" style={{ color: 'var(--danger)' }}>Operasional & Fix</span>
+            <span className="stat-desc" style={{ color: 'var(--danger)' }}>
+              Disetujui Finance
+              {summary.total_menunggu > 0 && (
+                <span style={{ display: 'block', color: 'var(--status-kuning)', fontSize: '0.78rem', marginTop: '2px', fontWeight: '600' }}>
+                  ⏳ {formatUang(summary.total_menunggu)} menunggu validasi
+                </span>
+              )}
+            </span>
           </div>
         </div>
 
@@ -371,7 +534,7 @@ function LaporanPage() {
             <h3 style={{ color: summary.laba_bersih >= 0 ? 'var(--primary-light)' : 'var(--danger)' }}>
               {loading ? '...' : formatUang(summary.laba_bersih)}
             </h3>
-            <span className="stat-desc">Keuntungan bulan berjalan</span>
+            <span className="stat-desc">Pemasukan - Pengeluaran disetujui</span>
           </div>
         </div>
       </div>
@@ -663,57 +826,134 @@ function LaporanPage() {
 
         {/* Section Pengeluaran (CRUD) */}
         <div className="table-container animate-fadeIn">
-          <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3><TemplateIcon name="money" size={18} style={{ marginRight: '8px' }} /> Pengeluaran Operasional ({expenses.length})</h3>
-            <button className="btn btn-primary btn-sm" onClick={function () { resetForm(); setShowAddModal(true); }}>
-              <TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Catat Pengeluaran
-            </button>
+          <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h3 style={{ margin: 0 }}><TemplateIcon name="money" size={18} style={{ marginRight: '8px' }} /> Pengeluaran Operasional ({displayedExpenses.length})</h3>
+              <span className={`status-badge ${filterPengeluaran30Hari ? 'biru' : 'abu_abu'}`} style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
+                <TemplateIcon name="clock" size={11} style={{ marginRight: '4px' }} />
+                {filterPengeluaran30Hari ? '30 Hari Terakhir' : 'Semua Riwayat'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={function () { setFilterPengeluaran30Hari(!filterPengeluaran30Hari); setExpensePage(1); }}
+                style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                title="Beralih antara menampilkan transaksi 30 hari terakhir atau seluruh riwayat pengeluaran"
+              >
+                <TemplateIcon name={filterPengeluaran30Hari ? 'folder' : 'calendar'} size={13} />
+                <span>{filterPengeluaran30Hari ? 'Buka Arsip (>30 Hari)' : 'Batasi 30 Hari Terakhir'}</span>
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={function () { resetForm(); fetchBerkalaList(); setShowAddModal(true); }}>
+                <TemplateIcon name="plus" size={16} style={{ marginRight: '6px' }} /> Catat Pengeluaran
+              </button>
+            </div>
           </div>
 
           {loading ? (
             <div style={{ padding: '30px' }}><div className="skeleton skeleton-text" /></div>
-          ) : expenses.length === 0 ? (
+          ) : displayedExpenses.length === 0 ? (
             <div className="table-empty">
               <div className="table-empty-icon"><TemplateIcon name="money" size={28} /></div>
-              <p>Belum ada pengeluaran operasional yang dicatat pada bulan ini.</p>
+              <p>{filterPengeluaran30Hari ? 'Tidak ada pengeluaran operasional dalam 30 hari terakhir.' : 'Belum ada pengeluaran operasional yang dicatat pada bulan ini.'}</p>
             </div>
           ) : (
             <>
               <div style={{ overflowX: 'auto', width: '100%' }}>
-                <table className="data-table" style={{ minWidth: '750px' }}>
+                <table className="data-table" style={{ minWidth: '950px' }}>
                   <thead>
                     <tr>
                       <th>No</th>
+                      <th>Tanggal</th>
+                      <th>Nominal</th>
+                      <th>Periode</th>
+                      <th>Nama</th>
+                      <th>No HP</th>
                       <th>Kategori</th>
                       <th>Tipe</th>
-                      <th>Nominal</th>
-                      <th>Tanggal</th>
-                      <th>Keterangan</th>
-                      <th>Petugas</th>
-                      <th>Aksi</th>
+                      <th>Bukti Nota</th>
+                      <th>Status Validasi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentExpenses.map(function (item, idx) {
+                      var d = item.tanggal ? new Date(item.tanggal) : new Date();
+                      var itemPeriode = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
                       return (
                         <tr key={item.id_pengeluaran}>
                           <td style={{ color: 'var(--text-muted)' }}>{(expensePage - 1) * 10 + idx + 1}</td>
+                          <td>{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                          <td style={{ fontWeight: 700, color: item.status === 'disetujui' ? 'var(--danger)' : 'var(--text-muted)' }}>
+                            {formatUang(item.nominal)}
+                            {item.status !== 'disetujui' && (
+                              <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>
+                                (Belum potong kas)
+                              </span>
+                            )}
+                          </td>
+                          <td><code>{itemPeriode}</code></td>
+                          <td style={{ fontWeight: 600 }}>{item.nama_admin || 'Administrator'}</td>
+                          <td>{item.no_hp || '-'}</td>
                           <td style={{ fontWeight: 600 }}>{item.kategori}</td>
                           <td>
                             <span className={`status-badge ${item.tipe === 'fix' ? 'hijau' : 'abu_abu'}`}>
                               {item.tipe === 'fix' ? 'Fix (Bulanan)' : 'Tidak Fix'}
                             </span>
                           </td>
-                          <td style={{ fontWeight: 700, color: 'var(--danger)' }}>{formatUang(item.nominal)}</td>
-                          <td>{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                          <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {item.keterangan || '-'}
-                          </td>
-                          <td style={{ fontSize: '0.85rem' }}>{item.nama_admin || '-'}</td>
                           <td>
-                            <div className="table-actions">
-                              <button className="btn btn-secondary btn-sm" onClick={function () { handleOpenEdit(item); }}><TemplateIcon name="edit" size={14} style={{ marginRight: '6px' }} /> Edit</button>
-                              <button className="btn btn-danger btn-sm" onClick={function () { handleDeleteExpense(item.id_pengeluaran); }}><TemplateIcon name="trash" size={14} style={{ marginRight: '6px' }} /> Hapus</button>
+                            {item.bukti_nota ? (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                onClick={function () { setPreviewNotaUrl(item.bukti_nota); }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', fontSize: '0.75rem' }}
+                                title="Lihat Foto Bukti Nota / Kuitansi"
+                              >
+                                <TemplateIcon name="document" size={13} /> Lihat Nota
+                              </button>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>-</span>
+                            )}
+                          </td>
+                          <td>
+                            <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                              {item.status === 'disetujui' ? (
+                                <span className="status-badge hijau" title={item.nama_validator ? `Disetujui oleh: ${item.nama_validator}` : 'Telah disetujui'}>
+                                  <TemplateIcon name="check" size={12} style={{ marginRight: '4px' }} /> Disetujui
+                                </span>
+                              ) : item.status === 'ditolak' ? (
+                                <span className="status-badge merah" title={item.catatan_validasi ? `Alasan: ${item.catatan_validasi}` : 'Ditolak'}>
+                                  <TemplateIcon name="close" size={12} style={{ marginRight: '4px' }} /> Ditolak
+                                </span>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <span className="status-badge kuning" title="Menunggu persetujuan Super Admin (Finance)">
+                                    <TemplateIcon name="clock" size={12} style={{ marginRight: '4px' }} /> Menunggu
+                                  </span>
+                                  {isSuperAdmin && (
+                                    <div style={{ display: 'inline-flex', gap: '4px' }}>
+                                      <button
+                                        className="btn btn-sm"
+                                        onClick={function () { handleValidateExpense('disetujui', item); }}
+                                        style={{ background: 'var(--status-hijau)', color: '#fff', border: 'none', padding: '3px 8px', fontSize: '0.72rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center' }}
+                                        title="Setujui pengeluaran ini agar memotong saldo kas"
+                                        disabled={actionLoading}
+                                      >
+                                        <TemplateIcon name="check" size={12} style={{ marginRight: '3px' }} /> Setujui
+                                      </button>
+                                      <button
+                                        className="btn btn-danger btn-sm"
+                                        onClick={function () { handleValidateExpense('ditolak', item); }}
+                                        style={{ padding: '3px 8px', fontSize: '0.72rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center' }}
+                                        title="Tolak pengeluaran ini"
+                                        disabled={actionLoading}
+                                      >
+                                        <TemplateIcon name="close" size={12} style={{ marginRight: '3px' }} /> Tolak
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -731,29 +971,44 @@ function LaporanPage() {
 
         {/* Section Pemasukan */}
         <div className="table-container animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-          <div className="table-header">
-            <h3><TemplateIcon name="chart-up" size={18} style={{ marginRight: '8px' }} /> Pemasukan Real-Time ({incomes.length})</h3>
+          <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h3 style={{ margin: 0 }}><TemplateIcon name="chart-up" size={18} style={{ marginRight: '8px' }} /> Pemasukan Real-Time ({displayedIncomes.length})</h3>
+              <span className={`status-badge ${filterPemasukan30Hari ? 'biru' : 'abu_abu'}`} style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
+                <TemplateIcon name="clock" size={11} style={{ marginRight: '4px' }} />
+                {filterPemasukan30Hari ? '30 Hari Terakhir' : 'Semua Riwayat'}
+              </span>
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={function () { setFilterPemasukan30Hari(!filterPemasukan30Hari); setIncomePage(1); }}
+              style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              title="Beralih antara menampilkan transaksi 30 hari terakhir atau seluruh riwayat pemasukan"
+            >
+              <TemplateIcon name={filterPemasukan30Hari ? 'folder' : 'calendar'} size={13} />
+              <span>{filterPemasukan30Hari ? 'Buka Arsip (>30 Hari)' : 'Batasi 30 Hari Terakhir'}</span>
+            </button>
           </div>
 
           {loading ? (
             <div style={{ padding: '30px' }}><div className="skeleton skeleton-text" /></div>
-          ) : incomes.length === 0 ? (
+          ) : displayedIncomes.length === 0 ? (
             <div className="table-empty">
               <div className="table-empty-icon"><TemplateIcon name="chart-up" size={28} /></div>
-              <p>Belum ada tagihan lunas yang tercatat pada bulan ini.</p>
+              <p>{filterPemasukan30Hari ? 'Tidak ada tagihan lunas dalam 30 hari terakhir.' : 'Belum ada tagihan lunas yang tercatat pada bulan ini.'}</p>
             </div>
           ) : (
             <>
               <div style={{ overflowX: 'auto', width: '100%' }}>
-                <table className="data-table" style={{ minWidth: '600px' }}>
+                <table className="data-table" style={{ minWidth: '650px' }}>
                   <thead>
                     <tr>
                       <th>No</th>
-                      <th>Nama Pelanggan</th>
-                      <th>Nomor HP</th>
+                      <th>Tanggal</th>
+                      <th>Nominal</th>
                       <th>Periode</th>
-                      <th>Nominal Pemasukan</th>
-                      <th>Tanggal Bayar</th>
+                      <th>Nama</th>
+                      <th>No HP</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -761,11 +1016,11 @@ function LaporanPage() {
                       return (
                         <tr key={item.id_tagihan}>
                           <td style={{ color: 'var(--text-muted)' }}>{(incomePage - 1) * 10 + idx + 1}</td>
+                          <td>{new Date(item.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                          <td style={{ fontWeight: 700, color: 'var(--success)' }}>{formatUang(item.nominal)}</td>
+                          <td><code>{item.periode}</code></td>
                           <td style={{ fontWeight: 600 }}>{item.nama}</td>
                           <td>{item.no_hp}</td>
-                          <td><code>{item.periode}</code></td>
-                          <td style={{ fontWeight: 700, color: 'var(--success)' }}>{formatUang(item.nominal)}</td>
-                          <td>{new Date(item.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                         </tr>
                       );
                     })}
@@ -907,7 +1162,7 @@ function LaporanPage() {
           footer={
             <>
               <button className="btn btn-secondary" onClick={function () { setShowAddModal(false); resetForm(); }} disabled={actionLoading}>Batal</button>
-              <button className="btn btn-primary" onClick={handleAddExpense} disabled={actionLoading || !kategori || !nominal || !tanggal}>
+              <button className="btn btn-primary" onClick={handleAddExpense} disabled={actionLoading || !kategori || !nominal || !tanggal || !buktiNotaFile}>
                 {actionLoading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Menyimpan...</> : <><TemplateIcon name="check" size={16} style={{ marginRight: '6px' }} /> Simpan Pengeluaran</>}
               </button>
             </>
@@ -915,44 +1170,116 @@ function LaporanPage() {
         >
           <form onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div className="form-group">
-              <label>Kategori Pengeluaran *</label>
+              <label>Tipe Pengeluaran *</label>
+              <select value={tipe} onChange={handleTipeChange} required style={{ width: '100%', padding: '9px 12px', borderRadius: '6px' }}>
+                <option value="tidak_fix">Tambahan (Tidak Fix / Sekali Jalan)</option>
+                <option value="fix">Berkala (Fix Bulanan Rutin)</option>
+              </select>
+            </div>
+
+            {tipe === 'fix' && (
+              <div className="form-group animate-fadeIn">
+                <label>Pilih Pengeluaran Berkala Terdaftar *</label>
+                {berkalaList.length > 0 ? (
+                  <select
+                    value={selectedBerkala}
+                    onChange={handleSelectBerkala}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '6px' }}
+                    required={!isNewBerkala}
+                  >
+                    <option value="">-- Pilih dari riwayat pengeluaran berkala sebelumnya --</option>
+                    {berkalaList.map(function (item) {
+                      return (
+                        <option key={item.kategori} value={item.kategori}>
+                          {item.kategori} (Terakhir: {formatUang(item.nominal)})
+                        </option>
+                      );
+                    })}
+                    <option value="__NEW__">+ Catat Kategori Rutin Baru Lainnya...</option>
+                  </select>
+                ) : (
+                  <small style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    Belum ada pengeluaran berkala yang tersimpan sebelumnya. Silakan masukkan kategori baru di bawah.
+                  </small>
+                )}
+              </div>
+            )}
+
+            {(tipe === 'tidak_fix' || isNewBerkala || berkalaList.length === 0) && (
+              <div className="form-group animate-fadeIn">
+                <label>{tipe === 'fix' ? 'Nama Kategori Rutin Baru *' : 'Kategori Pengeluaran *'}</label>
+                <input
+                  type="text"
+                  placeholder={tipe === 'fix' ? "Contoh: Sewa Bandwidth, Sewa Kantor, Listrik PLN" : "Contoh: Bensin, Pembelian Kabel Patch Cord"}
+                  value={kategori}
+                  onChange={function (e) { setKategori(e.target.value); }}
+                  required
+                />
+              </div>
+            )}
+
+            {tipe === 'fix' && selectedBerkala && !isNewBerkala && (
+              <div className="form-group animate-fadeIn">
+                <label>Kategori Pengeluaran Terpilih *</label>
+                <input
+                  type="text"
+                  value={kategori}
+                  readOnly
+                  style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed', fontWeight: 600 }}
+                />
+                <small style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px', color: 'var(--status-hijau, #10b981)', fontSize: '0.78rem' }}>
+                  <TemplateIcon name="check" size={13} />
+                  <span>Kategori otomatis diambil dari data berkala. Nominal di bawah otomatis terisi dan dapat disesuaikan jika tagihan bulan ini berbeda.</span>
+                </small>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label>Nominal (Rp) *</label>
               <input
-                type="text"
-                placeholder="Contoh: Sewa Bandwidth, Listrik PLN, Bensin Operasional"
-                value={kategori}
-                onChange={function (e) { setKategori(e.target.value); }}
+                type="number"
+                placeholder="0"
+                value={nominal}
+                onChange={function (e) { setNominal(e.target.value); }}
                 required
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="form-group">
-                <label>Nominal (Rp) *</label>
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={nominal}
-                  onChange={function (e) { setNominal(e.target.value); }}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Tipe Pengeluaran *</label>
-                <select value={tipe} onChange={function (e) { setTipe(e.target.value); }} required>
-                  <option value="tidak_fix">Tambahan (Tidak Fix)</option>
-                  <option value="fix">Berkala (Fix Bulanan)</option>
-                </select>
-              </div>
-            </div>
-
             <div className="form-group">
-              <label>Tanggal Pengeluaran *</label>
+              <label>Tanggal Pengeluaran / Nota *</label>
               <input
                 type="date"
+                min={isSuperAdmin ? undefined : yesterdayStr}
+                max={todayStr}
                 value={tanggal}
                 onChange={function (e) { setTanggal(e.target.value); }}
                 required
               />
+              {!isSuperAdmin && (
+                <small style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                  <TemplateIcon name="info" size={13} />
+                  <span>Maksimal diinput 1 hari setelah tanggal transaksi (Batas: {yesterdayStr} s/d Hari ini).</span>
+                </small>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label>Bukti Pengeluaran / Nota *</label>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={handleFileChange}
+                required
+                style={{ padding: '8px' }}
+              />
+              <small style={{ display: 'block', marginTop: '4px', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                Wajib melampirkan foto struk, kuitansi, atau nota transaksi (JPG, PNG, WEBP, atau PDF. Maks. 5MB).
+              </small>
+              {buktiNotaPreview && (
+                <div style={{ marginTop: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px', display: 'inline-block' }}>
+                  <img src={buktiNotaPreview} alt="Preview Nota" style={{ maxHeight: '120px', borderRadius: '4px' }} />
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -964,74 +1291,54 @@ function LaporanPage() {
                 onChange={function (e) { setKeterangan(e.target.value); }}
               />
             </div>
+
+            {!isSuperAdmin && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+                <TemplateIcon name="lock" size={15} style={{ flexShrink: 0, color: 'var(--status-kuning, #ca8a04)' }} />
+                <span><strong>Pemberitahuan:</strong> Pengeluaran yang dicatat oleh Admin Operasional harus divalidasi terlebih dahulu oleh Super Admin (Finance) sebelum memotong saldo kas/pemasukan.</span>
+              </div>
+            )}
           </form>
         </Modal>
       )}
 
-      {/* Modal Edit Pengeluaran */}
-      {showEditModal && (
+
+
+      {/* Modal Preview Bukti Pengeluaran / Nota */}
+      {previewNotaUrl && (
         <Modal
-          isOpen={showEditModal}
-          onClose={function () { setShowEditModal(false); resetForm(); }}
-          title={<><TemplateIcon name="edit" size={16} style={{ marginRight: '8px' }} /> Edit Data Pengeluaran</>}
+          isOpen={!!previewNotaUrl}
+          onClose={function () { setPreviewNotaUrl(null); }}
+          title={<><TemplateIcon name="document" size={16} style={{ marginRight: '8px' }} /> Bukti Pengeluaran / Nota</>}
           footer={
             <>
-              <button className="btn btn-secondary" onClick={function () { setShowEditModal(false); resetForm(); }} disabled={actionLoading}>Batal</button>
-              <button className="btn btn-primary" onClick={handleEditExpense} disabled={actionLoading || !kategori || !nominal || !tanggal}>
-                {actionLoading ? <><TemplateIcon name="loading" size={16} style={{ marginRight: '6px' }} /> Menyimpan...</> : <><TemplateIcon name="check" size={16} style={{ marginRight: '6px' }} /> Simpan Perubahan</>}
-              </button>
+              <a
+                href={previewNotaUrl.startsWith('http') ? previewNotaUrl : `${API_BASE_URL}${previewNotaUrl}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-secondary"
+              >
+                Buka di Tab Baru
+              </a>
+              <button className="btn btn-primary" onClick={function () { setPreviewNotaUrl(null); }}>Tutup</button>
             </>
           }
         >
-          <form onSubmit={handleEditExpense} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div className="form-group">
-              <label>Kategori Pengeluaran *</label>
-              <input
-                type="text"
-                value={kategori}
-                onChange={function (e) { setKategori(e.target.value); }}
-                required
+          <div style={{ textAlign: 'center', padding: '10px' }}>
+            {previewNotaUrl.toLowerCase().endsWith('.pdf') ? (
+              <iframe
+                src={previewNotaUrl.startsWith('http') ? previewNotaUrl : `${API_BASE_URL}${previewNotaUrl}`}
+                title="Preview Nota PDF"
+                style={{ width: '100%', height: '500px', border: 'none' }}
               />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="form-group">
-                <label>Nominal (Rp) *</label>
-                <input
-                  type="number"
-                  value={nominal}
-                  onChange={function (e) { setNominal(e.target.value); }}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Tipe Pengeluaran *</label>
-                <select value={tipe} onChange={function (e) { setTipe(e.target.value); }} required>
-                  <option value="tidak_fix">Tambahan (Tidak Fix)</option>
-                  <option value="fix">Berkala (Fix Bulanan)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Tanggal Pengeluaran *</label>
-              <input
-                type="date"
-                value={tanggal}
-                onChange={function (e) { setTanggal(e.target.value); }}
-                required
+            ) : (
+              <img
+                src={previewNotaUrl.startsWith('http') ? previewNotaUrl : `${API_BASE_URL}${previewNotaUrl}`}
+                alt="Bukti Nota Pengeluaran"
+                style={{ maxWidth: '100%', maxHeight: '65vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
               />
-            </div>
-
-            <div className="form-group">
-              <label>Keterangan Tambahan</label>
-              <textarea
-                rows="3"
-                value={keterangan}
-                onChange={function (e) { setKeterangan(e.target.value); }}
-              />
-            </div>
-          </form>
+            )}
+          </div>
         </Modal>
       )}
 

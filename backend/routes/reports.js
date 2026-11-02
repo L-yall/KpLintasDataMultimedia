@@ -27,7 +27,10 @@ router.get('/summary', function (req, res) {
   `;
 
   var expenseSql = `
-    SELECT COALESCE(SUM(nominal), 0) as total_pengeluaran 
+    SELECT 
+      COALESCE(SUM(CASE WHEN status = 'disetujui' THEN nominal ELSE 0 END), 0) as total_pengeluaran,
+      COALESCE(SUM(CASE WHEN status = 'menunggu_persetujuan' THEN nominal ELSE 0 END), 0) as total_menunggu,
+      COALESCE(SUM(CASE WHEN status = 'ditolak' THEN nominal ELSE 0 END), 0) as total_ditolak
     FROM pengeluaran 
     WHERE DATE_FORMAT(tanggal, '%Y-%m') = ?
   `;
@@ -44,6 +47,7 @@ router.get('/summary', function (req, res) {
 
       var pemasukan = parseFloat(incomeRes[0].total_pemasukan);
       var pengeluaran = parseFloat(expenseRes[0].total_pengeluaran);
+      var totalMenunggu = parseFloat(expenseRes[0].total_menunggu);
       var profit = pemasukan - pengeluaran;
 
       res.json({
@@ -52,6 +56,7 @@ router.get('/summary', function (req, res) {
           periode: periode,
           total_pemasukan: pemasukan,
           total_pengeluaran: pengeluaran,
+          total_menunggu: totalMenunggu,
           laba_bersih: profit
         }
       });
@@ -133,7 +138,7 @@ router.get('/export-excel', function (req, res) {
     ORDER BY t.updated_at DESC
   `;
 
-  // 2. Ambil seluruh data pengeluaran untuk tahun yang dipilih
+  // 2. Ambil seluruh data pengeluaran yang telah disetujui untuk tahun yang dipilih
   var expenseSql = `
     SELECT 
       p.*, 
@@ -145,7 +150,7 @@ router.get('/export-excel', function (req, res) {
       FROM admin
       GROUP BY id_admin
     ) a ON p.id_admin = a.id_admin
-    WHERE DATE_FORMAT(p.tanggal, '%Y') = ?
+    WHERE DATE_FORMAT(p.tanggal, '%Y') = ? AND p.status = 'disetujui'
     ORDER BY p.tanggal DESC, p.created_at DESC
   `;
 
@@ -583,7 +588,7 @@ router.get('/yearly-chart', function (req, res) {
       MONTH(tanggal) as bulan,
       COALESCE(SUM(nominal), 0) as total
     FROM pengeluaran
-    WHERE YEAR(tanggal) = ?
+    WHERE YEAR(tanggal) = ? AND status = 'disetujui'
     GROUP BY bulan
     ORDER BY bulan
   `;

@@ -87,16 +87,71 @@ router.get('/', function(req, res) {
             paket: registration.paket
           };
         });
-        var allNotifs = [...results, ...virtualPendingNotifs, ...registrationNotifs];
 
-        allNotifs.sort(function(a, b) {
-          return new Date(b.tanggal) - new Date(a.tanggal);
-        });
+        // Khusus Super Admin (Finance): Tambahkan notifikasi pengeluaran masuk yang menunggu validasi
+        if (req.adminRole === 'superadmin') {
+          var pendingExpensesSql = `
+            SELECT 
+              p.id_pengeluaran,
+              p.nominal,
+              p.kategori,
+              p.tipe,
+              p.tanggal,
+              p.bukti_nota,
+              p.created_at,
+              a.nama AS nama_admin
+            FROM pengeluaran p
+            LEFT JOIN (
+              SELECT id_admin, MAX(nama) as nama
+              FROM admin
+              GROUP BY id_admin
+            ) a ON p.id_admin = a.id_admin
+            WHERE p.status = 'menunggu_persetujuan'
+            ORDER BY p.created_at DESC
+          `;
 
-        res.json({
-          success: true,
-          data: allNotifs
-        });
+          db.query(pendingExpensesSql, function(expErr, expenseRows) {
+            if (expErr) {
+              console.error('[Notification API] Error fetching pending expenses:', expErr.message);
+              expenseRows = [];
+            }
+
+            var expenseNotifs = (expenseRows || []).map(function(exp) {
+              return {
+                tipe: 'pengeluaran_masuk',
+                id_notifikasi: 'virtual-exp-' + exp.id_pengeluaran,
+                id_pengeluaran: exp.id_pengeluaran,
+                status_baca: 0,
+                tanggal: exp.created_at || exp.tanggal,
+                kategori: exp.kategori,
+                nominal: exp.nominal,
+                nama_admin: exp.nama_admin || 'Admin Operasional',
+                tipe_pengeluaran: exp.tipe,
+                bukti_nota: exp.bukti_nota
+              };
+            });
+
+            var allNotifs = [...results, ...virtualPendingNotifs, ...registrationNotifs, ...expenseNotifs];
+            allNotifs.sort(function(a, b) {
+              return new Date(b.tanggal) - new Date(a.tanggal);
+            });
+
+            res.json({
+              success: true,
+              data: allNotifs
+            });
+          });
+        } else {
+          var allNotifs = [...results, ...virtualPendingNotifs, ...registrationNotifs];
+          allNotifs.sort(function(a, b) {
+            return new Date(b.tanggal) - new Date(a.tanggal);
+          });
+
+          res.json({
+            success: true,
+            data: allNotifs
+          });
+        }
       });
     });
   });

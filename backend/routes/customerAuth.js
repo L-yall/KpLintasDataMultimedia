@@ -153,9 +153,12 @@ router.post('/forgot-password/request-otp', otpLimiter, function(req, res) {
         return res.status(500).json({ success: false, message: 'Gagal membuat OTP.' });
       }
       var sendResult = await EmailService.sendOtpEmail(email, { nama: customer.nama, otp: otpCode, purpose: 'reset password' });
-      if (!sendResult.success) {
+      if (!sendResult.success || sendResult.status !== 'terkirim') {
         console.error('[CustomerAuth] Gagal mengirim OTP email (forgot-password):', sendResult);
-        return res.status(500).json({ success: false, message: 'Gagal mengirim OTP.' });
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Gagal mengirim kode OTP ke email (' + (sendResult.error || 'Server email offline') + ').' 
+        });
       }
       res.json({ success: true, message: 'OTP reset password telah dikirim ke email.' });
     });
@@ -265,7 +268,7 @@ router.post('/request-otp', otpLimiter, function(req, res) {
         otp: otpCode
       });
 
-      if (sendRes.success) {
+      if (sendRes.success && sendRes.status === 'terkirim') {
         res.json({ 
           success: true, 
           message: 'Kode OTP telah dikirim ke Email Anda!', 
@@ -273,10 +276,9 @@ router.post('/request-otp', otpLimiter, function(req, res) {
         });
       } else {
         console.error('[CustomerAuth] Gagal mengirim Email OTP (request-otp):', sendRes);
-        // Fallback info in response if email fails
         res.status(500).json({ 
           success: false, 
-          message: 'Gagal mengirim Email OTP. Silakan coba lagi nanti.' 
+          message: 'Gagal mengirim kode OTP ke email (' + (sendRes.error || 'Server email tidak dapat dihubungi') + '). Silakan coba lagi.' 
         });
       }
     });
