@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.3
+-- version 5.2.2
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost:3306
--- Generation Time: Oct 01, 2026 at 09:10 AM
--- Server version: 8.4.3
--- PHP Version: 8.3.30
+-- Host: localhost
+-- Generation Time: Nov 02, 2026 at 04:30 AM
+-- Server version: 8.0.30
+-- PHP Version: 8.1.10
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -44,7 +44,8 @@ CREATE TABLE `admin` (
 
 INSERT INTO `admin` (`id_admin`, `nama`, `password`, `role`, `status`, `created_at`, `updated_at`, `email`) VALUES
 (1, 'Administrator', '$2b$10$L4siK.NKLGUV76soKiRiyO9k8MebLarYOyiG7TMRhPnvQ0.tLv9va', 'superadmin', 'aktif', '2026-07-01 10:46:15', '2026-09-21 14:51:21', 'alfanetvalorant@gmail.com'),
-(2, 'admin1', '$2b$10$yCATYXoE0P.XImIx1h1hVuSACCBSK5YowMoD8wXUD5Q3Q7o4kLOiu', 'admin', 'aktif', '2026-09-07 13:21:20', '2026-10-01 11:10:56', 'ldmsijaya@gmail.com');
+(2, 'admin1', '$2b$10$yCATYXoE0P.XImIx1h1hVuSACCBSK5YowMoD8wXUD5Q3Q7o4kLOiu', 'admin', 'aktif', '2026-09-07 13:21:20', '2026-10-01 11:10:56', 'ldmsijaya@gmail.com'),
+(4, 'Finace', '$2b$10$zRW4U.Fq7zTb0Rl7AtAi/eRTIDZqGtjRAZ.YfNnqZuBVdo8akL9Ty', 'superadmin', 'aktif', '2026-11-01 00:00:22', '2026-11-01 00:00:22', 'dorikprayogii@gmail.com');
 
 -- --------------------------------------------------------
 
@@ -62,6 +63,13 @@ CREATE TABLE `laporan_bulanan` (
   `tipe_generate` enum('otomatis','manual') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'otomatis',
   `generated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `laporan_bulanan`
+--
+
+INSERT INTO `laporan_bulanan` (`id_laporan`, `id_admin`, `periode`, `total_pemasukan`, `total_pengeluaran`, `file_path`, `tipe_generate`, `generated_at`) VALUES
+(1, 1, '2026-10', 585000.00, 0.00, 'Laporan_Keuangan_Oktober_2026.xlsx', 'manual', '2026-10-31 22:07:42');
 
 -- --------------------------------------------------------
 
@@ -104,7 +112,9 @@ INSERT INTO `notifikasi` (`id_notifikasi`, `id_pembayaran`, `id_admin`, `status_
 (30, 50, NULL, 1, '2026-09-10 13:57:57'),
 (31, 51, NULL, 1, '2026-09-22 12:51:27'),
 (32, 52, NULL, 1, '2026-09-24 11:38:16'),
-(34, 53, NULL, 1, '2026-10-01 11:58:08');
+(34, 53, NULL, 1, '2026-10-01 11:58:08'),
+(35, 54, NULL, 1, '2026-10-08 11:36:01'),
+(37, 55, NULL, 1, '2026-10-08 11:39:19');
 
 -- --------------------------------------------------------
 
@@ -144,11 +154,11 @@ CREATE TABLE `pelanggan` (
   `nama` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `alamat` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `no_hp` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `pppoe_username` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `pppoe_username` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `pppoe_status` enum('active','inactive','unknown') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'unknown',
   `paket` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status_tagihan` enum('hijau','kuning','merah','abu_abu') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'hijau',
-  `due_date` date NOT NULL,
+  `due_date` date DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -162,11 +172,9 @@ CREATE TABLE `pelanggan` (
 --
 
 INSERT INTO `pelanggan` (`id_pelanggan`, `nama`, `alamat`, `no_hp`, `pppoe_username`, `pppoe_status`, `paket`, `status_tagihan`, `due_date`, `created_at`, `updated_at`, `email`, `password`, `nik`, `foto`) VALUES
-(3, 'Satya', 'Jl. Pemuda, Surabaya Pusat', '+62 851-8200-1676', 'pelanggan 2', 'inactive', 'Paket 75 Mbps', 'hijau', '2027-02-11', '2026-07-01 15:40:33', '2026-10-01 11:58:49', 'namaprojek.testing@gmail.com', '$2b$10$wtLZpTZTIuWubUTZluHwZuTGjdYgbok2inLFpf87o1rX.2kSbG54.', NULL, NULL),
+(3, 'Satya', 'Jl. Pemuda, Surabaya Pusat', '+62 851-8200-1676', 'pelanggan 2', 'inactive', 'Paket 75 Mbps', 'merah', '2026-10-17', '2026-07-01 15:40:33', '2026-10-29 12:49:27', 'namaprojek.testing@gmail.com', '$2b$10$wtLZpTZTIuWubUTZluHwZuTGjdYgbok2inLFpf87o1rX.2kSbG54.', NULL, NULL),
 (4, 'Nikenn ', 'Jl. Ahmad Yani, Surabaya Selatan', '+62 896-7763-1704', 'pelanggan 3', 'inactive', 'Paket 30 Mbps', 'merah', '2026-09-26', '2026-07-01 15:41:21', '2026-09-28 11:58:43', 'rahmatillahkurniawan@gmail.com', '$2b$10$5kFkZPDDLBoZGxBk.fbQzeChtezhqwml9JRCnCJkjW6M2AVi2Eex2', NULL, NULL),
-(5, 'rassy', 'Saronggi, Sumenep', '+6288989588135', 'pelanggan 1', 'inactive', 'Paket Gamer 100 Mbps', 'hijau', '2026-12-25', '2026-07-06 11:55:52', '2026-09-07 12:39:42', 'rassyhvre@gmail.com', '$2b$10$wtLZpTZTIuWubUTZluHwZuTGjdYgbok2inLFpf87o1rX.2kSbG54.', NULL, NULL),
-(7, 'Niken', 'tftgfhggfcervtbuyniui', '0882010110391', 'REG-1790581555946-552692905', 'inactive', 'Paket 50 Mbps', 'merah', '2026-09-28', '2026-09-28 14:45:55', '2026-09-30 16:10:32', 'rahmatillahniken@gmail.com', '$2b$10$LQZCJNYcD.nBy6vfJasheuvEsVAIdqAtFTe2Rg2.C6F5CFriGYMgS', '1234567890123456', '/uploads/foto-pelanggan/pelanggan-1790581555780-310585917.jpg'),
-(8, 'anggris', 'sdad', '6666666666666', 'REG-1790830047149-55204030', 'unknown', 'Paket Gamer 100 Mbps', 'abu_abu', '2026-10-01', '2026-10-01 11:47:27', '2026-10-01 11:47:27', 'sadas@gmail.com', '$2b$10$oCa8KtpGcwZpaT/xd7BkWOYwNK10w7Cfm1yLDYjfYHjG9oaS/h9ga', '1234567890123450', '/uploads/foto-pelanggan/pelanggan-1790830047049-211780467.jpg');
+(5, 'rassy', 'Saronggi, Sumenep', '+6288989588135', 'pelanggan 1', 'active', 'Paket Gamer 100 Mbps', 'hijau', '2026-12-26', '2026-07-06 11:55:52', '2026-10-31 21:53:48', 'rassyhvre@gmail.com', '$2b$10$wtLZpTZTIuWubUTZluHwZuTGjdYgbok2inLFpf87o1rX.2kSbG54.', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -213,7 +221,11 @@ INSERT INTO `pembayaran` (`id_pembayaran`, `id_tagihan`, `id_admin`, `bukti_file
 (50, 80, NULL, 'Duitku / LQ / success', 'diterima', NULL, '2026-09-10 13:57:57', '2026-09-10 13:57:57', 0),
 (51, 67, NULL, 'Midtrans / snap_finish / settlement', 'diterima', NULL, '2026-09-22 12:51:27', '2026-09-22 12:51:27', 0),
 (52, 67, 1, '/uploads/bukti/bukti-1790224696308-959484259.jpeg', 'diterima', NULL, '2026-09-24 11:38:16', '2026-09-24 11:51:55', 0),
-(53, 81, 2, '/uploads/bukti/bukti-1790830688368-651513638.png', 'ditolak', 'gak jelas ', '2026-10-01 11:58:08', '2026-10-01 11:58:47', 0);
+(53, 81, 2, '/uploads/bukti/bukti-1790830688368-651513638.png', 'ditolak', 'gak jelas ', '2026-10-01 11:58:08', '2026-10-01 11:58:47', 0),
+(54, 74, 1, '/uploads/bukti/bukti-1791434161846-231259905.jpeg', 'diterima', NULL, '2026-10-08 11:36:01', '2026-10-08 11:36:23', 0),
+(55, 74, 1, '/uploads/bukti/bukti-1791434359018-168361760.jpeg', 'diterima', NULL, '2026-10-08 11:39:19', '2026-10-08 11:39:44', 0),
+(56, 62, 1, 'Bayar Tunai / Diubah Admin', 'diterima', NULL, '2026-10-29 13:14:00', '2026-10-29 13:14:00', 0),
+(57, 62, 1, 'Bayar Tunai / Diubah Admin', 'diterima', NULL, '2026-10-31 21:53:48', '2026-10-31 21:53:48', 0);
 
 -- --------------------------------------------------------
 
@@ -241,7 +253,7 @@ INSERT INTO `pengaturan` (`id_pengaturan`, `nilai`, `updated_at`) VALUES
 ('EMAIL_FROM', 'ESP Lintas Data <24percobaan24@gmail.com>', '2026-07-31 08:07:30'),
 ('EMAIL_PASS', 'jacb ramz jsmh urkf', '2026-07-31 08:07:30'),
 ('EMAIL_USER', '24percobaan24@gmail.com', '2026-07-31 08:07:30'),
-('MANUAL_PAYMENT_ENABLED', 'true', '2026-09-24 07:52:52'),
+('MANUAL_PAYMENT_ENABLED', 'false', '2026-10-09 03:49:35'),
 ('MIDTRANS_CLIENT_KEY', 'Mid-client-olcy1ykJ6rKhm0FV', '2026-07-31 08:07:30'),
 ('MIDTRANS_IS_SANDBOX', 'true', '2026-07-31 08:07:30'),
 ('MIDTRANS_MERCHANT_ID', '', '2026-07-31 08:07:30'),
@@ -251,7 +263,7 @@ INSERT INTO `pengaturan` (`id_pengaturan`, `nilai`, `updated_at`) VALUES
 ('MIKROTIK_PORT', '8728', '2026-07-31 08:07:30'),
 ('MIKROTIK_USER', 'api_isp', '2026-09-07 05:45:57'),
 ('NAMA_ISP', 'Lintas Data Multimedia', '2026-07-31 08:07:29'),
-('PAYMENT_GATEWAY_ACTIVE', 'none', '2026-09-24 07:53:32'),
+('PAYMENT_GATEWAY_ACTIVE', 'duitku', '2026-10-31 14:55:39'),
 ('REMINDER_AUTO_SEND', 'true', '2026-07-31 08:07:30'),
 ('REMINDER_DUE_DAYS', '3', '2026-07-31 08:07:30'),
 ('REMINDER_WA_TEMPLATE', 'Halo [Nama],\n\nIni adalah pengingat otomatis dari Lintas Data Multimedia.\nTagihan internet Anda untuk periode [Periode] sebesar Rp [Nominal] akan jatuh tempo pada [JatuhTempo].\n\nSilakan lakukan pembayaran agar layanan tidak terputus. Terima kasih.', '2026-07-31 08:07:30'),
@@ -271,16 +283,23 @@ CREATE TABLE `pengeluaran` (
   `tipe` enum('fix','tidak_fix') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `tanggal` date NOT NULL,
   `keterangan` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `bukti_nota` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('menunggu_persetujuan','disetujui','ditolak') COLLATE utf8mb4_unicode_ci DEFAULT 'menunggu_persetujuan',
+  `catatan_validasi` text COLLATE utf8mb4_unicode_ci,
+  `validated_by` int UNSIGNED DEFAULT NULL,
+  `validated_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `pengeluaran`
 --
 
-INSERT INTO `pengeluaran` (`id_pengeluaran`, `id_admin`, `kategori`, `nominal`, `tipe`, `tanggal`, `keterangan`, `created_at`) VALUES
-(1, 1, 'Air', 20000.00, 'tidak_fix', '2026-07-06', NULL, '2026-07-07 15:27:56'),
-(2, 1, 'Listrik', 400000.00, 'fix', '2026-07-08', NULL, '2026-07-08 11:19:18');
+INSERT INTO `pengeluaran` (`id_pengeluaran`, `id_admin`, `kategori`, `nominal`, `tipe`, `tanggal`, `keterangan`, `created_at`, `bukti_nota`, `status`, `catatan_validasi`, `validated_by`, `validated_at`) VALUES
+(1, 1, 'Air', 20000.00, 'tidak_fix', '2026-07-06', NULL, '2026-07-07 15:27:56', NULL, 'menunggu_persetujuan', NULL, NULL, NULL),
+(2, 1, 'Listrik', 400000.00, 'fix', '2026-07-08', NULL, '2026-07-08 11:19:18', NULL, 'menunggu_persetujuan', NULL, NULL, NULL),
+(9, 2, 'bensin', 50000.00, 'tidak_fix', '2026-10-30', NULL, '2026-10-31 22:51:50', '/uploads/bukti-pengeluaran/nota-1793461910077-629499946.png', 'disetujui', NULL, 1, '2026-10-31 22:52:23'),
+(10, 2, 'Listrik PLN', 1000000.00, 'fix', '2026-10-31', NULL, '2026-10-31 23:15:28', '/uploads/bukti-pengeluaran/nota-1793463328082-160114562.png', 'disetujui', NULL, 1, '2026-10-31 23:16:06');
 
 -- --------------------------------------------------------
 
@@ -333,7 +352,27 @@ INSERT INTO `reminder_log` (`id_reminder`, `id_pelanggan`, `tanggal_kirim`, `sta
 (47, 4, '2026-09-30 15:45:39', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* TELAH LEWAT JATUH TEMPO pada tanggal 26 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
 (48, 7, '2026-09-30 16:10:40', 'terkirim', 'Halo Niken,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 250.000* TELAH LEWAT JATUH TEMPO pada tanggal 27 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
 (49, 4, '2026-10-01 10:11:10', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* TELAH LEWAT JATUH TEMPO pada tanggal 26 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
-(50, 7, '2026-10-01 10:11:22', 'terkirim', 'Halo Niken,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 250.000* TELAH LEWAT JATUH TEMPO pada tanggal 27 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.');
+(50, 7, '2026-10-01 10:11:22', 'terkirim', 'Halo Niken,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 250.000* TELAH LEWAT JATUH TEMPO pada tanggal 27 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(51, 4, '2026-10-08 10:54:45', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* TELAH LEWAT JATUH TEMPO pada tanggal 26 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(52, 7, '2026-10-08 10:54:51', 'terkirim', 'Halo Niken,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 250.000* TELAH LEWAT JATUH TEMPO pada tanggal 27 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(53, 8, '2026-10-08 10:55:29', 'terkirim', 'Halo anggris,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 385.000* TELAH LEWAT JATUH TEMPO pada tanggal 30 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/sadas%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(54, 3, '2026-10-08 11:18:04', 'terkirim', 'Halo Satya,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 330.000* TELAH LEWAT JATUH TEMPO pada tanggal 1 Oktober 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/namaprojek.testing%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(55, 4, '2026-10-09 10:26:45', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* TELAH LEWAT JATUH TEMPO pada tanggal 26 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(56, 7, '2026-10-09 10:27:01', 'terkirim', 'Halo Niken,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 250.000* TELAH LEWAT JATUH TEMPO pada tanggal 27 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(57, 8, '2026-10-09 10:27:22', 'terkirim', 'Halo anggris,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 385.000* TELAH LEWAT JATUH TEMPO pada tanggal 30 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/sadas%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(58, 3, '2026-10-16 14:42:26', 'terkirim', 'Halo Satya,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n⚠️ *JATUH TEMPO HARI INI* ⚠️\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 330.000* telah jatuh tempo pada hari ini (17 Oktober 2026).\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/namaprojek.testing%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(59, 4, '2026-10-16 14:42:34', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* TELAH LEWAT JATUH TEMPO pada tanggal 26 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(60, 7, '2026-10-16 14:42:41', 'terkirim', 'Halo Niken,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 250.000* TELAH LEWAT JATUH TEMPO pada tanggal 27 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(61, 8, '2026-10-16 14:42:48', 'terkirim', 'Halo anggris,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 385.000* TELAH LEWAT JATUH TEMPO pada tanggal 30 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/sadas%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(62, 14, '2026-10-16 15:09:25', 'terkirim', 'Halo rassysyu,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 385.000* TELAH LEWAT JATUH TEMPO pada tanggal 16 Oktober 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/eggspector%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(63, 15, '2026-10-16 15:44:32', 'terkirim', 'Halo rassysyu,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 385.000* TELAH LEWAT JATUH TEMPO pada tanggal 16 Oktober 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(64, 3, '2026-10-29 12:49:27', 'terkirim', 'Halo Satya,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 330.000* TELAH LEWAT JATUH TEMPO pada tanggal 17 Oktober 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/namaprojek.testing%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(65, 4, '2026-10-29 12:49:27', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* TELAH LEWAT JATUH TEMPO pada tanggal 26 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(66, 16, '2026-10-29 12:49:28', 'terkirim', 'Halo rassysyu,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 385.000* TELAH LEWAT JATUH TEMPO pada tanggal 29 Oktober 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahniken%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(67, 5, '2026-10-29 13:14:22', 'terkirim', 'Halo rassy,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 385.000* TELAH LEWAT JATUH TEMPO pada tanggal 28 Oktober 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rassyhvre%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(68, 3, '2026-10-31 21:06:39', 'terkirim', 'Halo Satya,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-10 sebesar *Rp 330.000* TELAH LEWAT JATUH TEMPO pada tanggal 17 Oktober 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/namaprojek.testing%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(69, 4, '2026-10-31 21:06:39', 'terkirim', 'Halo Nikenn ,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode 2026-09 sebesar *Rp 200.000* TELAH LEWAT JATUH TEMPO pada tanggal 26 September 2026.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rahmatillahkurniawan%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.'),
+(70, 5, '2026-10-31 21:52:46', 'terkirim', 'Halo rassy,\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\nTagihan internet Anda untuk periode 2026-11 sebesar *Rp 385.000* akan jatuh tempo dalam *1 hari* (2 November 2026).\n\nSilakan lakukan pembayaran dan konfirmasi melalui portal kami:\nhttp://localhost:3001/bayar/rassyhvre%40gmail.com\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.');
 
 -- --------------------------------------------------------
 
@@ -359,27 +398,34 @@ CREATE TABLE `tagihan` (
 INSERT INTO `tagihan` (`id_tagihan`, `id_pelanggan`, `periode`, `nominal`, `status`, `due_date`, `created_at`, `updated_at`) VALUES
 (60, 5, '2026-08', 385000.00, 'lunas', '2026-08-02', '2026-07-31 15:09:28', '2026-08-10 11:32:44'),
 (61, 5, '2026-09', 385000.00, 'lunas', '2026-08-31', '2026-08-10 11:32:44', '2026-08-10 11:46:07'),
-(62, 5, '2026-10', 385000.00, 'lunas', '2026-09-29', '2026-08-10 11:46:07', '2026-08-14 13:21:58'),
-(63, 5, '2026-11', 385000.00, 'lunas', '2026-10-28', '2026-08-14 13:21:58', '2026-08-14 13:42:30'),
-(64, 5, '2026-12', 385000.00, 'lunas', '2026-11-26', '2026-08-14 13:42:30', '2026-08-14 13:44:21'),
-(65, 5, '2027-01', 385000.00, 'belum_bayar', '2026-12-25', '2026-08-14 13:44:21', '2026-08-14 13:44:21'),
+(62, 5, '2026-10', 385000.00, 'lunas', '2026-10-29', '2026-08-10 11:46:07', '2026-10-31 21:53:48'),
 (66, 3, '2026-07', 330000.00, 'lunas', '2026-07-22', '2026-09-07 12:55:58', '2026-09-07 16:12:10'),
 (67, 4, '2026-09', 200000.00, 'terlambat', '2026-09-26', '2026-09-07 12:55:58', '2026-09-28 11:58:38'),
 (68, 3, '2026-08', 330000.00, 'lunas', '2026-08-22', '2026-09-07 16:12:10', '2026-09-07 16:12:50'),
 (69, 3, '2026-09', 330000.00, 'lunas', '2026-09-11', '2026-09-07 16:12:50', '2026-09-08 15:13:08'),
-(74, 3, '2026-10', 330000.00, 'lunas', '2026-10-11', '2026-09-08 15:13:08', '2026-09-09 13:26:33'),
+(74, 3, '2026-10', 330000.00, 'terlambat', '2026-10-17', '2026-09-08 15:13:08', '2026-10-29 12:49:26'),
 (75, 4, '2026-10', 200000.00, 'lunas', '2026-10-09', '2026-09-08 15:41:30', '2026-09-08 16:12:19'),
 (76, 4, '2026-11', 200000.00, 'lunas', '2026-11-09', '2026-09-08 16:12:19', '2026-09-08 16:18:33'),
 (78, 3, '2026-11', 330000.00, 'lunas', '2026-11-11', '2026-09-09 13:26:33', '2026-09-10 13:06:17'),
 (79, 3, '2026-12', 330000.00, 'lunas', '2026-12-11', '2026-09-10 13:06:17', '2026-09-10 13:52:15'),
 (80, 3, '2027-01', 330000.00, 'lunas', '2027-01-11', '2026-09-10 13:52:15', '2026-09-10 13:57:57'),
-(81, 3, '2027-02', 330000.00, 'belum_bayar', '2027-02-11', '2026-09-10 13:57:57', '2026-10-01 11:58:47'),
 (88, 6, '2026-09', 385000.00, 'terlambat', '2026-09-27', '2026-09-28 13:41:10', '2026-09-28 13:41:20'),
-(89, 7, '2026-09', 250000.00, 'terlambat', '2026-09-27', '2026-09-30 15:45:26', '2026-09-30 16:10:27');
+(89, 7, '2026-09', 250000.00, 'terlambat', '2026-09-27', '2026-09-30 15:45:26', '2026-09-30 16:10:27'),
+(90, 8, '2026-10', 385000.00, 'terlambat', '2026-09-30', '2026-10-08 10:54:37', '2026-10-08 10:55:12'),
+(91, 14, '2026-10', 385000.00, 'belum_bayar', '2026-10-17', '2026-10-16 15:09:16', '2026-10-16 15:21:21'),
+(92, 15, '2026-10', 385000.00, 'terlambat', '2026-10-16', '2026-10-16 15:42:35', '2026-10-16 15:44:24'),
+(93, 16, '2026-10', 385000.00, 'terlambat', '2026-10-29', '2026-10-16 15:49:07', '2026-10-29 12:49:27'),
+(94, 5, '2026-12', 385000.00, 'belum_bayar', '2026-12-26', '2026-10-31 21:53:48', '2026-10-31 21:53:48');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `admin`
+--
+ALTER TABLE `admin`
+  ADD PRIMARY KEY (`id_admin`);
 
 --
 -- Indexes for table `laporan_bulanan`
@@ -470,16 +516,22 @@ ALTER TABLE `tagihan`
 --
 
 --
+-- AUTO_INCREMENT for table `admin`
+--
+ALTER TABLE `admin`
+  MODIFY `id_admin` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT for table `laporan_bulanan`
 --
 ALTER TABLE `laporan_bulanan`
-  MODIFY `id_laporan` int UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id_laporan` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `notifikasi`
 --
 ALTER TABLE `notifikasi`
-  MODIFY `id_notifikasi` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id_notifikasi` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `paket_layanan`
@@ -491,19 +543,19 @@ ALTER TABLE `paket_layanan`
 -- AUTO_INCREMENT for table `pelanggan`
 --
 ALTER TABLE `pelanggan`
-  MODIFY `id_pelanggan` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_pelanggan` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `pembayaran`
 --
 ALTER TABLE `pembayaran`
-  MODIFY `id_pembayaran` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
+  MODIFY `id_pembayaran` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
 
 --
 -- AUTO_INCREMENT for table `pengeluaran`
 --
 ALTER TABLE `pengeluaran`
-  MODIFY `id_pengeluaran` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_pengeluaran` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `rekening_pembayaran`
@@ -515,13 +567,13 @@ ALTER TABLE `rekening_pembayaran`
 -- AUTO_INCREMENT for table `reminder_log`
 --
 ALTER TABLE `reminder_log`
-  MODIFY `id_reminder` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id_reminder` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
 
 --
 -- AUTO_INCREMENT for table `tagihan`
 --
 ALTER TABLE `tagihan`
-  MODIFY `id_tagihan` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=90;
+  MODIFY `id_tagihan` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
