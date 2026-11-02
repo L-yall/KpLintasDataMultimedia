@@ -26,6 +26,11 @@ function CustomerRegistrationPage() {
   var [submitting, setSubmitting] = useState(false);
   var [error, setError] = useState('');
   var [success, setSuccess] = useState('');
+  var selectedLandingPackage = packages.find(function (item) {
+    return targetPaketFromQuery &&
+      (item.nama_paket || '').trim().toLowerCase() === targetPaketFromQuery.trim().toLowerCase() &&
+      (item.nama_paket || '').trim().toLowerCase() === (form.paket || '').trim().toLowerCase();
+  });
 
   useEffect(function () {
     axios.get(`${API_BASE_URL}/api/paket`)
@@ -130,13 +135,24 @@ function CustomerRegistrationPage() {
             </label>
             <label className="registration-field">
               <span>Paket layanan</span>
-              <select name="paket" value={form.paket} onChange={handleChange} disabled={loadingPackages || packages.length === 0} required>
-                {loadingPackages && <option value="">Memuat paket...</option>}
-                {!loadingPackages && packages.length === 0 && <option value="">Paket tidak tersedia</option>}
-                {packages.map(function (item) {
-                  return <option key={item.id} value={item.nama_paket}>{item.nama_paket} - Rp {Number(item.harga).toLocaleString('id-ID')}/bulan</option>;
-                })}
-              </select>
+              {selectedLandingPackage ? (
+                <span className="registration-selected-package">
+                  {selectedLandingPackage.nama_paket} - Rp {Number(selectedLandingPackage.harga).toLocaleString('id-ID')}/bulan
+                </span>
+              ) : (
+                <span className="registration-select-wrapper">
+                  <select name="paket" value={form.paket} onChange={handleChange} disabled={loadingPackages || packages.length === 0} required>
+                    {loadingPackages && <option value="">Memuat paket...</option>}
+                    {!loadingPackages && packages.length === 0 && <option value="">Paket tidak tersedia</option>}
+                    {packages.map(function (item) {
+                      return <option key={item.id} value={item.nama_paket}>{item.nama_paket} - Rp {Number(item.harga).toLocaleString('id-ID')}/bulan</option>;
+                    })}
+                  </select>
+                  <svg className="registration-select-chevron" viewBox="0 0 16 20" aria-hidden="true" focusable="false">
+                    <path d="m4 7 4-4 4 4M4 13l4 4 4-4" />
+                  </svg>
+                </span>
+              )}
             </label>
             <label className="registration-field registration-field--wide">
               <span>Upload foto KTP</span>

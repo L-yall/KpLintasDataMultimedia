@@ -119,6 +119,52 @@
   color: #607478;
 }
 
+.registration-select-wrapper {
+  position: relative;
+  display: block;
+}
+
+.registration-selected-package {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  padding: 10px 12px;
+  color: #19343a;
+  background: #f2faf8;
+  border: 1px solid #c8d5d4;
+  border-radius: 5px;
+  font-weight: 400;
+}
+
+.registration-field select {
+  appearance: none;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.registration-select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 14px;
+  height: 18px;
+  transform: translateY(-50%);
+  fill: none;
+  stroke: #607478;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  pointer-events: none;
+}
+
+.registration-field select:disabled {
+  cursor: not-allowed;
+}
+
+.registration-field select:disabled+.registration-select-chevron {
+  opacity: 0.55;
+}
+
 .registration-field small {
   color: #738589;
   font-size: 0.77rem;

@@ -163,7 +163,7 @@ function LandingPage({ customer, onLogout }) {
               features: featuresList,
               description: pkg.deskripsi || featuresList.join(', '),
               // popular: idx === 1 || pkg.nama_paket.toLowerCase().includes('30 mbps')
-              popular: idx ===2
+              popular: idx === 2
             };
           });
           setPackages(mapped);
@@ -208,8 +208,8 @@ function LandingPage({ customer, onLogout }) {
           <div className="landing-nav-actions">
             {isLoggedIn ? (
               <>
-                <span 
-                  className="landing-nav-user" 
+                <span
+                  className="landing-nav-user"
                   style={{ cursor: 'pointer' }}
                   onClick={function () { navigate('/portal', { state: { activeTab: 'profile' } }); }}
                   title="Lihat Profil Saya"
@@ -352,10 +352,10 @@ function LandingPage({ customer, onLogout }) {
             boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
             border: '1px solid var(--border-color)'
           }}>
-            <form onSubmit={handleCheckBilling} style={{ 
-              display: 'flex', 
+            <form onSubmit={handleCheckBilling} style={{
+              display: 'flex',
               flexDirection: isMobile ? 'column' : 'row',
-              gap: '12px' 
+              gap: '12px'
             }}>
               <input
                 type="text"
@@ -373,8 +373,8 @@ function LandingPage({ customer, onLogout }) {
                   fontFamily: "'Hanken Grotesk', sans-serif",
                   width: '100%'
                 }}
-                onFocus={function(e) { e.target.style.borderColor = 'var(--md-primary)'; }}
-                onBlur={function(e) { e.target.style.borderColor = 'var(--border-color)'; }}
+                onFocus={function (e) { e.target.style.borderColor = 'var(--md-primary)'; }}
+                onBlur={function (e) { e.target.style.borderColor = 'var(--border-color)'; }}
               />
               <button
                 type="submit"
@@ -424,13 +424,13 @@ function LandingPage({ customer, onLogout }) {
 
             {searchResult && (
               <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '20px', animation: 'fadeIn 0.3s ease' }}>
-                <div style={{ 
-                  display: 'flex', 
+                <div style={{
+                  display: 'flex',
                   flexDirection: isMobile ? 'column' : 'row',
-                  justifyContent: 'space-between', 
-                  alignItems: isMobile ? 'flex-start' : 'center', 
-                  marginBottom: '16px', 
-                  gap: '8px' 
+                  justifyContent: 'space-between',
+                  alignItems: isMobile ? 'flex-start' : 'center',
+                  marginBottom: '16px',
+                  gap: '8px'
                 }}>
                   <div style={{ fontSize: '0.92rem', color: 'var(--text-secondary)' }}>
                     Pelanggan: <strong style={{ color: 'var(--text-primary)' }}>{searchResult.nama}</strong>
@@ -473,12 +473,12 @@ function LandingPage({ customer, onLogout }) {
                         {new Date(searchResult.tagihan.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </span>
                     </div>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: isMobile ? 'flex-start' : 'center', 
-                      flexDirection: isMobile ? 'column' : 'row', 
-                      gap: '8px' 
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: isMobile ? 'flex-start' : 'center',
+                      flexDirection: isMobile ? 'column' : 'row',
+                      gap: '8px'
                     }}>
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>Status Pembayaran</span>
                       <span className={'status-badge ' + (searchResult.tagihan.status === 'proses' ? 'kuning' : 'merah')} style={{ fontSize: '0.78rem' }}>
@@ -489,12 +489,12 @@ function LandingPage({ customer, onLogout }) {
                     <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
                       <button
                         className="landing-btn-primary"
-                        onClick={function() {
+                        onClick={function () {
                           navigate('/login', { state: { email: searchResult.email } });
                         }}
-                        style={{ 
-                          padding: '10px 20px', 
-                          borderRadius: '6px', 
+                        style={{
+                          padding: '10px 20px',
+                          borderRadius: '6px',
                           fontSize: '0.85rem',
                           width: isMobile ? '100%' : 'auto',
                           justifyContent: 'center'
@@ -610,7 +610,7 @@ function LandingPage({ customer, onLogout }) {
                     className={pkg.popular ? 'landing-btn-primary' : 'landing-btn-ghost'}
                     style={{ width: '100%', justifyContent: 'center' }}
                   >
-                    Pesan Paket Sekarang
+                    Pesan Paket dan Lakukan Registrasi Sekarang
                   </button>
                 </div>
               );
