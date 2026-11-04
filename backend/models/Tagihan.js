@@ -1,4 +1,5 @@
 var db = require('../config/db');
+var Router = require('./Router');
 
 var Tagihan = {
   // Ambil semua tagihan
@@ -18,7 +19,7 @@ var Tagihan = {
   // Ambil tagihan yang belum dibayar / terlambat
   getUnpaid: function(callback) {
     var sql = `
-      SELECT t.*, p.nama, p.no_hp, p.alamat, p.pppoe_username, p.status_tagihan, p.email, p.paket, p.id_pelanggan AS pelanggan_id 
+      SELECT t.*, p.nama, p.no_hp, p.alamat, p.pppoe_username, p.id_router, p.status_tagihan, p.email, p.paket, p.id_pelanggan AS pelanggan_id
       FROM tagihan t 
       JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan 
       WHERE t.status IN ('belum_bayar', 'terlambat')
@@ -59,5 +60,16 @@ var Tagihan = {
     });
   }
 };
+
+Object.keys(Tagihan).forEach(function(name) {
+  var method = Tagihan[name];
+  Tagihan[name] = function() {
+    var args = Array.from(arguments);
+    var callback = args[args.length - 1];
+    Router.initialize().then(function() {
+      method.apply(Tagihan, args);
+    }).catch(function(err) { callback(err, null); });
+  };
+});
 
 module.exports = Tagihan;

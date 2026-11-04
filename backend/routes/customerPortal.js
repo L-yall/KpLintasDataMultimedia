@@ -949,43 +949,6 @@ router.get('/payments', function (req, res) {
   });
 });
 
-/* DELETE /api/customer/portal/payments - Hide all payment history for customer */
-router.delete('/payments', function (req, res) {
-  var id_pelanggan = req.customerId;
-  var sql = `
-    UPDATE pembayaran pem
-    JOIN tagihan t ON pem.id_tagihan = t.id_tagihan
-    SET pem.hidden_customer = 1
-    WHERE t.id_pelanggan = ?
-  `;
-  db.query(sql, [id_pelanggan], function (err, result) {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Gagal membersihkan riwayat pembayaran.', error: err.message });
-    }
-    res.json({ success: true, message: 'Semua riwayat pembayaran berhasil dibersihkan.' });
-  });
-});
-
-/* DELETE /api/customer/portal/payments/:id - Hide specific payment history for customer */
-router.delete('/payments/:id', function (req, res) {
-  var id_pelanggan = req.customerId;
-  var idPembayaran = req.params.id;
-  var sql = `
-    UPDATE pembayaran pem
-    JOIN tagihan t ON pem.id_tagihan = t.id_tagihan
-    SET pem.hidden_customer = 1
-    WHERE pem.id_pembayaran = ? AND t.id_pelanggan = ?
-  `;
-  db.query(sql, [idPembayaran, id_pelanggan], function (err, result) {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Gagal menghapus riwayat pembayaran.', error: err.message });
-    }
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Data pembayaran tidak ditemukan atau sudah dihapus.' });
-    }
-    res.json({ success: true, message: 'Riwayat pembayaran berhasil dihapus.' });
-  });
-});
 
 /* GET /api/customer/portal/invoice/:id_tagihan/pdf - Download or view PDF Invoice for Customer */
 router.get('/invoice/:id_tagihan/pdf', function (req, res) {

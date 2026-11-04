@@ -425,6 +425,13 @@ router.post('/config', async function (req, res) {
       return res.status(400).json({ success: false, message: 'Aktifkan pembayaran manual sebelum mematikan semua payment gateway.' });
     }
 
+    // Freeze the legacy seed before ignoring retired global router settings.
+    // The registry is authoritative after this migration, including router passwords.
+    await require('../models/Router').initialize();
+    settings = { ...settings };
+    Object.keys(settings).forEach(function(key) {
+      if (key.startsWith('MIKROTIK_')) delete settings[key];
+    });
     await ConfigService.setMany(settings);
     res.json({
       success: true,
@@ -440,9 +447,19 @@ router.post('/config', async function (req, res) {
 /* POST /api/pengaturan/test-mikrotik - Test Mikrotik API Connection */
 router.post('/test-mikrotik', async function (req, res) {
   try {
-    var { host, port, user, pass } = req.body;
-    var customConfig = (host && user && pass) ? { host, port, user, pass } : null;
-    var result = await MikrotikService.ping(customConfig);
+    if (!['admin', 'superadmin'].includes(req.adminRole)) {
+      return res.status(403).json({ success: false, message: 'Akses MikroTik hanya untuk staf.' });
+    }
+    var body = req.body || {};
+    var hasCustomConfig = ['host', 'port', 'user', 'pass'].some(function(key) { return Object.prototype.hasOwnProperty.call(body, key); });
+    var result;
+    if (hasCustomConfig) {
+      result = await MikrotikService.ping({ host: body.host, port: body.port, user: body.user, pass: body.pass });
+    } else {
+      var id = Object.prototype.hasOwnProperty.call(body, 'id_router') ? body.id_router : req.query.id_router;
+      var client = await MikrotikService.forRouter(id);
+      result = await client.ping(null, true);
+    }
 
     if (result.online) {
       res.json({

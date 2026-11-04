@@ -4,8 +4,10 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
+import { useDialog } from '../context/DialogContext';
 
 function PembayaranPage({ socket }) {
+  var { showAlert, confirmDialog } = useDialog();
   var [pendingPayments, setPendingPayments] = useState([]);
   var [approvedManualPayments, setApprovedManualPayments] = useState([]);
   var [manualPage, setManualPage] = useState(1);
@@ -99,18 +101,18 @@ function PembayaranPage({ socket }) {
   }
 
   async function handleApprove(id_pembayaran) {
-    if (!window.confirm('Apakah Anda yakin ingin MENYETUJUI pembayaran ini? Akun internet pelanggan akan otomatis diaktifkan di Mikrotik.')) {
+    if (!await confirmDialog('Apakah Anda yakin ingin MENYETUJUI pembayaran ini? Akun internet pelanggan akan otomatis diaktifkan di Mikrotik.', { tone: 'info', confirmLabel: 'Ya, setujui', cancelLabel: 'Batal' })) {
       return;
     }
 
     setActionLoading(true);
     try {
       var response = await axios.post(`${API_BASE_URL}/api/pembayaran/${id_pembayaran}/approve`, {}, { headers: headers });
-      alert(response.data.message);
+      await showAlert(response.data.message, { tone: 'success' });
       setViewBukti(null);
       fetchPending();
     } catch (err) {
-      alert('Gagal menyetujui pembayaran: ' + (err.response?.data?.message || err.message));
+      await showAlert('Gagal menyetujui pembayaran: ' + (err.response?.data?.message || err.message), { tone: 'error' });
     } finally {
       setActionLoading(false);
     }
@@ -119,7 +121,7 @@ function PembayaranPage({ socket }) {
   async function handleReject(e) {
     e.preventDefault();
     if (!alasanTolak) {
-      alert('Silakan isi alasan penolakan terlebih dahulu.');
+      showAlert('Silakan isi alasan penolakan terlebih dahulu.', { tone: 'error' });
       return;
     }
 
@@ -129,13 +131,13 @@ function PembayaranPage({ socket }) {
         alasan_tolak: alasanTolak
       }, { headers: headers });
 
-      alert(response.data.message);
+      await showAlert(response.data.message, { tone: 'success' });
       setRejectTarget(null);
       setAlasanTolak('');
       setViewBukti(null);
       fetchPending();
     } catch (err) {
-      alert('Gagal menolak pembayaran: ' + (err.response?.data?.message || err.message));
+      await showAlert('Gagal menolak pembayaran: ' + (err.response?.data?.message || err.message), { tone: 'error' });
     } finally {
       setActionLoading(false);
     }

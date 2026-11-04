@@ -3,9 +3,11 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
+import { useDialog } from '../context/DialogContext';
 import { Link } from 'react-router-dom';
 
 function TagihanPage({ socket, admin }) {
+  var { showAlert } = useDialog();
   var savedAdminStr = localStorage.getItem('admin');
   var currentAdmin = admin || (savedAdminStr ? JSON.parse(savedAdminStr) : null);
   var isSuperAdmin = currentAdmin && currentAdmin.role === 'superadmin';
@@ -208,7 +210,7 @@ function TagihanPage({ socket, admin }) {
         fetchTagihan();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal menghapus tagihan.');
+      showAlert(err.response?.data?.message || 'Gagal menghapus tagihan.', { tone: 'error' });
     } finally {
       setDeleting(false);
     }

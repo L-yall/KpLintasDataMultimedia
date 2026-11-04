@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { LogoProvider } from './context/LogoContext';
+import { DialogProvider } from './context/DialogContext';
 import './index.css';
 import App from './App';
 
@@ -10,7 +11,9 @@ root.render(
   <React.StrictMode>
     <BrowserRouter>
       <LogoProvider>
-        <App />
+        <DialogProvider>
+          <App />
+        </DialogProvider>
       </LogoProvider>
     </BrowserRouter>
   </React.StrictMode>

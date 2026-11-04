@@ -7,6 +7,30 @@ var fs = require('fs');
 var path = require('path');
 var multer = require('multer');
 var db = require('../config/db');
+var Router = require('../models/Router');
+
+function hasConnectedPppoe(username) {
+  return typeof username === 'string' && username.trim() !== '' && !username.startsWith('REG-');
+}
+
+async function selectCustomerRouter(id, username) {
+  if (id == null && !hasConnectedPppoe(username)) return null;
+  try {
+    return await require('../services/mikrotik').forRouter(id);
+  } catch (err) {
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
+async function validateCustomerSecret(client, username) {
+  if (!hasConnectedPppoe(username)) return;
+  if (!client || !(await client.validateSecret(username))) {
+    var err = new Error(`PPPoE username "${username}" tidak ditemukan atau router yang dipilih tidak dapat dijangkau.`);
+    err.statusCode = 400;
+    throw err;
+  }
+}
 
 var customerPhotoDir = path.join(__dirname, '../public/uploads/foto-pelanggan');
 if (!fs.existsSync(customerPhotoDir)) {
@@ -40,7 +64,7 @@ router.get('/', function(req, res) {
       return res.status(500).json({ success: false, message: 'Gagal mengambil data pelanggan', error: err.message });
     }
     res.json({ success: true, data: results });
-  });
+  }, req.query.id_router !== undefined ? { id_router: req.query.id_router } : undefined);
 });
 
 /* GET /api/pelanggan/stats - Statistik pelanggan untuk dashboard */
@@ -73,10 +97,11 @@ router.get('/stats', function(req, res) {
 });
 
 /* GET /api/pelanggan/registrasi/pending - Registrasi pelanggan yang menunggu tinjauan */
-router.get('/registrasi/pending', function(req, res) {
+router.get('/registrasi/pending', async function(req, res) {
+  try { await Router.initialize(); } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
   var sql = `
     SELECT p.id_pelanggan, p.nama, p.alamat, p.no_hp, p.email, p.nik, p.foto,
-      p.paket, p.created_at, pl.harga
+      p.paket, p.id_router, p.created_at, pl.harga
     FROM pelanggan p
     LEFT JOIN paket_layanan pl ON p.paket = pl.nama_paket
     WHERE p.pppoe_username LIKE 'REG-%'
@@ -89,7 +114,8 @@ router.get('/registrasi/pending', function(req, res) {
 });
 
 /* GET /api/pelanggan/tanpa-pppoe - Pelanggan yang belum terdaftar/dikonfigurasi PPPoE-nya */
-router.get('/tanpa-pppoe', function(req, res) {
+router.get('/tanpa-pppoe', async function(req, res) {
+  try { await Router.initialize(); } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
   var sql = `
     SELECT 
       p.*, 
@@ -145,6 +171,9 @@ router.post('/registrasi/:id/approve', async function(req, res) {
   }
 
   try {
+    await Router.initialize();
+    var mikrotik = await selectCustomerRouter(req.body.id_router, pppoeUsername);
+    var idRouter = mikrotik.id_router;
     var pending = await new Promise(function(resolve, reject) {
       db.query("SELECT id_pelanggan FROM pelanggan WHERE id_pelanggan = ? AND pppoe_username LIKE 'REG-%' LIMIT 1", [id], function(err, rows) {
         if (err) return reject(err);
@@ -154,17 +183,14 @@ router.post('/registrasi/:id/approve', async function(req, res) {
     if (!pending) return res.status(404).json({ success: false, message: 'Registrasi tidak ditemukan atau sudah diproses.' });
 
     var existingUsername = await new Promise(function(resolve, reject) {
-      db.query('SELECT id_pelanggan FROM pelanggan WHERE pppoe_username = ? LIMIT 1', [pppoeUsername], function(err, rows) {
+      db.query('SELECT id_pelanggan FROM pelanggan WHERE pppoe_username = ? AND id_router = ? LIMIT 1', [pppoeUsername, idRouter], function(err, rows) {
         if (err) return reject(err);
         resolve(rows[0] || null);
       });
     });
     if (existingUsername) return res.status(400).json({ success: false, message: 'PPPoE username sudah digunakan pelanggan lain.' });
 
-    var pingResult = await MikrotikService.ping();
-    if (pingResult.online && !(await MikrotikService.validateSecret(pppoeUsername))) {
-      return res.status(400).json({ success: false, message: `PPPoE username "${pppoeUsername}" tidak ditemukan di router Mikrotik.` });
-    }
+    await validateCustomerSecret(mikrotik, pppoeUsername);
 
     connection = await new Promise(function(resolve, reject) {
       db.getConnection(function(err, result) { err ? reject(err) : resolve(result); });
@@ -185,14 +211,14 @@ router.post('/registrasi/:id/approve', async function(req, res) {
       transactionStarted = false;
       return res.status(400).json({ success: false, message: 'Paket tidak aktif atau harga paket tidak valid.' });
     }
-    var duplicateRows = await queryConnection('SELECT id_pelanggan FROM pelanggan WHERE pppoe_username = ? AND id_pelanggan <> ? LIMIT 1', [pppoeUsername, id]);
+    var duplicateRows = await queryConnection('SELECT id_pelanggan FROM pelanggan WHERE pppoe_username = ? AND id_router = ? AND id_pelanggan <> ? LIMIT 1', [pppoeUsername, idRouter, id]);
     if (duplicateRows.length) {
       await connectionAction('rollback');
       transactionStarted = false;
       return res.status(400).json({ success: false, message: 'PPPoE username sudah digunakan pelanggan lain.' });
     }
 
-    await queryConnection("UPDATE pelanggan SET pppoe_username = ?, due_date = ?, status_tagihan = 'abu_abu', pppoe_status = 'unknown' WHERE id_pelanggan = ?", [pppoeUsername, dueDate, id]);
+    await queryConnection("UPDATE pelanggan SET pppoe_username = ?, id_router = ?, due_date = ?, status_tagihan = 'abu_abu', pppoe_status = 'unknown' WHERE id_pelanggan = ?", [pppoeUsername, idRouter, dueDate, id]);
     await queryConnection("INSERT INTO tagihan (id_pelanggan, periode, nominal, status, due_date) VALUES (?, ?, ?, 'belum_bayar', ?)", [id, dueDate.slice(0, 7), packageRows[0].harga, dueDate]);
     await connectionAction('commit');
     transactionStarted = false;
@@ -217,8 +243,9 @@ router.post('/registrasi/:id/approve', async function(req, res) {
 
     var SocketService = require('../services/socket');
     SocketService.broadcast('registrasi_updated', { id_pelanggan: id });
-    SocketService.broadcast('pelanggan_updated', { id_pelanggan: id });
+    SocketService.broadcast('pelanggan_updated', { id_pelanggan: id, id_router: idRouter, pppoe_status: 'unknown' });
     res.json({
+      id_router: idRouter,
       success: true,
       message: emailResult.success
         ? 'Registrasi disetujui, tagihan awal berhasil dibuat, dan notifikasi email telah dikirim.'
@@ -229,7 +256,7 @@ router.post('/registrasi/:id/approve', async function(req, res) {
       try { await connectionAction('rollback'); } catch (rollbackError) { console.error('[Pelanggan] Gagal rollback persetujuan registrasi:', rollbackError.message); }
     }
     console.error('[Pelanggan] Gagal menyetujui registrasi:', err.message);
-    res.status(500).json({ success: false, message: 'Gagal menyetujui registrasi pelanggan.' });
+    res.status(err.statusCode || (err.code === 'ER_DUP_ENTRY' ? 400 : 500)).json({ success: false, message: err.statusCode ? err.message : 'Gagal menyetujui registrasi pelanggan.' });
   } finally {
     if (connection) connection.release();
   }
@@ -326,6 +353,10 @@ router.post('/', function(req, res, next) {
   }
 
   try {
+    await Router.initialize();
+    var trimmedPppoe = pppoe_username ? pppoe_username.trim() : '';
+    var mikrotik = await selectCustomerRouter(req.body.id_router, trimmedPppoe);
+    var idRouter = mikrotik ? mikrotik.id_router : null;
     var existingNik = await new Promise((resolve, reject) => {
       db.query('SELECT id_pelanggan FROM pelanggan WHERE nik = ? LIMIT 1', [nik], (err, rows) => err ? reject(err) : resolve(rows[0] || null));
     });
@@ -356,10 +387,9 @@ router.post('/', function(req, res, next) {
     }
 
     // 3. Cek duplikat pppoe_username (jika diisi)
-    var trimmedPppoe = pppoe_username ? pppoe_username.trim() : '';
-    if (trimmedPppoe) {
+    if (hasConnectedPppoe(trimmedPppoe)) {
       var existingPppoe = await new Promise((resolve, reject) => {
-        Pelanggan.findByPppoe(trimmedPppoe, (err, result) => err ? reject(err) : resolve(result));
+        Pelanggan.findByPppoe(trimmedPppoe, idRouter, (err, result) => err ? reject(err) : resolve(result));
       });
       if (existingPppoe) {
         removeUploadedPhoto();
@@ -367,16 +397,7 @@ router.post('/', function(req, res, next) {
       }
 
       // 4. Validasi PPPoE Username di Mikrotik Router
-      var pingRes = await MikrotikService.ping();
-      if (pingRes.online) {
-        var isValid = await MikrotikService.validateSecret(trimmedPppoe);
-        if (!isValid) {
-          removeUploadedPhoto();
-          return res.status(400).json({ success: false, message: `PPPoE Username "${trimmedPppoe}" tidak ditemukan di router Mikrotik.` });
-        }
-      } else {
-        console.warn('Mikrotik offline during onboarding validation. Skipping check.');
-      }
+      await validateCustomerSecret(mikrotik, trimmedPppoe);
     }
 
     var passwordHash = await bcrypt.hash(password, 10);
@@ -392,6 +413,7 @@ router.post('/', function(req, res, next) {
         nik: nik,
         foto: '/uploads/foto-pelanggan/' + req.file.filename,
         pppoe_username: trimmedPppoe || null,
+        id_router: idRouter,
         paket: paket || null,
         due_date: due_date || null
       }, (err, resObj) => err ? reject(err) : resolve(resObj));
@@ -428,7 +450,7 @@ router.post('/', function(req, res, next) {
 
     try {
       var SocketService = require('../services/socket');
-      SocketService.broadcast('pelanggan_updated', { id_pelanggan: result.id_pelanggan });
+      SocketService.broadcast('pelanggan_updated', { id_pelanggan: result.id_pelanggan, id_router: idRouter });
     } catch (sErr) {}
 
     // Notifikasi email aktivasi PPPoE jika dibuat langsung dengan PPPoE
@@ -461,7 +483,7 @@ router.post('/', function(req, res, next) {
   } catch (err) {
     if (!customerCreated) removeUploadedPhoto();
     console.error('Error saat tambah pelanggan:', err);
-    return res.status(500).json({ success: false, message: err.message || 'Server error', error: err.message });
+    return res.status(err.statusCode || (err.code === 'ER_DUP_ENTRY' ? 400 : 500)).json({ success: false, message: err.message || 'Server error', error: err.message });
   }
 });
 
@@ -539,15 +561,24 @@ router.put('/:id', function(req, res, next) {
       }
     }
 
-    // 4. Validate pppoe_username change
-    if (updates.pppoe_username !== undefined && updates.pppoe_username !== pelanggan.pppoe_username) {
-      var pppoeVal = (updates.pppoe_username || '').trim();
-      updates.pppoe_username = pppoeVal ? pppoeVal : null;
-
-      if (pppoeVal) {
+    // Validate the pair, including moving an unchanged username to another router.
+    var pppoeVal = updates.pppoe_username !== undefined ? (updates.pppoe_username || '').trim() : pelanggan.pppoe_username;
+    if (updates.pppoe_username !== undefined) updates.pppoe_username = pppoeVal || null;
+    var requestedRouter = updates.id_router !== undefined ? updates.id_router : pelanggan.id_router;
+    var assignmentChanged = String(requestedRouter) !== String(pelanggan.id_router) || pppoeVal !== pelanggan.pppoe_username;
+    var mikrotik = null;
+    var idRouter = pelanggan.id_router;
+    if (updates.id_router !== undefined || assignmentChanged || (hasConnectedPppoe(pppoeVal) && pelanggan.id_router == null)) {
+      mikrotik = await selectCustomerRouter(requestedRouter, pppoeVal);
+      idRouter = mikrotik ? mikrotik.id_router : null;
+      updates.id_router = idRouter;
+    }
+    if (assignmentChanged || (hasConnectedPppoe(pppoeVal) && pelanggan.id_router == null)) {
+      updates.pppoe_status = 'unknown';
+      if (hasConnectedPppoe(pppoeVal)) {
         // Uniqueness check
         var existingPppoe = await new Promise((resolve, reject) => {
-          Pelanggan.findByPppoe(pppoeVal, (err, result) => err ? reject(err) : resolve(result));
+          Pelanggan.findByPppoe(pppoeVal, idRouter, (err, result) => err ? reject(err) : resolve(result));
         });
         if (existingPppoe && existingPppoe.id_pelanggan !== parseInt(id, 10)) {
           removeUploadedPhoto();
@@ -555,16 +586,7 @@ router.put('/:id', function(req, res, next) {
         }
 
         // Mikrotik validation
-        var pingRes = await MikrotikService.ping();
-        if (pingRes.online) {
-          var isValid = await MikrotikService.validateSecret(pppoeVal);
-          if (!isValid) {
-            removeUploadedPhoto();
-            return res.status(400).json({ success: false, message: `PPPoE Username "${pppoeVal}" tidak ditemukan di router Mikrotik.` });
-          }
-        } else {
-          console.warn('Mikrotik offline during update validation. Skipping check.');
-        }
+        await validateCustomerSecret(mikrotik, pppoeVal);
       }
     }
 
@@ -747,32 +769,34 @@ router.put('/:id', function(req, res, next) {
     }
 
     // Isolir / Re-enable PPPoE langsung ke router jika status pelanggan berubah
-    var effectiveUsername = updates.pppoe_username || pelanggan.pppoe_username;
+    var effectiveUsername = pppoeVal;
     var effectiveStatus = updates.status_tagihan || (updates.due_date ? targetCustomerStatus : pelanggan.status_tagihan);
-    if (effectiveUsername) {
+    if (hasConnectedPppoe(effectiveUsername)) {
       var MikrotikService = require('../services/mikrotik');
       var SocketService = require('../services/socket');
       if (effectiveStatus === 'merah') {
         try {
-          var isolirRes = await MikrotikService.disableSecret(effectiveUsername);
+          mikrotik = mikrotik || await require('../services/mikrotik').forRouter(idRouter);
+          var isolirRes = await mikrotik.disableSecret(effectiveUsername);
           if (isolirRes && isolirRes.success) {
-            Pelanggan.update(id, { pppoe_status: 'inactive' }, function() {});
+
             SocketService.broadcast('pelanggan_updated', {
               id_pelanggan: id,
-              status_tagihan: 'merah',
-              pppoe_status: 'inactive'
+              id_router: idRouter,
+              status_tagihan: 'merah'
             });
           }
         } catch (mErr) {}
       } else if (effectiveStatus === 'hijau') {
         try {
-          var enableRes = await MikrotikService.enableSecret(effectiveUsername);
+          mikrotik = mikrotik || await require('../services/mikrotik').forRouter(idRouter);
+          var enableRes = await mikrotik.enableSecret(effectiveUsername);
           if (enableRes && enableRes.success) {
-            Pelanggan.update(id, { pppoe_status: 'active' }, function() {});
+
             SocketService.broadcast('pelanggan_updated', {
               id_pelanggan: id,
-              status_tagihan: 'hijau',
-              pppoe_status: 'active'
+              id_router: idRouter,
+              status_tagihan: 'hijau'
             });
           }
         } catch (mErr) {}
@@ -785,7 +809,11 @@ router.put('/:id', function(req, res, next) {
 
     try {
       var SocketService = require('../services/socket');
-      SocketService.broadcast('pelanggan_updated', { id_pelanggan: id });
+      SocketService.broadcast('pelanggan_updated', {
+        id_pelanggan: id,
+        id_router: idRouter,
+        ...(updates.pppoe_status === 'unknown' ? { pppoe_status: 'unknown' } : {})
+      });
     } catch (sErr) {}
 
     // Cek apakah PPPoE baru saja dihubungkan ke pelanggan
@@ -822,12 +850,13 @@ router.put('/:id', function(req, res, next) {
     res.json({
       success: true,
       message: successMsg,
-      isNewlyConnectedPppoe: isNewlyConnectedPppoe
+      isNewlyConnectedPppoe: isNewlyConnectedPppoe,
+      id_router: idRouter
     });
 
   } catch (err) {
     if (!updateSaved) removeUploadedPhoto();
-    return res.status(500).json({ success: false, message: 'Server error', error: err.message });
+    return res.status(err.statusCode || (err.code === 'ER_DUP_ENTRY' ? 400 : 500)).json({ success: false, message: err.statusCode ? err.message : 'Server error', error: err.message });
   }
 });
 

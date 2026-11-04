@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
+import { useDialog } from '../context/DialogContext';
 import StatRing from '../components/dashboard/StatRing';
 import IncomeSpendCard from '../components/dashboard/IncomeSpendCard';
 import TodayPaymentSummary from '../components/dashboard/TodayPaymentSummary';
@@ -8,6 +9,7 @@ import SuperAdminNocDashboard from '../components/dashboard/SuperAdminNocDashboa
 import { Link } from 'react-router-dom';
 
 function DashboardPage({ socket, admin }) {
+  var { showAlert } = useDialog();
   var savedAdminStr = localStorage.getItem('admin');
   var currentAdmin = admin || (savedAdminStr ? JSON.parse(savedAdminStr) : null);
   var isSuperAdmin = currentAdmin && currentAdmin.role === 'superadmin';
@@ -301,7 +303,7 @@ function DashboardPage({ socket, admin }) {
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      alert('Gagal mendownload laporan: ' + err.message);
+      showAlert('Gagal mendownload laporan: ' + err.message, { tone: 'error' });
     }
   };
 

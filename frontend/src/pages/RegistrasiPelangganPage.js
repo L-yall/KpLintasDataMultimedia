@@ -3,8 +3,10 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
+import { useDialog } from '../context/DialogContext';
 
 function RegistrasiPelangganPage({ socket }) {
+  var { showAlert } = useDialog();
   var [registrations, setRegistrations] = useState([]);
   var [loading, setLoading] = useState(true);
   var [reviewing, setReviewing] = useState(null);
@@ -68,7 +70,7 @@ function RegistrasiPelangganPage({ socket }) {
       );
       setReviewing(null);
       await fetchRegistrations();
-      window.alert(response.data.message || 'Registrasi disetujui.');
+      showAlert(response.data.message || 'Registrasi disetujui.', { tone: 'success' });
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Gagal menyetujui registrasi.');
     } finally {
@@ -99,7 +101,7 @@ function RegistrasiPelangganPage({ socket }) {
       setRejectTarget(null);
       setAlasanTolak('');
       await fetchRegistrations();
-      window.alert(response.data.message || 'Registrasi ditolak.');
+      showAlert(response.data.message || 'Registrasi ditolak.', { tone: 'success' });
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Gagal menolak registrasi.');
     } finally {

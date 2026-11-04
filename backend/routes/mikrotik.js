@@ -7,22 +7,41 @@ var db = require('../config/db');
 
 // Protect all mikrotik routes with JWT
 router.use(verifyToken);
+router.use(function(req, res, next) {
+  if (!['admin', 'superadmin'].includes(req.adminRole)) {
+    return res.status(403).json({ success: false, message: 'Akses MikroTik hanya untuk staf.' });
+  }
+  next();
+});
+router.use(async function(req, res, next) {
+  // Server health must remain available even if no router is configured.
+  if (req.path === '/server-health') return next();
+  try {
+    var id = Object.prototype.hasOwnProperty.call(req.body || {}, 'id_router') ? req.body.id_router : req.query.id_router;
+    req.mikrotik = await MikrotikService.forRouter(id);
+    next();
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
 
 /* GET /api/mikrotik/status - Check connection to Mikrotik */
 router.get('/status', async function(req, res) {
-  var status = await MikrotikService.ping();
-  res.json({
-    success: true,
-    data: status
-  });
+  try {
+    var status = await req.mikrotik.ping();
+    res.json({ success: true, id_router: req.mikrotik.id_router, data: status });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
 });
 
 /* GET /api/mikrotik/secrets - List all PPPoE secrets (for onboarding dropdown) */
 router.get('/secrets', async function(req, res) {
   try {
-    var secrets = await MikrotikService.getSecrets();
+    var secrets = await req.mikrotik.getSecrets();
     db.query(
-      "SELECT pppoe_username FROM pelanggan WHERE pppoe_username IS NOT NULL AND pppoe_username <> '' AND pppoe_username NOT LIKE 'REG-%'",
+      "SELECT pppoe_username FROM pelanggan WHERE id_router = ? AND pppoe_username IS NOT NULL AND pppoe_username <> '' AND pppoe_username NOT LIKE 'REG-%'",
+      [req.mikrotik.id_router],
       function(err, customers) {
         if (err) {
           return res.status(500).json({
@@ -38,10 +57,10 @@ router.get('/secrets', async function(req, res) {
         res.json({
           success: true,
           data: secrets.map(function(secret) {
-            return {
-              ...secret,
-              is_registered: registeredUsernames.has(secret.name)
-            };
+            var dto = { ...secret, id_router: req.mikrotik.id_router, is_registered: registeredUsernames.has(secret.name) };
+            delete dto.password;
+            delete dto.pass;
+            return dto;
           })
         });
       }
@@ -58,7 +77,7 @@ router.get('/secrets', async function(req, res) {
 /* GET /api/mikrotik/active - List active connections */
 router.get('/active', async function(req, res) {
   try {
-    var active = await MikrotikService.getActiveConnections();
+    var active = await req.mikrotik.getActiveConnections();
     res.json({
       success: true,
       data: active
@@ -75,7 +94,7 @@ router.get('/active', async function(req, res) {
 /* GET /api/mikrotik/unregistered - List active PPPoE not registered in DB */
 router.get('/unregistered', async function(req, res) {
   try {
-    var activeConns = await MikrotikService.getActiveConnections();
+    var activeConns = await req.mikrotik.getActiveConnections();
     
     Pelanggan.getAll(function(err, customers) {
       if (err) {
@@ -88,6 +107,7 @@ router.get('/unregistered', async function(req, res) {
 
       var registeredUsernames = new Set(
         customers
+          .filter(function(c) { return String(c.id_router) === String(req.mikrotik.id_router); })
           .map(function(c) { return c.pppoe_username; })
           .filter(Boolean)
       );
@@ -98,9 +118,10 @@ router.get('/unregistered', async function(req, res) {
 
       res.json({
         success: true,
-        data: unregistered
+        data: unregistered,
+        id_router: req.mikrotik.id_router
       });
-    });
+    }, { id_router: req.mikrotik.id_router });
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -113,7 +134,7 @@ router.get('/unregistered', async function(req, res) {
 /* GET /api/mikrotik/resources - Telemetri hardware RouterOS */
 router.get('/resources', async function(req, res) {
   try {
-    var resources = await MikrotikService.getResources();
+    var resources = await req.mikrotik.getResources();
     res.json({
       success: true,
       data: resources
@@ -130,7 +151,7 @@ router.get('/resources', async function(req, res) {
 /* GET /api/mikrotik/interfaces - Status dan traffic interface fisik & virtual */
 router.get('/interfaces', async function(req, res) {
   try {
-    var result = await MikrotikService.getInterfaces();
+    var result = await req.mikrotik.getInterfaces();
     res.json({
       success: true,
       data: result.data,
@@ -149,7 +170,7 @@ router.get('/interfaces', async function(req, res) {
 /* GET /api/mikrotik/logs - Syslog dan event log RouterOS */
 router.get('/logs', async function(req, res) {
   try {
-    var result = await MikrotikService.getLogs();
+    var result = await req.mikrotik.getLogs();
     res.json({
       success: true,
       data: result.data,
@@ -186,10 +207,12 @@ router.get('/server-health', async function(req, res) {
 router.post('/sync', async function(req, res) {
   try {
     var syncService = require('../services/syncService');
-    await syncService.sync();
+    var result = await syncService.sync(req.mikrotik.id_router);
     res.json({
       success: true,
-      message: 'Sinkronisasi data Mikrotik berhasil dijalankan.'
+      message: 'Sinkronisasi data Mikrotik berhasil dijalankan.',
+      id_router: req.mikrotik.id_router,
+      data: result
     });
   } catch (err) {
     res.status(500).json({
@@ -211,7 +234,7 @@ router.post('/kick-session', async function(req, res) {
       });
     }
 
-    var result = await MikrotikService.disconnectSession(username);
+    var result = await req.mikrotik.disconnectSession(username);
     res.json({
       success: true,
       message: result ? `Sesi untuk ${username} berhasil diputus.` : `Tidak ada sesi aktif ditemukan untuk ${username}.`
@@ -236,7 +259,7 @@ router.post('/isolir', async function(req, res) {
       });
     }
 
-    var result = await MikrotikService.disableSecret(username);
+    var result = await req.mikrotik.disableSecret(username);
     res.json({
       success: result.success,
       message: result.success ? `PPPoE '${result.secretName || username}' berhasil diisolir.` : `Gagal: ${result.reason}`,
@@ -262,7 +285,7 @@ router.post('/buka-isolir', async function(req, res) {
       });
     }
 
-    var result = await MikrotikService.enableSecret(username);
+    var result = await req.mikrotik.enableSecret(username);
     res.json({
       success: result.success,
       message: result.success ? `PPPoE '${result.secretName || username}' berhasil diaktifkan kembali.` : `Gagal: ${result.reason}`,

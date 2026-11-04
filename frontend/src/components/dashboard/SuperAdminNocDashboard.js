@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
+import { useDialog } from '../../context/DialogContext';
 import TemplateIcon from '../TemplateIcon';
 
 function SuperAdminNocDashboard({ socket, admin }) {
+  var { showAlert, confirmDialog } = useDialog();
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
 
@@ -191,14 +193,14 @@ function SuperAdminNocDashboard({ socket, admin }) {
 
   // Kick / Disconnect Session
   var handleKickSession = async function (username) {
-    if (!window.confirm(`Yakin ingin memutus sesi PPPoE aktif untuk [${username}]?`)) return;
+    if (!(await confirmDialog(`Yakin ingin memutus sesi PPPoE aktif untuk [${username}]?`, { title: 'Putus Sesi PPPoE', tone: 'danger', confirmLabel: 'Putus Sesi', cancelLabel: 'Batal' }))) return;
     setKickLoading(username);
     try {
       var res = await axios.post(API_BASE_URL + '/api/mikrotik/kick-session', { username: username }, { headers });
-      alert(res.data.message);
+      showAlert(res.data.message, { tone: 'success' });
       fetchAllTelemetry();
     } catch (err) {
-      alert('Gagal memutus sesi: ' + (err.response ? err.response.data.message : err.message));
+      showAlert('Gagal memutus sesi: ' + (err.response ? err.response.data.message : err.message), { tone: 'error' });
     } finally {
       setKickLoading(null);
     }

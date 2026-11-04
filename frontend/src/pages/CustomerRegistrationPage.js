@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { useLogo } from '../context/LogoContext';
+import { useDialog } from '../context/DialogContext';
 import './CustomerRegistrationPage.css';
 
 function CustomerRegistrationPage() {
   var location = useLocation();
+  var navigate = useNavigate();
+  var { showAlert } = useDialog();
   var searchParams = new URLSearchParams(location.search);
   var targetPaketFromQuery = (location.state && location.state.paket) || searchParams.get('paket') || '';
 
@@ -25,7 +28,7 @@ function CustomerRegistrationPage() {
   var [loadingPackages, setLoadingPackages] = useState(true);
   var [submitting, setSubmitting] = useState(false);
   var [error, setError] = useState('');
-  var [success, setSuccess] = useState('');
+
   var selectedLandingPackage = packages.find(function (item) {
     return targetPaketFromQuery &&
       (item.nama_paket || '').trim().toLowerCase() === targetPaketFromQuery.trim().toLowerCase() &&
@@ -66,7 +69,6 @@ function CustomerRegistrationPage() {
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
-    setSuccess('');
     setSubmitting(true);
 
     var formData = new FormData();
@@ -75,10 +77,15 @@ function CustomerRegistrationPage() {
 
     try {
       var response = await axios.post(`${API_BASE_URL}/api/customer/auth/register`, formData);
-      setSuccess(response.data.message || 'Registrasi berhasil.');
-      setForm({ nama: '', no_hp: '', email: '', password: '', alamat: '', nik: '', paket: packages[0]?.nama_paket || '' });
-      setFoto(null);
-      event.target.reset();
+      if (!response.data.success) {
+        setError(response.data.message || 'Registrasi gagal. Silakan coba kembali.');
+        return;
+      }
+      navigate('/', { replace: true });
+      showAlert('Registrasi berhasil. Pengajuan Anda sedang ditinjau oleh admin.', {
+        title: 'Registrasi berhasil',
+        tone: 'success'
+      });
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Registrasi gagal. Silakan coba kembali.');
     } finally {
@@ -105,7 +112,7 @@ function CustomerRegistrationPage() {
 
         <form className="registration-form" onSubmit={handleSubmit}>
           {error && <div className="registration-notice registration-notice--error" role="alert">{error}</div>}
-          {success && <div className="registration-notice registration-notice--success" role="status">{success} <Link to="/login">Lanjut ke login</Link></div>}
+
 
           <div className="registration-fields">
             <label className="registration-field">

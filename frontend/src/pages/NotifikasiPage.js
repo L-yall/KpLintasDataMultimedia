@@ -4,8 +4,10 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
+import { useDialog } from '../context/DialogContext';
 
 function NotifikasiPage({ socket, admin }) {
+  var { showAlert, confirmDialog, promptDialog } = useDialog();
   var [notifs, setNotifs] = useState([]);
   var [loading, setLoading] = useState(true);
   var [searchQuery, setSearchQuery] = useState('');
@@ -538,16 +540,24 @@ function NotifikasiPage({ socket, admin }) {
                   <button
                     className="btn btn-danger"
                     onClick={async function () {
-                      var alasan = window.prompt('Alasan penolakan (wajib):');
-                      if (!alasan) return alert('Alasan penolakan diperlukan.');
+                      var alasan = await promptDialog('Alasan penolakan (wajib):', {
+                        title: 'Tolak pembayaran',
+                        tone: 'warning',
+                        inputLabel: 'Alasan penolakan',
+                        required: true,
+                        confirmLabel: 'Tolak pembayaran',
+                        cancelLabel: 'Batal'
+                      });
+                      if (alasan === null) return;
+                      if (!alasan.trim()) return showAlert('Alasan penolakan diperlukan.', { tone: 'error' });
                       setActionLoading(true);
                       try {
                         var resp = await axios.post(`${API_BASE_URL}/api/pembayaran/${viewNotif.id_pembayaran}/reject`, { alasan_tolak: alasan }, { headers: headers });
-                        alert(resp.data.message || 'Pembayaran ditolak.');
+                        await showAlert(resp.data.message || 'Pembayaran ditolak.', { tone: 'success' });
                         setViewNotif(null);
                         fetchNotifications();
                       } catch (err) {
-                        alert('Gagal menolak pembayaran: ' + (err.response?.data?.message || err.message));
+                        await showAlert('Gagal menolak pembayaran: ' + (err.response?.data?.message || err.message), { tone: 'error' });
                       } finally { setActionLoading(false); }
                     }}
                     disabled={actionLoading}
@@ -557,15 +567,15 @@ function NotifikasiPage({ socket, admin }) {
                   <button
                     className="btn btn-primary"
                     onClick={async function () {
-                      if (!window.confirm('Setujui pembayaran ini?')) return;
+                      if (!await confirmDialog('Setujui pembayaran ini?', { tone: 'info', confirmLabel: 'Ya, setujui', cancelLabel: 'Batal' })) return;
                       setActionLoading(true);
                       try {
                         var r = await axios.post(`${API_BASE_URL}/api/pembayaran/${viewNotif.id_pembayaran}/approve`, {}, { headers: headers });
-                        alert(r.data.message || 'Pembayaran disetujui.');
+                        await showAlert(r.data.message || 'Pembayaran disetujui.', { tone: 'success' });
                         setViewNotif(null);
                         fetchNotifications();
                       } catch (err) {
-                        alert('Gagal menyetujui pembayaran: ' + (err.response?.data?.message || err.message));
+                        await showAlert('Gagal menyetujui pembayaran: ' + (err.response?.data?.message || err.message), { tone: 'error' });
                       } finally { setActionLoading(false); }
                     }}
                     disabled={actionLoading}

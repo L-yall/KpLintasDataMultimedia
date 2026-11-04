@@ -1,18 +1,28 @@
 var RouterOSAPI = require('node-routeros').RouterOSAPI;
-var ConfigService = require('./configService');
+var Router = require('../models/Router');
+var AsyncLocalStorage = require('node:async_hooks').AsyncLocalStorage;
 var logger = require('../utils/logger');
 
-var cachedPing = null;
-var lastPingTime = 0;
+var routerContext = new AsyncLocalStorage();
+var pingCache = new Map();
+
+async function resolveRouterConfig(id) {
+  await Router.initialize();
+  if (id === undefined || id === null) id = await Router.getDefaultId();
+  if (id === undefined || id === null) throw new Error('Router Mikrotik belum dikonfigurasi.');
+  return Router.getClientConfig(id);
+}
 
 // Helper function to establish connection, write command, close connection, and return data
 async function executeCommand(command, params, customConfig, customTimeout) {
-  var host = (customConfig && customConfig.host) || ConfigService.get('MIKROTIK_HOST', process.env.MIKROTIK_HOST);
-  var user = (customConfig && customConfig.user) || ConfigService.get('MIKROTIK_USER', process.env.MIKROTIK_USER);
-  var pass = (customConfig && customConfig.pass) || ConfigService.get('MIKROTIK_PASS', process.env.MIKROTIK_PASS);
-  var port = parseInt((customConfig && customConfig.port) || ConfigService.get('MIKROTIK_PORT', process.env.MIKROTIK_PORT) || '8728', 10);
+  // Custom credentials are exact: never fill missing values from another router.
+  var config = customConfig != null ? customConfig : (routerContext.getStore() || await resolveRouterConfig());
+  var host = config.host;
+  var user = config.user;
+  var pass = config.pass;
+  var port = Number(config.port === undefined ? 8728 : config.port);
 
-  if (!host || !user || !pass) {
+  if (!host || !user || !pass || !Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error('Kredensial Mikrotik belum dikonfigurasi.');
   }
 
@@ -40,9 +50,17 @@ async function executeCommand(command, params, customConfig, customTimeout) {
 var MikrotikService = {
   // Check if router is reachable (ping)
   ping: async function (customConfig, skipCache) {
-    // Gunakan cache singkat (10s) jika status router sedang offline/stabil untuk mencegah spam socket timeout
-    if (!customConfig && !skipCache && cachedPing && (Date.now() - lastPingTime < 10000)) {
-      return cachedPing;
+    var config = customConfig != null ? customConfig : routerContext.getStore();
+    var cacheKey = customConfig != null ? null : String(config.id_router);
+    var cached = cacheKey === null ? null : pingCache.get(cacheKey);
+    // Invalidate on credential changes as well as TTL; custom probes never touch registry caches.
+    var signature = JSON.stringify([config.host, config.port, config.user, config.pass]);
+    if (!skipCache && cached && cached.signature === signature && Date.now() - cached.time < 10000) {
+      return cached.result;
+    }
+    function cacheResult(result) {
+      if (cacheKey !== null) pingCache.set(cacheKey, { signature: signature, time: Date.now(), result: result });
+      return result;
     }
 
     try {
@@ -57,22 +75,16 @@ var MikrotikService = {
           cpu_load: parseInt(data[0]['cpu-load'] || 0, 10),
           architecture: data[0]['architecture-name'] || 'MMIPS'
         };
-        cachedPing = resOnline;
-        lastPingTime = Date.now();
-        return resOnline;
+        return cacheResult(resOnline);
       }
       var resEmpty = { online: false, error: 'Respon router kosong' };
-      cachedPing = resEmpty;
-      lastPingTime = Date.now();
-      return resEmpty;
+      return cacheResult(resEmpty);
     } catch (err) {
       var resErr = {
         online: false,
         error: err.message || 'Koneksi gagal'
       };
-      cachedPing = resErr;
-      lastPingTime = Date.now();
-      return resErr;
+      return cacheResult(resErr);
     }
   },
 
@@ -235,7 +247,12 @@ var MikrotikService = {
   getSecrets: async function () {
     try {
       var data = await executeCommand('/ppp/secret/print');
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(data) ? data.map(function(secret) {
+        var dto = { ...secret };
+        delete dto.password;
+        delete dto.pass;
+        return dto;
+      }) : [];
     } catch (err) {
       console.error('Error fetching PPPoE secrets:', err.message);
       throw new Error('Gagal terhubung ke Mikrotik: ' + err.message);
@@ -479,6 +496,40 @@ var MikrotikService = {
     }
   },
   executeCommand: executeCommand
+};
+
+// Bind the whole operation, not individual commands, so nested this.* calls and
+// concurrent jobs keep the same immutable router context throughout their awaits.
+Object.keys(MikrotikService).forEach(function(name) {
+  if (name === 'getServerHealth') return;
+  var method = MikrotikService[name];
+  MikrotikService[name] = async function() {
+    var args = Array.from(arguments);
+    var customConfig = name === 'ping' ? args[0] : (name === 'executeCommand' ? args[2] : null);
+    if (customConfig != null || routerContext.getStore()) return method.apply(MikrotikService, args);
+    var config = await resolveRouterConfig();
+    return routerContext.run(Object.freeze({ ...config }), function() {
+      return method.apply(MikrotikService, args);
+    });
+  };
+});
+
+// Promise<facade>: public metadata plus the same async RouterOS methods. Each
+// invocation revalidates the selected registry record (including disabled state).
+MikrotikService.forRouter = async function(id) {
+  var selected = await resolveRouterConfig(id);
+  var facade = { id_router: selected.id_router, nama_router: selected.nama_router };
+  Object.keys(MikrotikService).forEach(function(name) {
+    if (name === 'forRouter' || name === 'getServerHealth') return;
+    facade[name] = async function() {
+      var args = Array.from(arguments);
+      var config = await resolveRouterConfig(selected.id_router);
+      return routerContext.run(Object.freeze({ ...config }), function() {
+        return MikrotikService[name].apply(MikrotikService, args);
+      });
+    };
+  });
+  return Object.freeze(facade);
 };
 
 module.exports = MikrotikService;

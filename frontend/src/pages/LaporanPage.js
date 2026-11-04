@@ -3,8 +3,10 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
+import { useDialog } from '../context/DialogContext';
 
 function LaporanPage() {
+  var { showAlert, confirmDialog, promptDialog } = useDialog();
   var currentAdmin = JSON.parse(localStorage.getItem('admin') || '{}');
   var isSuperAdmin = currentAdmin && currentAdmin.role === 'superadmin';
 
@@ -71,15 +73,15 @@ function LaporanPage() {
   }
 
   async function handleDeleteLog(id) {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus catatan riwayat unduhan ini?')) {
+    if (!await confirmDialog('Apakah Anda yakin ingin menghapus catatan riwayat unduhan ini?', { tone: 'danger', confirmLabel: 'Ya, hapus', cancelLabel: 'Batal' })) {
       return;
     }
     try {
       var res = await axios.delete(`${API_BASE_URL}/api/reports/history/${id}`, { headers: headers });
-      alert(res.data.message || 'Log berhasil dihapus.');
+      await showAlert(res.data.message || 'Log berhasil dihapus.', { tone: 'success' });
       fetchReportLogs();
     } catch (err) {
-      alert('Gagal menghapus log riwayat: ' + (err.response?.data?.message || err.message));
+      await showAlert('Gagal menghapus log riwayat: ' + (err.response?.data?.message || err.message), { tone: 'error' });
     }
   }
 
@@ -142,7 +144,7 @@ function LaporanPage() {
     var file = e.target.files && e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('Ukuran file bukti nota maksimal 5MB.');
+        showAlert('Ukuran file bukti nota maksimal 5MB.', { tone: 'error' });
         e.target.value = '';
         return;
       }
@@ -161,17 +163,17 @@ function LaporanPage() {
   async function handleAddExpense(e) {
     e.preventDefault();
     if (!buktiNotaFile) {
-      alert('Bukti pengeluaran atau nota wajib diunggah.');
+      showAlert('Bukti pengeluaran atau nota wajib diunggah.', { tone: 'error' });
       return;
     }
 
     if (!isSuperAdmin) {
       if (tanggal < yesterdayStr) {
-        alert('Maksimal input pengeluaran adalah 1 hari setelah tanggal transaksi/nota (Maksimal tanggal ' + yesterdayStr + ').');
+        showAlert('Maksimal input pengeluaran adalah 1 hari setelah tanggal transaksi/nota (Maksimal tanggal ' + yesterdayStr + ').', { tone: 'error' });
         return;
       }
       if (tanggal > todayStr) {
-        alert('Tanggal pengeluaran tidak boleh melebihi tanggal hari ini.');
+        showAlert('Tanggal pengeluaran tidak boleh melebihi tanggal hari ini.', { tone: 'error' });
         return;
       }
     }
@@ -193,13 +195,13 @@ function LaporanPage() {
         }
       });
 
-      alert(response.data.message);
+      await showAlert(response.data.message, { tone: 'success' });
       setShowAddModal(false);
       resetForm();
       fetchData();
       fetchBerkalaList();
     } catch (err) {
-      alert('Gagal mencatat pengeluaran: ' + (err.response?.data?.message || err.message));
+      await showAlert('Gagal mencatat pengeluaran: ' + (err.response?.data?.message || err.message), { tone: 'error' });
     } finally {
       setActionLoading(false);
     }
@@ -213,11 +215,18 @@ function LaporanPage() {
 
     var catatan = '';
     if (status === 'ditolak') {
-      var inputCatatan = window.prompt('Masukkan alasan penolakan pengeluaran (opsional):', '');
+      var inputCatatan = await promptDialog('Masukkan alasan penolakan pengeluaran (opsional):', {
+        title: 'Tolak pengeluaran',
+        tone: 'warning',
+        inputLabel: 'Alasan penolakan',
+        defaultValue: '',
+        confirmLabel: 'Tolak pengeluaran',
+        cancelLabel: 'Batal'
+      });
       if (inputCatatan === null) return;
       catatan = inputCatatan;
     } else {
-      if (!window.confirm(confirmMsg)) return;
+      if (!await confirmDialog(confirmMsg, { tone: 'info', confirmLabel: 'Ya, setujui', cancelLabel: 'Batal' })) return;
     }
 
     setActionLoading(true);
@@ -227,10 +236,10 @@ function LaporanPage() {
         catatan_validasi: catatan
       }, { headers: headers });
 
-      alert(response.data.message);
+      await showAlert(response.data.message, { tone: 'success' });
       fetchData();
     } catch (err) {
-      alert('Gagal memvalidasi pengeluaran: ' + (err.response?.data?.message || err.message));
+      await showAlert('Gagal memvalidasi pengeluaran: ' + (err.response?.data?.message || err.message), { tone: 'error' });
     } finally {
       setActionLoading(false);
     }
@@ -317,7 +326,7 @@ function LaporanPage() {
         fetchReportLogs();
       }, 1000);
     } catch (err) {
-      alert('Gagal mendownload laporan: ' + err.message);
+      await showAlert('Gagal mendownload laporan: ' + err.message, { tone: 'error' });
     } finally {
       exportInProgress.current = false;
       setExporting(false);

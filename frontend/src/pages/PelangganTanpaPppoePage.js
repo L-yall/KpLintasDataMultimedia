@@ -4,8 +4,10 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
+import { useDialog } from '../context/DialogContext';
 
 function PelangganTanpaPppoePage({ socket }) {
+  var { showAlert } = useDialog();
   var [pelanggan, setPelanggan] = useState([]);
   var [paketList, setPaketList] = useState([]);
   var [pppoeSecrets, setPppoeSecrets] = useState([]);
@@ -197,13 +199,22 @@ function PelangganTanpaPppoePage({ socket }) {
 
   // --- Handlers Hapus ---
   async function handleDelete(id) {
+    if (deleteLoading) return;
     setDeleteLoading(true);
     try {
-      await axios.delete(`${API_BASE_URL}/api/pelanggan/` + id, { headers: headers });
+      var response = await axios.delete(`${API_BASE_URL}/api/pelanggan/` + id, { headers: headers });
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Gagal menghapus pelanggan. Silakan coba kembali.');
+      }
       setDeleteConfirm(null);
       fetchData();
+      showAlert(response.data.message || 'Pelanggan berhasil dihapus.', { tone: 'success' });
     } catch (err) {
-      console.error('Gagal hapus pelanggan:', err);
+      setDeleteConfirm(null);
+      showAlert(err.response?.data?.message || err.message || 'Gagal menghapus pelanggan. Silakan coba kembali.', {
+        title: 'Gagal menghapus pelanggan',
+        tone: 'error'
+      });
     } finally {
       setDeleteLoading(false);
     }

@@ -15,11 +15,14 @@ jest.mock('socket.io-client', () => {
 });
 
 import App from './App';
+import { DialogProvider } from './context/DialogContext';
 
 test('renders Lintas Data Multimedia application without crashing', () => {
   const { container } = render(
     <BrowserRouter>
-      <App />
+      <DialogProvider>
+        <App />
+      </DialogProvider>
     </BrowserRouter>
   );
   expect(container).toBeDefined();

@@ -1,4 +1,5 @@
 var db = require('../config/db');
+var Router = require('../models/Router');
 var MikrotikService = require('./mikrotik');
 var EmailService = require('./emailService');
 var PdfService = require('./pdfService');
@@ -77,7 +78,8 @@ var BillingService = {
    *   - payment_method: string
    *   - bukti_file: string|null
    */
-  settlePayment: function (params) {
+  settlePayment: async function (params) {
+    await Router.initialize();
     return new Promise(function (resolve, reject) {
       var id_tagihan = params.id_tagihan;
       var id_admin = params.id_admin || null;
@@ -105,7 +107,7 @@ var BillingService = {
             var selectTagihanSql = `
               SELECT 
                 t.id_tagihan, t.id_pelanggan, t.periode, t.nominal, t.status AS tagihan_status, t.due_date,
-                p.nama, p.email, p.no_hp, p.alamat, p.pppoe_username, p.paket, p.due_date AS cust_due_date, p.status_tagihan AS cust_status
+                p.nama, p.email, p.no_hp, p.alamat, p.pppoe_username, p.id_router, p.paket, p.due_date AS cust_due_date, p.status_tagihan AS cust_status
               FROM tagihan t
               JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan
               WHERE t.id_tagihan = ?
@@ -281,11 +283,10 @@ var BillingService = {
 
             // PROSES SETELAH TRANSAKSI (MikroTik, Email, WebSocket)
             // 8. Buka blokir / aktifkan PPPoE di MikroTik
-            var pppoeStatus = 'unknown';
             if (bill.pppoe_username) {
               try {
-                var mRes = await MikrotikService.enableSecret(bill.pppoe_username);
-                if (mRes) pppoeStatus = 'active';
+                var mikrotik = await MikrotikService.forRouter(bill.id_router);
+                await mikrotik.enableSecret(bill.pppoe_username);
               } catch (mErr) {
                 logger.error('BILLING', `Gagal enable secret di MikroTik: ${mErr.message}`);
               }
@@ -338,9 +339,9 @@ var BillingService = {
             // 10. Broadcast WebSocket ke Admin dan Portal
             SocketService.broadcast('pelanggan_updated', {
               id_pelanggan: bill.id_pelanggan,
+              id_router: bill.id_router,
               status_tagihan: 'hijau',
-              due_date: newDueDateString,
-              pppoe_status: pppoeStatus
+              due_date: newDueDateString
             });
 
             SocketService.broadcast('pembayaran_masuk', {

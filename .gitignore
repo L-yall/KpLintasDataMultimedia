@@ -24,6 +24,10 @@ lerna-debug.log*
 **/.env.*
 !**/.env.example
 
+# Router encryption key and atomic creation files (never commit secrets)
+/backend/config/.router-encryption.key
+/backend/config/.router-encryption.key.*.tmp
+
 # OS files
 .DS_Store
 Thumbs.db

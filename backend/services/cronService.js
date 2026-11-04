@@ -51,98 +51,109 @@ var CronService = {
     var today = new Date();
     
     // We fetch all active unpaid bills
-    Tagihan.getUnpaid(async (err, unpaidBills) => {
-      if (err) {
-        logger.once('cron_db_err', 'warn', 'CRON', `Menunggu database siap: ${err.message}`);
-        return;
-      }
-
-      if (unpaidBills.length > 0) {
-        logger.info('CRON', `Mengevaluasi ${unpaidBills.length} tagihan aktif belum lunas...`);
-      }
-
-      // Periksa konektivitas MikroTik sekali saja untuk seluruh tagihan (mencegah timeout berulang kali)
-      var pingRes = await MikrotikService.ping();
-      var isRouterOnline = pingRes && pingRes.online;
-      if (!isRouterOnline) {
-        logger.stateChange('cron_mikrotik_status', 'offline', () => {
-          logger.warn('CRON', `Router MikroTik tidak terjangkau (${pingRes.error || 'offline'}), penyesuaian isolir PPPoE otomatis dilewati.`);
-        });
-      }
-
-      for (var i = 0; i < unpaidBills.length; i++) {
-        var bill = unpaidBills[i];
-        var dueDate = new Date(bill.due_date);
-        var daysDiff = getDaysDifference(dueDate, today);
-        
-        var newStatus = 'hijau';
-        var shouldSendReminder = false;
-
-        if (daysDiff < 0) {
-          // Overdue / Late
-          newStatus = 'merah';
-          shouldSendReminder = true; // Email tetap dikirim setiap hari saat menunggak
-
-          if (bill.status !== 'terlambat') {
-            Tagihan.updateStatus(bill.id_tagihan, 'terlambat', function(err) {
-              if (err) console.error('Failed to update bill status to terlambat:', err.message);
-            });
+    var unpaidBills;
+    try {
+      unpaidBills = await new Promise(function(resolve, reject) {
+        Tagihan.getUnpaid(function(err, bills) { err ? reject(err) : resolve(bills); });
+      });
+    } catch (err) {
+      logger.once('cron_db_err', 'warn', 'CRON', `Menunggu database siap: ${err.message}`);
+      return;
+    }
+    var routerClients = new Map();
+    async function getRouterClient(id) {
+      var key = id == null ? 'default' : String(id);
+      if (!routerClients.has(key)) {
+        routerClients.set(key, (async function() {
+          try {
+            var client = await MikrotikService.forRouter(id);
+            var ping = await client.ping();
+            if (ping && ping.online) return client;
+            logger.warn('CRON', `Router #${key} offline, isolir dilewati.`);
+          } catch (err) {
+            logger.warn('CRON', `Router #${key}: ${err.message}; isolir dilewati.`);
           }
+          return null;
+        })());
+      }
+      return routerClients.get(key);
+    }
 
-          // ISOLIR MIKROTIK OTOMATIS: Matikan secret PPPoE & putus sesi jika menunggak (hanya jika router online)
-          if (bill.pppoe_username && isRouterOnline) {
-            try {
-              var isolirResult = await MikrotikService.disableSecret(bill.pppoe_username);
-              if (isolirResult && isolirResult.success) {
-                logger.warn('CRON', `Berhasil isolir PPPoE '${isolirResult.secretName || bill.pppoe_username}' (${bill.nama}) - ${isolirResult.kickedCount || 0} sesi aktif diputus.`);
-              }
-            } catch (mikrotikErr) {
-              logger.error('CRON', `Gagal mengisolir MikroTik untuk ${bill.pppoe_username}: ${mikrotikErr.message}`);
-            }
-          }
-        } else if (daysDiff >= 0 && daysDiff <= 3) {
-          // Due in 0 to 3 days (hari-H atau 0-3 hari sebelum jatuh tempo)
-          newStatus = 'kuning';
-          shouldSendReminder = true;
-        } else {
-          // Far from due date
-          newStatus = 'hijau';
-        }
+    if (unpaidBills.length > 0) {
+      logger.info('CRON', `Mengevaluasi ${unpaidBills.length} tagihan aktif belum lunas...`);
+    }
 
-        // 1. Update customer status if changed
-        if (bill.status_tagihan !== newStatus) {
-          const idPelanggan = bill.id_pelanggan;
-          const targetStatus = newStatus;
-          const updateData = { status_tagihan: targetStatus };
-          if (targetStatus === 'merah') {
-            updateData.pppoe_status = 'inactive';
-          }
-          
-          Pelanggan.update(idPelanggan, updateData, function(updateErr) {
-            if (updateErr) {
-              logger.error('CRON', `Gagal memperbarui status pelanggan #${idPelanggan}: ${updateErr.message}`);
-            } else {
-              logger.info('CRON', `Status pelanggan #${idPelanggan} (${bill.nama}) -> ${targetStatus}`);
-              SocketService.broadcast('pelanggan_updated', {
-                id_pelanggan: idPelanggan,
-                status_tagihan: targetStatus,
-                pppoe_status: targetStatus === 'merah' ? 'inactive' : bill.pppoe_status
-              });
-            }
+    for (var i = 0; i < unpaidBills.length; i++) {
+      var bill = unpaidBills[i];
+      var dueDate = new Date(bill.due_date);
+      var daysDiff = getDaysDifference(dueDate, today);
+
+      var newStatus = 'hijau';
+      var shouldSendReminder = false;
+
+      if (daysDiff < 0) {
+        // Overdue / Late
+        newStatus = 'merah';
+        shouldSendReminder = true; // Email tetap dikirim setiap hari saat menunggak
+
+        if (bill.status !== 'terlambat') {
+          Tagihan.updateStatus(bill.id_tagihan, 'terlambat', function(err) {
+            if (err) console.error('Failed to update bill status to terlambat:', err.message);
           });
         }
 
-        // 2. Send Email Reminder if shouldSendReminder is true
-        if (shouldSendReminder) {
-          // Mengirimkan data daysDiff agar pesan email bisa dibedakan
-          await this.processEmailReminder(bill, daysDiff);
+        // Connectivity is checked once per bill's router, not once globally.
+        if (bill.pppoe_username) {
+          try {
+            var mikrotik = await getRouterClient(bill.id_router);
+            var isolirResult = mikrotik ? await mikrotik.disableSecret(bill.pppoe_username) : null;
+            if (isolirResult && isolirResult.success) {
+              logger.warn('CRON', `Berhasil isolir PPPoE '${isolirResult.secretName || bill.pppoe_username}' (${bill.nama}) - ${isolirResult.kickedCount || 0} sesi aktif diputus.`);
+            }
+          } catch (mikrotikErr) {
+            logger.error('CRON', `Gagal mengisolir MikroTik untuk ${bill.pppoe_username}: ${mikrotikErr.message}`);
+          }
         }
+      } else if (daysDiff >= 0 && daysDiff <= 3) {
+        // Due in 0 to 3 days (hari-H atau 0-3 hari sebelum jatuh tempo)
+        newStatus = 'kuning';
+        shouldSendReminder = true;
+      } else {
+        // Far from due date
+        newStatus = 'hijau';
       }
-      
-      if (unpaidBills.length > 0) {
-        logger.info('CRON', `Evaluasi billing selesai (${unpaidBills.length} tagihan diperiksa).`);
+
+      // 1. Update customer status if changed
+      if (bill.status_tagihan !== newStatus) {
+        const idPelanggan = bill.id_pelanggan;
+        const targetStatus = newStatus;
+        const idRouter = bill.id_router;
+        const updateData = { status_tagihan: targetStatus };
+
+        Pelanggan.update(idPelanggan, updateData, function(updateErr) {
+          if (updateErr) {
+            logger.error('CRON', `Gagal memperbarui status pelanggan #${idPelanggan}: ${updateErr.message}`);
+          } else {
+            logger.info('CRON', `Status pelanggan #${idPelanggan} (${bill.nama}) -> ${targetStatus}`);
+            SocketService.broadcast('pelanggan_updated', {
+              id_pelanggan: idPelanggan,
+              id_router: idRouter,
+              status_tagihan: targetStatus
+            });
+          }
+        });
       }
-    });
+
+      // 2. Send Email Reminder if shouldSendReminder is true
+      if (shouldSendReminder) {
+        // Mengirimkan data daysDiff agar pesan email bisa dibedakan
+        await this.processEmailReminder(bill, daysDiff);
+      }
+    }
+
+    if (unpaidBills.length > 0) {
+      logger.info('CRON', `Evaluasi billing selesai (${unpaidBills.length} tagihan diperiksa).`);
+    }
   },
 
   processEmailReminder: async function(bill, daysDiff) {

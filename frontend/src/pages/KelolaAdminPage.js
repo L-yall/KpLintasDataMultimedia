@@ -3,8 +3,10 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
+import { useDialog } from '../context/DialogContext';
 
 function KelolaAdminPage({ admin: currentAdmin }) {
+  var { showAlert } = useDialog();
   var [users, setUsers] = useState([]);
   var [loading, setLoading] = useState(true);
   var [errorMsg, setErrorMsg] = useState('');
@@ -103,7 +105,7 @@ function KelolaAdminPage({ admin: currentAdmin }) {
         fetchUsers();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal mengubah status akun.');
+      showAlert(err.response?.data?.message || 'Gagal mengubah status akun.', { tone: 'error' });
     }
   }
 
@@ -124,7 +126,7 @@ function KelolaAdminPage({ admin: currentAdmin }) {
         fetchUsers();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal menghapus akun admin.');
+      showAlert(err.response?.data?.message || 'Gagal menghapus akun admin.', { tone: 'error' });
     } finally {
       setDeleteSubmitting(false);
     }

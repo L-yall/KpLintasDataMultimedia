@@ -5,8 +5,11 @@ import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
 import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
+import { useDialog } from '../context/DialogContext';
+import usePppoeStatus from '../hooks/usePppoeStatus';
 
 function PelangganPage({ socket }) {
+  var { showAlert } = useDialog();
   var [pelanggan, setPelanggan] = useState([]);
   var [paketList, setPaketList] = useState([]);
   var [pppoeSecrets, setPppoeSecrets] = useState([]);
@@ -17,6 +20,7 @@ function PelangganPage({ socket }) {
   var [fotoKtp, setFotoKtp] = useState(null);
   var [fotoKtpExisting, setFotoKtpExisting] = useState('');
   var [deleteConfirm, setDeleteConfirm] = useState(null);
+  var [deleteLoading, setDeleteLoading] = useState(false);
   var [formData, setFormData] = useState({
     nama: '',
     alamat: '',
@@ -36,6 +40,7 @@ function PelangganPage({ socket }) {
 
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
+  var getConnectionStatus = usePppoeStatus(socket, token);
 
   useEffect(function () {
     fetchPelanggan();
@@ -48,22 +53,36 @@ function PelangganPage({ socket }) {
       openAddModal();
     }
 
-    if (socket) {
-      socket.on('pelanggan_updated', function (data) {
-        setPelanggan(function (prevList) {
-          return prevList.map(function (p) {
-            if (p.id_pelanggan === data.id_pelanggan) {
-              return { ...p, pppoe_status: data.pppoe_status };
-            }
-            return p;
-          });
+    function handlePelangganUpdated(data) {
+      if (!data || data.id_pelanggan == null) {
+        fetchPelanggan();
+        return;
+      }
+      if (data.status_tagihan === undefined && data.due_date === undefined) return;
+      setPelanggan(function (prevList) {
+        return prevList.map(function (p) {
+          if (p.id_pelanggan !== data.id_pelanggan) return p;
+          var updated = { ...p };
+          if (data.status_tagihan !== undefined) updated.status_tagihan = data.status_tagihan;
+          if (data.due_date !== undefined) updated.due_date = data.due_date;
+          return updated;
         });
       });
     }
 
+    function handlePembayaranMasuk() {
+      fetchPelanggan();
+    }
+
+    if (socket) {
+      socket.on('pelanggan_updated', handlePelangganUpdated);
+      socket.on('pembayaran_masuk', handlePembayaranMasuk);
+    }
+
     return function () {
       if (socket) {
-        socket.off('pelanggan_updated');
+        socket.off('pelanggan_updated', handlePelangganUpdated);
+        socket.off('pembayaran_masuk', handlePembayaranMasuk);
       }
     };
   }, [socket]);
@@ -188,12 +207,24 @@ function PelangganPage({ socket }) {
   }
 
   async function handleDelete(id) {
+    if (deleteLoading) return;
+    setDeleteLoading(true);
     try {
-      await axios.delete(`${API_BASE_URL}/api/pelanggan/` + id, { headers: headers });
+      var response = await axios.delete(`${API_BASE_URL}/api/pelanggan/` + id, { headers: headers });
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Gagal menghapus pelanggan. Silakan coba kembali.');
+      }
       setDeleteConfirm(null);
       fetchPelanggan();
+      showAlert(response.data.message || 'Pelanggan berhasil dihapus.', { tone: 'success' });
     } catch (err) {
-      console.error('Gagal hapus pelanggan:', err);
+      setDeleteConfirm(null);
+      showAlert(err.response?.data?.message || err.message || 'Gagal menghapus pelanggan. Silakan coba kembali.', {
+        title: 'Gagal menghapus pelanggan',
+        tone: 'error'
+      });
+    } finally {
+      setDeleteLoading(false);
     }
   }
 
@@ -261,36 +292,12 @@ function PelangganPage({ socket }) {
     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
-  // FUNGSI BARU: Penentu Status Dinamis
-  function hitungStatusDinamis(dueDate, pppoeStatus) {
-    // 1. Cek jika internet mati / PPPoE offline (menimpa semua status tanggal)
-    if (pppoeStatus === 'inactive' || pppoeStatus === 'offline' || pppoeStatus === false) {
-      return 'abu_abu';
-    }
-
-    if (!dueDate) return 'abu_abu'; // Jika belum diset tanggalnya
-
-    // 2. Ambil tanggal hari ini, set jam ke 00:00 agar hitungan murni beda hari
-    var hariIni = new Date();
-    hariIni.setHours(0, 0, 0, 0);
-
-    // 3. Ambil tanggal jatuh tempo
-    var tanggalJT = new Date(dueDate);
-    tanggalJT.setHours(0, 0, 0, 0);
-
-    // 4. Hitung selisih
-    var selisihWaktu = tanggalJT.getTime() - hariIni.getTime();
-    var selisihHari = Math.ceil(selisihWaktu / (1000 * 60 * 60 * 24));
-
-    // 5. Kembalikan key yang sesuai dengan data di StatusBadge.js
-    if (selisihHari < 0) {
-      return 'merah';      // Sudah lewat jatuh tempo
-    } else if (selisihHari >= 0 && selisihHari <= 3) {
-      return 'kuning';     // H-3 sampai hari H
-    } else {
-      return 'hijau';      // Masih di atas 3 hari (Aman/Lunas)
-    }
-  }
+  var connectionLabels = {
+    active: 'PPPoE online: sesi aktif di router',
+    inactive: 'PPPoE offline: sesi tidak aktif di router',
+    unavailable: 'Koneksi router bermasalah: data PPPoE tidak tersedia',
+    unknown: 'Memeriksa koneksi PPPoE'
+  };
 
   return (
     <div>
@@ -455,14 +462,13 @@ function PelangganPage({ socket }) {
                   <th>Harga</th>
                   <th>PPPoE Username</th>
                   <th>Jatuh Tempo</th>
-                  <th>Status</th>
+                  <th>Status Tagihan</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {currentCustomers.map(function (item, idx) {
-                  // MEMANGGIL FUNGSI DINAMIS DI SINI
-                  var statusTabel = hitungStatusDinamis(item.due_date, item.pppoe_status);
+                  var connectionStatus = getConnectionStatus(item.pppoe_username);
 
                   return (
                     <tr key={item.id_pelanggan}>
@@ -485,22 +491,24 @@ function PelangganPage({ socket }) {
                         {item.pppoe_username ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span
+                              role="img"
+                              aria-label={connectionLabels[connectionStatus]}
                               style={{
                                 width: '8px',
                                 height: '8px',
                                 borderRadius: '50%',
-                                backgroundColor: item.pppoe_status === 'active' ? 'var(--status-hijau)' : 'var(--status-merah)',
-                                boxShadow: item.pppoe_status === 'active' ? '0 0 6px var(--status-hijau)' : 'none',
+                                backgroundColor: connectionStatus === 'active' ? 'var(--status-hijau)' : (connectionStatus === 'unknown' ? 'var(--text-muted)' : 'var(--status-merah)'),
+                                boxShadow: connectionStatus === 'active' ? '0 0 6px var(--status-hijau)' : 'none',
                                 display: 'inline-block'
                               }}
-                              title={item.pppoe_status === 'active' ? 'PPPoE Active / Online' : 'PPPoE Inactive / Offline'}
+                              title={connectionLabels[connectionStatus]}
                             />
                             <code style={{
                               background: 'var(--bg-tertiary)',
                               padding: '2px 8px',
                               borderRadius: '5px',
                               fontSize: '0.8rem',
-                              color: item.pppoe_status === 'active' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                              color: connectionStatus === 'active' ? 'var(--text-primary)' : 'var(--text-secondary)'
                             }}>
                               {item.pppoe_username}
                             </code>
@@ -511,8 +519,7 @@ function PelangganPage({ socket }) {
                       </td>
                       <td>{formatTanggal(item.due_date)}</td>
 
-                      {/* IMPLEMENTASI STATUS KE COMPONENT STATUS BADGE */}
-                      <td><StatusBadge status={statusTabel} /></td>
+                      <td><StatusBadge status={item.status_tagihan} /></td>
 
                       <td>
                         <div className="table-actions">
@@ -735,13 +742,13 @@ function PelangganPage({ socket }) {
       {/* Modal Konfirmasi Hapus */}
       <Modal
         isOpen={deleteConfirm !== null}
-        onClose={function () { setDeleteConfirm(null); }}
+        onClose={function () { if (!deleteLoading) setDeleteConfirm(null); }}
         title={<><TemplateIcon name="trash" size={16} style={{ marginRight: '8px' }} /> Konfirmasi Hapus</>}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={function () { setDeleteConfirm(null); }}>Batal</button>
-            <button className="btn btn-danger" onClick={function () { handleDelete(deleteConfirm); }}>
-              <TemplateIcon name="trash" size={14} style={{ marginRight: '6px' }} /> Ya, Hapus
+            <button className="btn btn-secondary" onClick={function () { setDeleteConfirm(null); }} disabled={deleteLoading}>Batal</button>
+            <button className="btn btn-danger" onClick={function () { handleDelete(deleteConfirm); }} disabled={deleteLoading}>
+              <TemplateIcon name="trash" size={14} style={{ marginRight: '6px' }} /> {deleteLoading ? 'Menghapus...' : 'Ya, Hapus'}
             </button>
           </>
         }

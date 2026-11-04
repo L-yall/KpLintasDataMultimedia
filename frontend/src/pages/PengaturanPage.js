@@ -2,10 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { useLogo } from '../context/LogoContext';
+import { useDialog } from '../context/DialogContext';
 import TemplateIcon from '../components/TemplateIcon';
+import RouterManagementPanel from '../components/RouterManagementPanel';
 import PaketPage from './PaketPage';
 
-function PengaturanPage() {
+function PengaturanPage({ admin } = {}) {
+  var { showAlert, confirmDialog } = useDialog();
   var { refreshLogo } = useLogo();
   var [activeTab, setActiveTab] = useState('umum'); // 'umum', 'mikrotik', 'email', 'midtrans', 'duitku', 'manual', 'reminder', 'paket'
   var [saving, setSaving] = useState(false);
@@ -30,15 +33,6 @@ function PengaturanPage() {
   var [dragOver, setDragOver] = useState(false);
   var logoInputRef = useRef(null);
 
-  // Mikrotik settings state
-  var [mikrotik, setMikrotik] = useState({
-    host: '192.168.50.1',
-    port: '8728',
-    username: 'api_isp',
-    password: ''
-  });
-  var [checkingRouter, setCheckingRouter] = useState(false);
-  var [routerStatus, setRouterStatus] = useState('idle'); // 'connected', 'error', 'idle'
 
   // Email SMTP settings state
   var [emailSmtp, setEmailSmtp] = useState({
@@ -135,12 +129,6 @@ function PengaturanPage() {
             alamat: cfg.ALAMAT_ISP || 'Intiland Tower 11th Floor 3A Jl. Panglima Sudirman 101-103  Surabaya, Jawa Timur, Indonesia 60271'
           });
 
-          setMikrotik({
-            host: cfg.MIKROTIK_HOST || '192.168.50.1',
-            port: cfg.MIKROTIK_PORT || '8728',
-            username: cfg.MIKROTIK_USER || 'api_isp',
-            password: cfg.MIKROTIK_PASS || ''
-          });
 
           setEmailSmtp({
             user: cfg.EMAIL_USER || '24percobaan24@gmail.com',
@@ -187,12 +175,12 @@ function PengaturanPage() {
 
     var allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
     if (allowedTypes.indexOf(file.type) === -1) {
-      alert('Format file tidak didukung. Gunakan PNG atau JPG.');
+      showAlert('Format file tidak didukung. Gunakan PNG atau JPG.', { tone: 'error' });
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('Ukuran file melebihi batas maksimal 2MB.');
+      showAlert('Ukuran file melebihi batas maksimal 2MB.', { tone: 'error' });
       return;
     }
 
@@ -210,7 +198,7 @@ function PengaturanPage() {
 
     var token = localStorage.getItem('token');
     if (!token) {
-      alert('Sesi Anda telah berakhir. Silakan login kembali.');
+      showAlert('Sesi Anda telah berakhir. Silakan login kembali.', { tone: 'error' });
       return;
     }
 
@@ -237,13 +225,13 @@ function PengaturanPage() {
     }).catch(function (err) {
       setUploading(false);
       var msg = (err.response && err.response.data && err.response.data.message) || 'Gagal mengunggah logo.';
-      alert(msg);
+      showAlert(msg, { tone: 'error' });
     });
   };
 
   // Handle logo reset to default
-  var handleLogoReset = function () {
-    if (!window.confirm('Reset logo ke default?')) return;
+  var handleLogoReset = async function () {
+    if (!(await confirmDialog('Reset logo ke default?', { title: 'Reset Logo', tone: 'warning', confirmLabel: 'Reset Logo', cancelLabel: 'Batal' }))) return;
 
     var token = localStorage.getItem('token');
     axios.delete(API_BASE_URL + '/api/pengaturan/logo', {
@@ -259,7 +247,7 @@ function PengaturanPage() {
         setTimeout(function () { setSuccessMsg(''); }, 4000);
       }
     }).catch(function () {
-      alert('Gagal mereset logo.');
+      showAlert('Gagal mereset logo.', { tone: 'error' });
     });
   };
 
@@ -308,12 +296,12 @@ function PengaturanPage() {
 
     var allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
     if (allowedTypes.indexOf(file.type) === -1) {
-      alert('Format file tidak didukung. Gunakan PNG atau JPG.');
+      showAlert('Format file tidak didukung. Gunakan PNG atau JPG.', { tone: 'error' });
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('Ukuran file melebihi batas maksimal 2MB.');
+      showAlert('Ukuran file melebihi batas maksimal 2MB.', { tone: 'error' });
       return;
     }
 
@@ -330,7 +318,7 @@ function PengaturanPage() {
 
     var token = localStorage.getItem('token');
     if (!token) {
-      alert('Sesi Anda telah berakhir. Silakan login kembali.');
+      showAlert('Sesi Anda telah berakhir. Silakan login kembali.', { tone: 'error' });
       return;
     }
 
@@ -356,12 +344,12 @@ function PengaturanPage() {
     }).catch(function (err) {
       setUploadingQris(false);
       var msg = (err.response && err.response.data && err.response.data.message) || 'Gagal mengunggah QRIS.';
-      alert(msg);
+      showAlert(msg, { tone: 'error' });
     });
   };
 
-  var handleQrisReset = function () {
-    if (!window.confirm('Reset QRIS ke default?')) return;
+  var handleQrisReset = async function () {
+    if (!(await confirmDialog('Reset QRIS ke default?', { title: 'Reset QRIS', tone: 'warning', confirmLabel: 'Reset QRIS', cancelLabel: 'Batal' }))) return;
 
     var token = localStorage.getItem('token');
     axios.delete(API_BASE_URL + '/api/pengaturan/qris', {
@@ -376,7 +364,7 @@ function PengaturanPage() {
         setTimeout(function () { setSuccessMsg(''); }, 4000);
       }
     }).catch(function () {
-      alert('Gagal mereset QRIS.');
+      showAlert('Gagal mereset QRIS.', { tone: 'error' });
     });
   };
 
@@ -424,7 +412,7 @@ function PengaturanPage() {
 
     var { id, nama_bank, nomor_rekening, atas_nama, is_active } = rekeningModal.data;
     if (!nama_bank.trim() || !nomor_rekening.trim() || !atas_nama.trim()) {
-      alert('Mohon lengkapi Nama Bank, Nomor Rekening, dan Atas Nama.');
+      showAlert('Mohon lengkapi Nama Bank, Nomor Rekening, dan Atas Nama.', { tone: 'error' });
       return;
     }
 
@@ -451,14 +439,14 @@ function PengaturanPage() {
       }
     }).catch(function (err) {
       var msg = (err.response && err.response.data && err.response.data.message) || 'Gagal menyimpan rekening.';
-      alert(msg);
+      showAlert(msg, { tone: 'error' });
     }).finally(function () {
       setSavingRekening(false);
     });
   };
 
-  var handleDeleteRekening = function (rek) {
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus rekening ${rek.nama_bank} (${rek.nomor_rekening})?`)) {
+  var handleDeleteRekening = async function (rek) {
+    if (!(await confirmDialog(`Apakah Anda yakin ingin menghapus rekening ${rek.nama_bank} (${rek.nomor_rekening})?`, { title: 'Hapus Rekening', tone: 'danger', confirmLabel: 'Hapus Rekening', cancelLabel: 'Batal' }))) {
       return;
     }
 
@@ -473,7 +461,7 @@ function PengaturanPage() {
       }
     }).catch(function (err) {
       var msg = (err.response && err.response.data && err.response.data.message) || 'Gagal menghapus rekening.';
-      alert(msg);
+      showAlert(msg, { tone: 'error' });
     });
   };
 
@@ -493,7 +481,7 @@ function PengaturanPage() {
         fetchRekening();
       }
     }).catch(function (err) {
-      alert('Gagal mengubah status rekening.');
+      showAlert('Gagal mengubah status rekening.', { tone: 'error' });
     });
   };
 
@@ -511,10 +499,6 @@ function PengaturanPage() {
       TELP_CS: umum.telpCs,
       ALAMAT_ISP: umum.alamat,
 
-      MIKROTIK_HOST: mikrotik.host,
-      MIKROTIK_PORT: mikrotik.port,
-      MIKROTIK_USER: mikrotik.username,
-      MIKROTIK_PASS: mikrotik.password,
 
       EMAIL_USER: emailSmtp.user,
       EMAIL_PASS: emailSmtp.pass,
@@ -617,41 +601,11 @@ function PengaturanPage() {
     );
   };
 
-  // Test Mikrotik Connection
-  var handleCheckRouter = function () {
-    setCheckingRouter(true);
-    var token = localStorage.getItem('token');
-    axios.post(API_BASE_URL + '/api/pengaturan/test-mikrotik', {
-      host: mikrotik.host,
-      port: mikrotik.port,
-      user: mikrotik.username,
-      pass: mikrotik.password
-    }, {
-      headers: { Authorization: 'Bearer ' + token }
-    })
-      .then(function (res) {
-        if (res.data.success) {
-          setRouterStatus('connected');
-          alert(res.data.message);
-        } else {
-          setRouterStatus('error');
-          alert(res.data.message);
-        }
-      })
-      .catch(function (err) {
-        setRouterStatus('error');
-        var msg = (err.response && err.response.data && err.response.data.message) || 'Gagal terhubung ke Mikrotik.';
-        alert(msg);
-      })
-      .finally(function () {
-        setCheckingRouter(false);
-      });
-  };
 
   // Test Email SMTP
   var handleTestEmail = function () {
     if (!emailSmtp.user || !emailSmtp.pass) {
-      alert('Email User dan Password App Gmail wajib diisi terlebih dahulu untuk menguji coba.');
+      showAlert('Email User dan Password App Gmail wajib diisi terlebih dahulu untuk menguji coba.', { tone: 'error' });
       return;
     }
 
@@ -667,12 +621,12 @@ function PengaturanPage() {
     })
       .then(function (res) {
         if (res.data.success) {
-          alert(res.data.message);
+          showAlert(res.data.message, { tone: 'success' });
         }
       })
       .catch(function (err) {
         var msg = (err.response && err.response.data && err.response.data.message) || 'Gagal mengirim email uji coba.';
-        alert(msg);
+        showAlert(msg, { tone: 'error' });
       })
       .finally(function () {
         setTestingEmail(false);
@@ -729,7 +683,7 @@ function PengaturanPage() {
       )}
 
       {/* Settings Grid Layout */}
-      <div style={{
+      <div className={activeTab === 'mikrotik' ? 'router-settings-layout' : undefined} style={{
         display: 'grid',
         gridTemplateColumns: '250px 1fr',
         gap: '30px',
@@ -810,6 +764,8 @@ function PengaturanPage() {
         {/* Right Side Content Panel */}
         {activeTab === 'paket' ? (
           <PaketPage />
+        ) : activeTab === 'mikrotik' ? (
+          <RouterManagementPanel admin={admin} />
         ) : (
           <div style={{
             background: 'var(--bg-card)',
@@ -984,97 +940,6 @@ function PengaturanPage() {
                 </div>
               )}
 
-              {/* 2. MIKROTIK ROUTER TAB */}
-              {activeTab === 'mikrotik' && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: '800' }}>Koneksi Mikrotik Router</h3>
-                    <span className={'status-badge ' + (routerStatus === 'connected' ? 'hijau' : (routerStatus === 'error' ? 'merah' : 'abu'))} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: routerStatus === 'connected' ? 'var(--status-hijau)' : (routerStatus === 'error' ? 'var(--status-merah)' : '#aaa'),
-                        display: 'inline-block'
-                      }} />
-                      {routerStatus === 'connected' ? 'Terhubung' : (routerStatus === 'error' ? 'Gagal Terhubung' : 'Belum Diuji')}
-                    </span>
-                  </div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '24px' }}>
-                    Atur kredensial router Mikrotik (`MIKROTIK_HOST`, `MIKROTIK_USER`, `MIKROTIK_PASS`, `MIKROTIK_PORT`) untuk pengaktifan dan isolir otomatis rahasia PPPoE.
-                  </p>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                    <div className="form-group">
-                      <label>IP Address / Hostname Router *</label>
-                      <input
-                        type="text"
-                        value={mikrotik.host}
-                        placeholder="e.g. 192.168.50.1"
-                        onChange={function (e) { setMikrotik({ ...mikrotik, host: e.target.value }); }}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>API Port *</label>
-                      <input
-                        type="text"
-                        value={mikrotik.port}
-                        placeholder="e.g. 8728"
-                        onChange={function (e) { setMikrotik({ ...mikrotik, port: e.target.value }); }}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
-                    <div className="form-group">
-                      <label>Username API Mikrotik *</label>
-                      <input
-                        type="text"
-                        value={mikrotik.username}
-                        placeholder="e.g. api_isp"
-                        onChange={function (e) { setMikrotik({ ...mikrotik, username: e.target.value }); }}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Password API Mikrotik *</label>
-                      <input
-                        type="password"
-                        value={mikrotik.password}
-                        placeholder="Password API Mikrotik"
-                        onChange={function (e) { setMikrotik({ ...mikrotik, password: e.target.value }); }}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '24px'
-                  }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>Uji Sambungan API Mikrotik</span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Pastikan service api pada Mikrotik aktif (default port 8728).</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={handleCheckRouter}
-                      disabled={checkingRouter}
-                    >
-                      {checkingRouter ? 'Menghubungkan...' : 'Tes Koneksi'}
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* 3. EMAIL SMTP TAB */}
               {activeTab === 'email' && (

@@ -4,7 +4,9 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { useLogo } from '../context/LogoContext';
 
+
 function CustomerPortalPage({ onLogout }) {
+
   var location = useLocation();
   var { logoUrl } = useLogo();
   var initialTab = (location.state && location.state.activeTab) || 'billing';
@@ -158,55 +160,6 @@ function CustomerPortalPage({ onLogout }) {
       console.error('Gagal mengambil riwayat pembayaran:', err);
     } finally {
       setLoadingHistory(false);
-    }
-  }
-
-  var [deletingPaymentId, setDeletingPaymentId] = useState(null);
-  var [clearingHistory, setClearingHistory] = useState(false);
-
-  async function handleDeletePayment(idPembayaran) {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus catatan riwayat pembayaran ini dari portal Anda?')) {
-      return;
-    }
-    setDeletingPaymentId(idPembayaran);
-    try {
-      var response = await axios.delete(`${API_BASE_URL}/api/customer/portal/payments/${idPembayaran}`, { headers: headers });
-      if (response.data.success) {
-        setPaymentHistory(function (prev) {
-          return prev.filter(function (p) { return p.id_pembayaran !== idPembayaran; });
-        });
-        setMessage({ type: 'success', text: 'Riwayat pembayaran berhasil dihapus.' });
-        setTimeout(function () { setMessage({ type: '', text: '' }); }, 4000);
-      } else {
-        alert(response.data.message || 'Gagal menghapus riwayat pembayaran.');
-      }
-    } catch (err) {
-      console.error('Gagal menghapus riwayat pembayaran:', err);
-      alert(err.response?.data?.message || 'Terjadi kesalahan saat menghapus riwayat pembayaran.');
-    } finally {
-      setDeletingPaymentId(null);
-    }
-  }
-
-  async function handleClearAllPayments() {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus SEMUA catatan riwayat pembayaran Anda? Catatan yang dihapus tidak dapat dipulihkan.')) {
-      return;
-    }
-    setClearingHistory(true);
-    try {
-      var response = await axios.delete(`${API_BASE_URL}/api/customer/portal/payments`, { headers: headers });
-      if (response.data.success) {
-        setPaymentHistory([]);
-        setMessage({ type: 'success', text: 'Semua riwayat pembayaran berhasil dibersihkan.' });
-        setTimeout(function () { setMessage({ type: '', text: '' }); }, 4000);
-      } else {
-        alert(response.data.message || 'Gagal membersihkan riwayat pembayaran.');
-      }
-    } catch (err) {
-      console.error('Gagal membersihkan riwayat pembayaran:', err);
-      alert(err.response?.data?.message || 'Terjadi kesalahan saat membersihkan riwayat pembayaran.');
-    } finally {
-      setClearingHistory(false);
     }
   }
 
@@ -1097,32 +1050,7 @@ function CustomerPortalPage({ onLogout }) {
             <span style={{ fontSize: '0.85rem', color: 'var(--md-on-surface-variant)', fontWeight: 600 }}>
               Menampilkan {paymentHistory.length} catatan riwayat pembayaran
             </span>
-            <button
-              type="button"
-              onClick={handleClearAllPayments}
-              disabled={clearingHistory}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                color: '#dc2626',
-                background: '#fff1f2',
-                border: '1px solid rgba(220, 38, 38, 0.25)',
-                padding: '8px 16px',
-                borderRadius: 'var(--radius-md)',
-                cursor: clearingHistory ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 1px 3px rgba(220, 38, 38, 0.08)'
-              }}
-              onMouseEnter={function (e) { e.currentTarget.style.background = '#ffe4e6'; }}
-              onMouseLeave={function (e) { e.currentTarget.style.background = '#fff1f2'; }}
-              title="Hapus semua riwayat pembayaran dari portal Anda"
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_sweep</span>
-              {clearingHistory ? 'Membersihkan...' : 'Hapus Semua Riwayat'}
-            </button>
+
           </div>
 
           {paymentHistory.map(function (pay) {
@@ -1216,31 +1144,7 @@ function CustomerPortalPage({ onLogout }) {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={function () { handleDeletePayment(pay.id_pembayaran); }}
-                    disabled={deletingPaymentId === pay.id_pembayaran}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      color: '#dc2626',
-                      background: 'rgba(220, 38, 38, 0.05)',
-                      border: '1px solid rgba(220, 38, 38, 0.2)',
-                      padding: '7px 14px',
-                      borderRadius: 'var(--radius-md)',
-                      cursor: deletingPaymentId === pay.id_pembayaran ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={function (e) { e.currentTarget.style.background = 'rgba(220, 38, 38, 0.12)'; }}
-                    onMouseLeave={function (e) { e.currentTarget.style.background = 'rgba(220, 38, 38, 0.05)'; }}
-                    title="Hapus riwayat pembayaran ini"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                    {deletingPaymentId === pay.id_pembayaran ? 'Menghapus...' : 'Hapus'}
-                  </button>
+
                 </div>
               </div>
             );

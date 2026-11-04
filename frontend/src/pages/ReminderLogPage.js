@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TemplateIcon from '../components/TemplateIcon';
 import { API_BASE_URL } from '../config';
+import { useDialog } from '../context/DialogContext';
 
 function ReminderLogPage() {
+  var { showAlert, confirmDialog } = useDialog();
   var [logs, setLogs] = useState([]);
   var [loading, setLoading] = useState(true);
   var [triggering, setTriggering] = useState(false);
@@ -34,34 +36,34 @@ function ReminderLogPage() {
     setTriggering(true);
     try {
       var response = await axios.post(`${API_BASE_URL}/api/reminder/trigger-cron`, {}, { headers: headers });
-      alert(response.data.message);
+      await showAlert(response.data.message, { tone: 'success' });
       fetchLogs();
     } catch (err) {
-      alert('Gagal memicu pengiriman reminder: ' + (err.response?.data?.message || err.message));
+      await showAlert('Gagal memicu pengiriman reminder: ' + (err.response?.data?.message || err.message), { tone: 'error' });
     } finally {
       setTriggering(false);
     }
   }
 
   async function handleDeleteLog(id) {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus log reminder ini?')) return;
+    if (!await confirmDialog('Apakah Anda yakin ingin menghapus log reminder ini?', { tone: 'danger', confirmLabel: 'Ya, hapus', cancelLabel: 'Batal' })) return;
     try {
       var response = await axios.delete(`${API_BASE_URL}/api/reminder/logs/` + id, { headers: headers });
-      alert(response.data.message);
+      await showAlert(response.data.message, { tone: 'success' });
       fetchLogs();
     } catch (err) {
-      alert('Gagal menghapus log: ' + (err.response?.data?.message || err.message));
+      await showAlert('Gagal menghapus log: ' + (err.response?.data?.message || err.message), { tone: 'error' });
     }
   }
 
   async function handleClearAllLogs() {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus SEMUA log reminder?')) return;
+    if (!await confirmDialog('Apakah Anda yakin ingin menghapus SEMUA log reminder?', { tone: 'danger', confirmLabel: 'Hapus semua log', cancelLabel: 'Batal' })) return;
     try {
       var response = await axios.delete(`${API_BASE_URL}/api/reminder/logs`, { headers: headers });
-      alert(response.data.message);
+      await showAlert(response.data.message, { tone: 'success' });
       fetchLogs();
     } catch (err) {
-      alert('Gagal membersihkan log: ' + (err.response?.data?.message || err.message));
+      await showAlert('Gagal membersihkan log: ' + (err.response?.data?.message || err.message), { tone: 'error' });
     }
   }
 
