@@ -208,12 +208,13 @@ function App() {
               <Route path="/dashboard/tagihan" element={<TagihanPage socket={socket} admin={admin} />} />
               <Route path="/dashboard/paket" element={<PaketPage />} />
               <Route path="/dashboard/mikrotik" element={<MikrotikPage socket={socket} />} />
-              <Route path="/dashboard/reminder-logs" element={<ReminderLogPage />} />
+              <Route path="/dashboard/invoice-tagihan" element={<ReminderLogPage />} />
+              <Route path="/dashboard/reminder-logs" element={<Navigate to="/dashboard/invoice-tagihan" replace />} />
               <Route path="/dashboard/notifikasi" element={<NotifikasiPage socket={socket} admin={admin} />} />
               <Route path="/dashboard/profil" element={<ProfilPage />} />
 
               {/* Modul Finansial & Kasir dikelola khusus Admin operasional (Bukan Super Admin) */}
-              <Route path="/dashboard/laporan" element={<LaporanPage />} />
+              <Route path="/dashboard/laporan" element={<LaporanPage socket={socket} />} />
               <Route path="/dashboard/pembayaran" element={<PembayaranPage socket={socket} />} />
               <Route path="/dashboard/pengaturan" element={<PengaturanPage />} />
               {/* <Route path="/dashboard/pengaturan" element={!isSuperAdmin ? <PengaturanPage /> : <Navigate to="/dashboard" replace />} /> */}
@@ -282,4 +283,3 @@ function App() {
 }
 
 export default App;
-

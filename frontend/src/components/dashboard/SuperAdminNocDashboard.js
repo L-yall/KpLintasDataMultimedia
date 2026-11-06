@@ -68,6 +68,93 @@ function SuperAdminNocDashboard({ socket, admin }) {
   var [pinging, setPinging] = useState(false);
   var [kickLoading, setKickLoading] = useState(null);
 
+  // Pagination States (max 10 items)
+  var [interfacePage, setInterfacePage] = useState(1);
+  var [sessionPage, setSessionPage] = useState(1);
+  var itemsPerPage = 10;
+
+  var totalInterfacePages = Math.max(1, Math.ceil(interfaces.length / itemsPerPage));
+  var totalSessionPages = Math.max(1, Math.ceil(activeSessions.length / itemsPerPage));
+
+  useEffect(function () {
+    if (interfacePage > totalInterfacePages) {
+      setInterfacePage(totalInterfacePages);
+    }
+  }, [interfacePage, totalInterfacePages]);
+
+  useEffect(function () {
+    if (sessionPage > totalSessionPages) {
+      setSessionPage(totalSessionPages);
+    }
+  }, [sessionPage, totalSessionPages]);
+
+  var paginatedInterfaces = interfaces.slice((interfacePage - 1) * itemsPerPage, interfacePage * itemsPerPage);
+  var paginatedSessions = activeSessions.slice((sessionPage - 1) * itemsPerPage, sessionPage * itemsPerPage);
+
+  function renderNocPagination(currentPage, totalPgs, setPageFn) {
+    if (totalPgs <= 1) return null;
+
+    var pages = [];
+    for (var p = 1; p <= totalPgs; p++) {
+      pages.push(p);
+    }
+
+    return (
+      <nav aria-label="Page navigation" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px', borderTop: '1px solid var(--border-color)', overflowX: 'auto' }}>
+        <ul className="pagination" style={{ display: 'flex', alignItems: 'center', minWidth: 'max-content', margin: 0, padding: 0, listStyle: 'none' }}>
+          <li className={'page-item' + (currentPage === 1 ? ' disabled' : '')}>
+            <a
+              href="#"
+              className="noc-page-button page-link"
+              onClick={function (e) {
+                e.preventDefault();
+                if (currentPage !== 1) setPageFn(Math.max(1, currentPage - 1));
+              }}
+              aria-label="Previous"
+              aria-disabled={currentPage === 1}
+              tabIndex={currentPage === 1 ? -1 : undefined}
+            >
+              «
+            </a>
+          </li>
+          {pages.map(function (pageNumber) {
+            return (
+              <li key={pageNumber}>
+                <a
+                  href="#"
+                  className={'noc-page-button page-link' + (currentPage === pageNumber ? ' active' : '')}
+                  onClick={function (e) {
+                    e.preventDefault();
+                    setPageFn(pageNumber);
+                  }}
+                  aria-label={'Halaman ' + pageNumber}
+                  aria-current={currentPage === pageNumber ? 'page' : undefined}
+                >
+                  {pageNumber}
+                </a>
+              </li>
+            );
+          })}
+          <li className={'page-item' + (currentPage === totalPgs ? ' disabled' : '')}>
+            <a
+              href="#"
+              className="noc-page-button page-link"
+              onClick={function (e) {
+                e.preventDefault();
+                if (currentPage !== totalPgs) setPageFn(Math.min(totalPgs, currentPage + 1));
+              }}
+              aria-label="Next"
+              aria-disabled={currentPage === totalPgs}
+              tabIndex={currentPage === totalPgs ? -1 : undefined}
+            >
+              »
+            </a>
+          </li>
+        </ul>
+      </nav>
+    );
+  }
+
   var terminalRef = useRef(null);
 
   // Fetch all IT Telemetry Data
@@ -472,6 +559,46 @@ function SuperAdminNocDashboard({ socket, admin }) {
           color: var(--text-primary);
           word-break: break-word;
         }
+
+        .noc-page-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          width: 34px;
+          height: 32px;
+          border: 1px solid var(--border-color);
+          border-left: 0;
+          background: var(--bg-card);
+          color: var(--text-primary);
+          font-size: 0.95rem;
+          cursor: pointer;
+        }
+        .page-item:first-child .noc-page-button {
+          border-left: 1px solid var(--border-color);
+          border-radius: 6px 0 0 6px;
+        }
+        .page-item:last-child .noc-page-button {
+          border-radius: 0 6px 6px 0;
+        }
+        .noc-page-button:hover:not(:disabled) {
+          background: var(--bg-tertiary);
+        }
+        .noc-page-button.active {
+          background: #006876;
+          color: #ffffff;
+          border-color: #006876;
+        }
+        .noc-page-button.active:hover {
+          background: #006876;
+          color: #ffffff;
+          border-color: #006876;
+        }
+        .page-item.disabled .noc-page-button {
+          color: #006876;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
       `}</style>
 
       {/* 1. NOC HUD Command Banner */}
@@ -837,7 +964,7 @@ function SuperAdminNocDashboard({ socket, admin }) {
               </tr>
             </thead>
             <tbody>
-              {interfaces.map(function (iface, idx) {
+              {paginatedInterfaces.map(function (iface, idx) {
                 return (
                   <tr key={iface.name || idx}>
                     <td style={{ fontWeight: 700, color: '#38bdf8' }}>{iface.name}</td>
@@ -871,6 +998,7 @@ function SuperAdminNocDashboard({ socket, admin }) {
             </tbody>
           </table>
         </div>
+        {renderNocPagination(interfacePage, totalInterfacePages, setInterfacePage)}
       </section>
 
       {/* 5. Active PPPoE Sessions & Rogue Detection (Security Guard) */}
@@ -950,7 +1078,7 @@ function SuperAdminNocDashboard({ socket, admin }) {
               </tr>
             </thead>
             <tbody>
-              {activeSessions.map(function (sess, idx) {
+              {paginatedSessions.map(function (sess, idx) {
                 var isUnregistered = unregistered.some(u => u.name === sess.name);
                 return (
                   <tr key={sess.name || idx}>
@@ -1000,6 +1128,7 @@ function SuperAdminNocDashboard({ socket, admin }) {
             </tbody>
           </table>
         </div>
+        {renderNocPagination(sessionPage, totalSessionPages, setSessionPage)}
       </section>
 
       {/* 6. Live RouterOS Syslog / Terminal Console */}

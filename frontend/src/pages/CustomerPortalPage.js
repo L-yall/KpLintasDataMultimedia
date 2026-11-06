@@ -18,6 +18,17 @@ function CustomerPortalPage({ onLogout }) {
   var [isPaidThisMonth, setIsPaidThisMonth] = useState(false);
   var [profileData, setProfileData] = useState(null);
   var [paymentHistory, setPaymentHistory] = useState([]);
+  var [historyPage, setHistoryPage] = useState(1);
+  var historyPerPage = 10;
+  var totalHistoryPages = Math.max(1, Math.ceil(paymentHistory.length / historyPerPage));
+
+  useEffect(function () {
+    if (historyPage > totalHistoryPages) {
+      setHistoryPage(totalHistoryPages);
+    }
+  }, [historyPage, totalHistoryPages]);
+
+  var paginatedHistory = paymentHistory.slice((historyPage - 1) * historyPerPage, historyPage * historyPerPage);
   var [loading, setLoading] = useState(true);
   var [loadingProfile, setLoadingProfile] = useState(false);
   var [loadingHistory, setLoadingHistory] = useState(false);
@@ -50,8 +61,9 @@ function CustomerPortalPage({ onLogout }) {
   var [manualModalOpen, setManualModalOpen] = useState(false);
   var [copiedRekening, setCopiedRekening] = useState(false);
 
-  function getBankLogo(namaBank) {
-    var lower = (namaBank || '').toLowerCase();
+  function getBankLogo(account) {
+    if (account && account.logo_url) return API_BASE_URL + account.logo_url;
+    var lower = ((account && account.nama_bank) || '').toLowerCase();
     if (lower.includes('bca')) return process.env.PUBLIC_URL + '/BCA.png';
     if (lower.includes('bri')) return process.env.PUBLIC_URL + '/BRI.jpg';
     if (lower.includes('mandiri')) return process.env.PUBLIC_URL + '/MANDIRI.png';
@@ -67,8 +79,8 @@ function CustomerPortalPage({ onLogout }) {
       value: 'bank_' + acc.id,
       label: 'Manual: ' + acc.nama_bank,
       sublabel: 'Transfer Bank / E-Wallet',
-      icon: getBankLogo(acc.nama_bank) ? null : 'account_balance',
-      logo: getBankLogo(acc.nama_bank),
+      icon: getBankLogo(acc) ? null : 'account_balance',
+      logo: getBankLogo(acc),
       accountData: acc
     };
   });
@@ -650,7 +662,7 @@ function CustomerPortalPage({ onLogout }) {
           var accId = parseInt(paymentMethod.replace('bank_', ''), 10);
           var acc = bankAccounts.find(function (a) { return a.id === accId; });
           if (acc) {
-            var bankLogo = getBankLogo(acc.nama_bank);
+            var bankLogo = getBankLogo(acc);
             return (
               <div style={{
                 display: 'flex',
@@ -757,6 +769,70 @@ function CustomerPortalPage({ onLogout }) {
   var effectiveMethod = singleGatewayPayment ? singlePaymentMethod : paymentMethod;
   var isPayLoading = effectiveMethod === 'midtrans' ? midtransLoading : false;
   var payIcon = effectiveMethod === 'duitku' ? 'account_balance_wallet' : 'payments';
+
+  function renderPortalPagination() {
+    if (totalHistoryPages <= 1) return null;
+
+    var pages = [];
+    for (var p = 1; p <= totalHistoryPages; p++) {
+      pages.push(p);
+    }
+
+    return (
+      <nav aria-label="Page navigation" style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 4px', overflowX: 'auto' }}>
+        <ul className="pagination" style={{ display: 'flex', alignItems: 'center', minWidth: 'max-content', margin: 0, padding: 0, listStyle: 'none' }}>
+          <li className={'page-item' + (historyPage === 1 ? ' disabled' : '')}>
+            <a
+              href="#"
+              className="portal-page-button page-link"
+              onClick={function (e) {
+                e.preventDefault();
+                if (historyPage !== 1) setHistoryPage(Math.max(1, historyPage - 1));
+              }}
+              aria-label="Previous"
+              aria-disabled={historyPage === 1}
+              tabIndex={historyPage === 1 ? -1 : undefined}
+            >
+              «
+            </a>
+          </li>
+          {pages.map(function (pageNumber) {
+            return (
+              <li key={pageNumber}>
+                <a
+                  href="#"
+                  className={'portal-page-button page-link' + (historyPage === pageNumber ? ' active' : '')}
+                  onClick={function (e) {
+                    e.preventDefault();
+                    setHistoryPage(pageNumber);
+                  }}
+                  aria-label={'Halaman ' + pageNumber}
+                  aria-current={historyPage === pageNumber ? 'page' : undefined}
+                >
+                  {pageNumber}
+                </a>
+              </li>
+            );
+          })}
+          <li className={'page-item' + (historyPage === totalHistoryPages ? ' disabled' : '')}>
+            <a
+              href="#"
+              className="portal-page-button page-link"
+              onClick={function (e) {
+                e.preventDefault();
+                if (historyPage !== totalHistoryPages) setHistoryPage(Math.min(totalHistoryPages, historyPage + 1));
+              }}
+              aria-label="Next"
+              aria-disabled={historyPage === totalHistoryPages}
+              tabIndex={historyPage === totalHistoryPages ? -1 : undefined}
+            >
+              »
+            </a>
+          </li>
+        </ul>
+      </nav>
+    );
+  }
 
   function handlePayNow() {
     if (effectiveMethod === 'duitku') {
@@ -1053,7 +1129,7 @@ function CustomerPortalPage({ onLogout }) {
 
           </div>
 
-          {paymentHistory.map(function (pay) {
+          {paginatedHistory.map(function (pay) {
             var isOnline = pay.bukti_file.startsWith('Midtrans') || pay.bukti_file.startsWith('Duitku');
             var paymentUrl = isOnline ? '#' : `${API_BASE_URL}${pay.bukti_file}`;
             var badgeClass = pay.status === 'diterima' ? 'hijau' : (pay.status === 'ditolak' ? 'merah' : 'kuning');
@@ -1149,6 +1225,7 @@ function CustomerPortalPage({ onLogout }) {
               </div>
             );
           })}
+          {renderPortalPagination()}
         </div>
       );
     }
@@ -1350,6 +1427,45 @@ function CustomerPortalPage({ onLogout }) {
         }
         @media (max-width: 768px) {
           .profile-grid { grid-template-columns: 1fr; }
+        }
+        .portal-page-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          width: 34px;
+          height: 32px;
+          border: 1px solid var(--border-color, #e2e8f0);
+          border-left: 0;
+          background: #ffffff;
+          color: var(--text-primary, #1e293b);
+          font-size: 0.95rem;
+          cursor: pointer;
+        }
+        .page-item:first-child .portal-page-button {
+          border-left: 1px solid var(--border-color, #e2e8f0);
+          border-radius: 6px 0 0 6px;
+        }
+        .page-item:last-child .portal-page-button {
+          border-radius: 0 6px 6px 0;
+        }
+        .portal-page-button:hover:not(:disabled) {
+          background: #f1f5f9;
+        }
+        .portal-page-button.active {
+          background: #006876;
+          color: #ffffff;
+          border-color: #006876;
+        }
+        .portal-page-button.active:hover {
+          background: #006876;
+          color: #ffffff;
+          border-color: #006876;
+        }
+        .page-item.disabled .portal-page-button {
+          color: #006876;
+          cursor: not-allowed;
+          pointer-events: none;
         }
       `}</style>
 
@@ -2146,7 +2262,7 @@ function CustomerPortalPage({ onLogout }) {
                 var accId = parseInt(paymentMethod.replace('bank_', ''), 10);
                 var acc = bankAccounts.find(function (a) { return a.id === accId; });
                 if (!acc) return null;
-                var bankLogo = getBankLogo(acc.nama_bank);
+                var bankLogo = getBankLogo(acc);
 
                 return (
                   <div>

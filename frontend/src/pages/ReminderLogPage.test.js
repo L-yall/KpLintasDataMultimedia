@@ -55,7 +55,7 @@ test.each([false, true])('deletion runs only after confirmation and success clos
   expect(within(feedback).queryByRole('button', { name: 'Mengerti' })).not.toBeInTheDocument();
   await act(async () => jest.advanceTimersByTime(1500));
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
-  await screen.findByText('Belum ada riwayat pengiriman reminder Email.');
+  await screen.findByText('Belum ada riwayat pengiriman invoice tagihan Email.');
 });
 
 test('failed deletion displays an error dialog for 1.5 seconds and preserves the log', async () => {
@@ -69,4 +69,22 @@ test('failed deletion displays an error dialog for 1.5 seconds and preserves the
   await act(async () => jest.advanceTimersByTime(1500));
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   expect(screen.getByText('Pelanggan Uji')).toBeInTheDocument();
+});
+
+test('manual invoice send calls the backend trigger and displays its result', async () => {
+  axios.post.mockResolvedValue({
+    data: { success: true, message: '1 invoice terkirim dan 0 dilewati.' }
+  });
+  render(<DialogProvider><ReminderLogPage /></DialogProvider>);
+  await screen.findByText('Pelanggan Uji');
+
+  fireEvent.click(screen.getByRole('button', { name: /Kirim Invoice Sekarang/ }));
+
+  expect(axios.post).toHaveBeenCalledWith(
+    API_BASE_URL + '/api/reminder/trigger-cron',
+    {},
+    expect.any(Object)
+  );
+  expect(await screen.findByRole('alertdialog', { name: 'Berhasil' }))
+    .toHaveTextContent('1 invoice terkirim dan 0 dilewati.');
 });

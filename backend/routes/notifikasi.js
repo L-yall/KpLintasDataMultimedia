@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var db = require('../config/db');
 var verifyToken = require('../middleware/auth');
+var SocketService = require('../services/socket');
 
 // Protect all notification routes with admin JWT
 router.use(verifyToken);
@@ -16,6 +17,8 @@ router.get('/', function(req, res) {
       n.created_at AS tanggal,
       pem.id_pembayaran,
       pem.bukti_file,
+      pem.status AS status_pembayaran,
+      pem.alasan_tolak,
       t.periode,
       t.nominal,
       p.nama AS nama_pelanggan
@@ -38,6 +41,8 @@ router.get('/', function(req, res) {
       SELECT 
         pem.id_pembayaran,
         pem.bukti_file,
+      pem.status AS status_pembayaran,
+      pem.alasan_tolak,
         pem.tanggal_upload AS tanggal,
         t.periode,
         t.nominal,
@@ -64,6 +69,8 @@ router.get('/', function(req, res) {
             tanggal: p.tanggal,
             id_pembayaran: p.id_pembayaran,
             bukti_file: p.bukti_file,
+            status_pembayaran: 'pending',
+            alasan_tolak: null,
             periode: p.periode,
             nominal: p.nominal,
             nama_pelanggan: p.nama_pelanggan
@@ -164,6 +171,7 @@ router.put('/read-all', function(req, res) {
       console.error('[Notification API] Error reading all notifications:', err.message);
       return res.status(500).json({ success: false, message: 'Gagal menandai semua notifikasi dibaca' });
     }
+    SocketService.broadcast('notifikasi_updated', {});
     res.json({ success: true, message: 'Semua notifikasi ditandai telah dibaca.' });
   });
 });
@@ -181,6 +189,7 @@ router.put('/:id/read', function(req, res) {
       console.error('[Notification API] Error reading notification:', err.message);
       return res.status(500).json({ success: false, message: 'Gagal membaca notifikasi' });
     }
+    SocketService.broadcast('notifikasi_updated', { id_notifikasi: id });
     res.json({ success: true, message: 'Notifikasi ditandai telah dibaca.' });
   });
 });

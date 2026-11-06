@@ -164,7 +164,7 @@ const Logger = {
   banner: function (details = {}) {
     const port = details.port || 3000;
     const env = process.env.NODE_ENV || 'development';
-    const dbName = details.dbName || process.env.DB_NAME || 'dashboard_isp';
+    const dbName = details.dbName || process.env.DB_NAME || 'billing_pembayaran_isp';
 
     this.box({
       title: 'ESP LINTAS DATA MULTIMEDIA - BACKEND API',

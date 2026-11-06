@@ -60,6 +60,7 @@ function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
       socket.on('registrasi_updated', fetchNotifications);
       socket.on('pengeluaran_masuk', fetchNotifications);
       socket.on('pengeluaran_updated', fetchNotifications);
+      socket.on('notifikasi_updated', fetchNotifications);
       return function () {
         socket.off('pembayaran_masuk');
         socket.off('pelanggan_updated');
@@ -67,6 +68,7 @@ function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
         socket.off('registrasi_updated', fetchNotifications);
         socket.off('pengeluaran_masuk', fetchNotifications);
         socket.off('pengeluaran_updated', fetchNotifications);
+        socket.off('notifikasi_updated', fetchNotifications);
       };
     }
   }, [socket]);
@@ -209,7 +211,7 @@ function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
         <>
           {/* Mail Icon */}
           <Link
-            to="/dashboard/reminder-logs"
+            to="/dashboard/invoice-tagihan"
             style={{
               color: '#ffffff',
               background: 'rgba(255,255,255,0.1)',
@@ -231,7 +233,7 @@ function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
               e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
               e.currentTarget.style.color = '#ffffff';
             }}
-            title="Reminder Log"
+            title="Invoice Tagihan"
           >
             <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>
               mail
@@ -378,16 +380,18 @@ function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
                       var targetLink = isRegistration
                         ? '/dashboard/registrasi'
                         : isExpense
-                        ? '/dashboard/laporan?action=pengeluaran'
-                        : `/dashboard/notifikasi?notifId=${n.id_notifikasi}`;
+                        ? `/dashboard/laporan?action=pengeluaran&t=${Date.now()}`
+                        : `/dashboard/notifikasi?notifId=${n.id_notifikasi}&t=${Date.now()}`;
 
                       return (
                         <div
                           key={n.id_notifikasi}
                           onClick={function () {
-                            if (isRegistration || isExpense) navigate(targetLink);
-                            else handleMarkRead(n);
+                            if (!isRegistration) {
+                              handleMarkRead(n);
+                            }
                             setNotifOpen(false);
+                            navigate(targetLink);
                           }}
                           style={{
                             padding: '12px 16px',
@@ -415,10 +419,8 @@ function Navbar({ admin, onLogout, socket, onToggleSidebar, collapsed }) {
                             <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>{icon}</span>
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <Link to={targetLink} style={{ textDecoration: 'none', color: 'inherit' }}>
-                              <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>{title}</div>
-                              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px', lineBreak: 'anywhere' }}>{desc}</div>
-                            </Link>
+                            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>{title}</div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px', lineBreak: 'anywhere' }}>{desc}</div>
                             <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>{formatTanggal(n.tanggal)}</div>
                           </div>
                           {isUnread && (

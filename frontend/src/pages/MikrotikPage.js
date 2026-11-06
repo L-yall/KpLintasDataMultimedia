@@ -10,9 +10,26 @@ function MikrotikPage({ socket }) {
   var [unregistered, setUnregistered] = useState([]);
   var [loading, setLoading] = useState(true);
   var [activeTab, setActiveTab] = useState('unregistered'); // 'unregistered' or 'active'
+  var [unregPage, setUnregPage] = useState(1);
+  var [activePage, setActivePage] = useState(1);
 
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
+  var itemsPerPage = 10;
+  var unregTotalPages = Math.max(1, Math.ceil(unregistered.length / itemsPerPage));
+  var activeTotalPages = Math.max(1, Math.ceil(activeConns.length / itemsPerPage));
+  var paginatedUnregistered = unregistered.slice((unregPage - 1) * itemsPerPage, unregPage * itemsPerPage);
+  var paginatedActive = activeConns.slice((activePage - 1) * itemsPerPage, activePage * itemsPerPage);
+
+  useEffect(function () {
+    if (unregPage > unregTotalPages) setUnregPage(unregTotalPages);
+    if (activePage > activeTotalPages) setActivePage(activeTotalPages);
+  }, [unregPage, unregTotalPages, activePage, activeTotalPages]);
+
+  useEffect(function () {
+    setUnregPage(1);
+    setActivePage(1);
+  }, [activeTab]);
 
   useEffect(function () {
     fetchData();
@@ -67,8 +84,87 @@ function MikrotikPage({ socket }) {
     }
   }
 
+  function renderPagination(currentPage, totalPages, setPage) {
+    if (totalPages <= 1) return null;
+
+    var pages = [];
+    for (var page = 1; page <= totalPages; page++) pages.push(page);
+
+    return (
+      <nav aria-label="Page navigation" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px', borderTop: '1px solid var(--border-color)', overflowX: 'auto' }}>
+        <ul className="pagination" style={{ display: 'flex', alignItems: 'center', minWidth: 'max-content', margin: 0, padding: 0, listStyle: 'none' }}>
+          <li className={'page-item' + (currentPage === 1 ? ' disabled' : '')}>
+            <a href="#" className="mikrotik-page-button page-link" onClick={function (e) { e.preventDefault(); if (currentPage !== 1) setPage(Math.max(1, currentPage - 1)); }} aria-label="Previous" aria-disabled={currentPage === 1} tabIndex={currentPage === 1 ? -1 : undefined}>«</a>
+          </li>
+          {pages.map(function (pageNumber) {
+            return (
+              <li key={pageNumber}>
+                <a href="#" className={'mikrotik-page-button page-link' + (currentPage === pageNumber ? ' active' : '')} onClick={function (e) { e.preventDefault(); setPage(pageNumber); }} aria-label={'Halaman ' + pageNumber} aria-current={currentPage === pageNumber ? 'page' : undefined}>{pageNumber}</a>
+              </li>
+            );
+          })}
+          <li className={'page-item' + (currentPage === totalPages ? ' disabled' : '')}>
+            <a href="#" className="mikrotik-page-button page-link" onClick={function (e) { e.preventDefault(); if (currentPage !== totalPages) setPage(Math.min(totalPages, currentPage + 1)); }} aria-label="Next" aria-disabled={currentPage === totalPages} tabIndex={currentPage === totalPages ? -1 : undefined}>»</a>
+          </li>
+        </ul>
+      </nav>
+    );
+  }
+
   return (
     <div>
+      <style>{`
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+        .mikrotik-page-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          width: 34px;
+          height: 32px;
+          border: 1px solid var(--border-color);
+          border-left: 0;
+          background: var(--bg-card);
+          color: var(--text-primary);
+          font-size: 0.95rem;
+          cursor: pointer;
+        }
+        .page-item:first-child .mikrotik-page-button {
+          border-left: 1px solid var(--border-color);
+          border-radius: 6px 0 0 6px;
+        }
+        .page-item:last-child .mikrotik-page-button {
+          border-radius: 0 6px 6px 0;
+        }
+        .mikrotik-page-button:hover:not(:disabled) {
+          background: var(--bg-tertiary);
+        }
+        .mikrotik-page-button.active {
+          background: #006876;
+          color: #ffffff;
+          border-color: #006876;
+        }
+        .mikrotik-page-button.active:hover {
+          background: #006876;
+          color: #ffffff;
+          border-color: #006876;
+        }
+        .page-item.disabled .mikrotik-page-button {
+          color: #006876;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+      `}</style>
       <div className="page-header">
         <div>
           <h1>Integrasi Mikrotik</h1>
@@ -129,43 +225,46 @@ function MikrotikPage({ socket }) {
                 <p>Semua PPPoE yang aktif di router sudah terdaftar di database pelanggan.</p>
               </div>
             ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>PPPoE Username</th>
-                    <th>IP Address</th>
-                    <th>Uptime</th>
-                    <th>Service</th>
-                    <th>Caller ID (MAC)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {unregistered.map(function (item, idx) {
-                    return (
-                      <tr key={idx}>
-                        <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
-                        <td>
-                          <code style={{
-                            background: 'var(--status-merah-bg)',
-                            color: 'var(--status-merah)',
-                            padding: '2px 8px',
-                            borderRadius: '5px',
-                            fontWeight: 600,
-                            fontSize: '0.85rem'
-                          }}>
-                            {item.name}
-                          </code>
-                        </td>
-                        <td>{item.address}</td>
-                        <td>{item.uptime}</td>
-                        <td>{item.service}</td>
-                        <td style={{ fontFamily: 'monospace' }}>{item['caller-id'] || '-'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>PPPoE Username</th>
+                      <th>IP Address</th>
+                      <th>Uptime</th>
+                      <th>Service</th>
+                      <th>Caller ID (MAC)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedUnregistered.map(function (item, idx) {
+                      return (
+                        <tr key={idx}>
+                          <td style={{ color: 'var(--text-muted)' }}>{(unregPage - 1) * itemsPerPage + idx + 1}</td>
+                          <td>
+                            <code style={{
+                              background: 'var(--status-merah-bg)',
+                              color: 'var(--status-merah)',
+                              padding: '2px 8px',
+                              borderRadius: '5px',
+                              fontWeight: 600,
+                              fontSize: '0.85rem'
+                            }}>
+                              {item.name}
+                            </code>
+                          </td>
+                          <td>{item.address}</td>
+                          <td>{item.uptime}</td>
+                          <td>{item.service}</td>
+                          <td style={{ fontFamily: 'monospace' }}>{item['caller-id'] || '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {renderPagination(unregPage, unregTotalPages, setUnregPage)}
+              </>
             )}
           </div>
         ) : (
@@ -181,30 +280,33 @@ function MikrotikPage({ socket }) {
                 <p>Tidak ada sesi PPPoE yang aktif saat ini.</p>
               </div>
             ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>Username</th>
-                    <th>IP Address</th>
-                    <th>Uptime</th>
-                    <th>Caller ID (MAC)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeConns.map(function (item, idx) {
-                    return (
-                      <tr key={idx}>
-                        <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
-                        <td style={{ fontWeight: 600 }}>{item.name}</td>
-                        <td>{item.address}</td>
-                        <td>{item.uptime}</td>
-                        <td style={{ fontFamily: 'monospace' }}>{item['caller-id'] || '-'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Username</th>
+                      <th>IP Address</th>
+                      <th>Uptime</th>
+                      <th>Caller ID (MAC)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedActive.map(function (item, idx) {
+                      return (
+                        <tr key={idx}>
+                          <td style={{ color: 'var(--text-muted)' }}>{(activePage - 1) * itemsPerPage + idx + 1}</td>
+                          <td style={{ fontWeight: 600 }}>{item.name}</td>
+                          <td>{item.address}</td>
+                          <td>{item.uptime}</td>
+                          <td style={{ fontFamily: 'monospace' }}>{item['caller-id'] || '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {renderPagination(activePage, activeTotalPages, setActivePage)}
+              </>
             )}
           </div>
         )}

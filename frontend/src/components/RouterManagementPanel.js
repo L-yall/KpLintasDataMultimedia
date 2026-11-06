@@ -56,6 +56,7 @@ function RouterManagementPanel({ admin } = {}) {
   const [validation, setValidation] = useState({});
   const [operation, setOperation] = useState(null);
   const [testResults, setTestResults] = useState({});
+  const [page, setPage] = useState(1);
   const operationRef = useRef(false);
   const requestRef = useRef(0);
   const nameRef = useRef(null);
@@ -63,6 +64,14 @@ function RouterManagementPanel({ admin } = {}) {
   const panelId = useId();
   const editorKey = form ? (form.id ?? 'new') : null;
   const busy = Boolean(operation);
+
+  const itemsPerPage = 10;
+  const totalPages = Math.max(1, Math.ceil(routers.length / itemsPerPage));
+  const paginatedRouters = routers.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const loadRouters = useCallback(async () => {
     const requestId = ++requestRef.current;
@@ -267,6 +276,31 @@ function RouterManagementPanel({ admin } = {}) {
   const activeCount = routers.filter(router => isEnabled(router.is_active)).length;
   const customerCount = routers.reduce((sum, router) => sum + (Number(router.jumlah_pelanggan) || 0), 0);
 
+  function renderPagination() {
+    if (totalPages <= 1) return null;
+
+    const pages = [];
+    for (let p = 1; p <= totalPages; p++) pages.push(p);
+
+    return (
+      <nav aria-label="Page navigation" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px', borderTop: '1px solid var(--border-color)', overflowX: 'auto' }}>
+        <ul className="pagination" style={{ display: 'flex', alignItems: 'center', minWidth: 'max-content', margin: 0, padding: 0, listStyle: 'none' }}>
+          <li className={'page-item' + (page === 1 ? ' disabled' : '')}>
+            <a href="#" className="router-page-button page-link" onClick={e => { e.preventDefault(); if (page !== 1) setPage(Math.max(1, page - 1)); }} aria-label="Previous" aria-disabled={page === 1} tabIndex={page === 1 ? -1 : undefined}>«</a>
+          </li>
+          {pages.map(pageNumber => (
+            <li key={pageNumber}>
+              <a href="#" className={'router-page-button page-link' + (page === pageNumber ? ' active' : '')} onClick={e => { e.preventDefault(); setPage(pageNumber); }} aria-label={'Halaman ' + pageNumber} aria-current={page === pageNumber ? 'page' : undefined}>{pageNumber}</a>
+            </li>
+          ))}
+          <li className={'page-item' + (page === totalPages ? ' disabled' : '')}>
+            <a href="#" className="router-page-button page-link" onClick={e => { e.preventDefault(); if (page !== totalPages) setPage(Math.min(totalPages, page + 1)); }} aria-label="Next" aria-disabled={page === totalPages} tabIndex={page === totalPages ? -1 : undefined}>»</a>
+          </li>
+        </ul>
+      </nav>
+    );
+  }
+
   return (
     <section className="router-management-panel animate-fadeIn" aria-labelledby={panelId + '-title'}>
       <header className="router-panel-header">
@@ -322,7 +356,7 @@ function RouterManagementPanel({ admin } = {}) {
             <caption className="router-panel-sr-only">Daftar router, pelanggan, status pengelolaan, dan hasil tes koneksi terakhir</caption>
             <thead><tr><th scope="col">Router / API</th><th scope="col">Pelanggan</th><th scope="col">Pengelolaan</th><th scope="col">Koneksi terakhir</th>{isSuperAdmin && <th scope="col">Tindakan</th>}</tr></thead>
             <tbody>
-              {routers.map(router => {
+              {paginatedRouters.map(router => {
                 const active = isEnabled(router.is_active);
                 const result = testResults[router.id_router];
                 const testing = operation?.type === 'test' && operation.id === router.id_router;
@@ -353,6 +387,7 @@ function RouterManagementPanel({ admin } = {}) {
               })}
             </tbody>
           </table>
+          {renderPagination()}
         </div>
       )}
     </section>

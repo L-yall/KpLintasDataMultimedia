@@ -7,7 +7,7 @@ var ConfigService = require('./configService');
 var LOGO_URL = 'https://raw.githubusercontent.com/rassyhvre/KpLintasDataMultimedia/main/backend/public/logo_ldm.png';
 
 function escapeHtml(value) {
-  return String(value || '').replace(/[&<>"']/g, function(character) {
+  return String(value || '').replace(/[&<>"']/g, function (character) {
     return {
       '&': '&amp;',
       '<': '&lt;',
@@ -90,10 +90,10 @@ var EmailService = {
       console.warn('Tujuan: ' + toEmail);
       console.warn('Subject: ' + subject);
       console.log('========================================================');
-      return { 
-        success: false, 
-        status: 'simulated', 
-        error: 'Konfigurasi EMAIL_USER / EMAIL_PASS belum tersedia di sistem.' 
+      return {
+        success: false,
+        status: 'simulated',
+        error: 'Konfigurasi EMAIL_USER / EMAIL_PASS belum tersedia di sistem.'
       };
     }
 
@@ -212,13 +212,15 @@ var EmailService = {
     var daysDiff = data.daysDiff !== undefined ? data.daysDiff : 1;
     var subject = 'Invoice Tagihan Internet ' + data.nama + ' ' + data.periode;
     var messageText = 'Berikut terlampir invoice tagihan internet Anda untuk periode <strong>' + data.periode + '</strong> sebesar <strong>Rp ' + data.nominal + '</strong>.';
-    var dueText = 'Mohon dapat melakukan pembayaran sebelum tanggal jatuh tempo (<strong>' + data.dueDateString + '</strong>) melalui portal kami:';
+    var dueText = (daysDiff === 14)
+      ? 'Tagihan internet ini diterbitkan H-14 sebelum jatuh tempo (<strong>' + data.dueDateString + '</strong>). Mohon dapat melakukan pembayaran sebelum jatuh tempo melalui portal kami:'
+      : 'Mohon dapat melakukan pembayaran sebelum tanggal jatuh tempo (<strong>' + data.dueDateString + '</strong>) melalui portal kami:';
 
     if (daysDiff < 0) {
-      subject = '⚠️ Tagihan Terlambat ' + data.nama + ' ' + data.periode;
+      subject = ' Tagihan Terlambat ' + data.nama + ' ' + data.periode;
       dueText = 'Tagihan Anda telah <strong>melewati tanggal jatuh tempo</strong> (' + data.dueDateString + '). Mohon segera melakukan pembayaran melalui portal kami:';
     } else if (daysDiff === 0) {
-      subject = '⏰ Tagihan Jatuh Tempo Hari Ini ' + data.nama + ' ' + data.periode;
+      subject = ' Tagihan Jatuh Tempo Hari Ini ' + data.nama + ' ' + data.periode;
       dueText = 'Tagihan Anda <strong>jatuh tempo pada hari ini</strong> (' + data.dueDateString + '). Mohon segera melakukan pembayaran melalui portal kami:';
     }
 

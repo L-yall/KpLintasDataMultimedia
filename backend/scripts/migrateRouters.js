@@ -10,7 +10,7 @@ async function main() {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASS || '',
-    database: process.env.DB_NAME || 'dashboard_isp'
+    database: process.env.DB_NAME || 'billing_pembayaran_isp'
   });
   try {
     const model = Router.withDatabase(pool);

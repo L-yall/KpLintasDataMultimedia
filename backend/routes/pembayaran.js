@@ -107,6 +107,7 @@ router.post('/:id/approve', function (req, res) {
         payment_method: 'Manual Transfer Bank'
       });
 
+      SocketService.broadcast('notifikasi_updated', { id_pembayaran: id_pembayaran });
       res.json({
         success: true,
         message: 'Pembayaran disetujui! Status pelanggan lunas, masa aktif diperpanjang, dan akun internet diaktifkan.',
@@ -200,7 +201,8 @@ router.post('/:id/reject', function (req, res) {
           var CronService = require('../services/cronService');
           CronService.checkAndSendReminders();
 
-          res.json({
+          SocketService.broadcast('notifikasi_updated', { id_pembayaran: id_pembayaran });
+      res.json({
             success: true,
             message: 'Pembayaran ditolak. Notifikasi penolakan telah dikirim ke Email pelanggan.'
           });

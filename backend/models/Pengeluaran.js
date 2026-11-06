@@ -1,8 +1,9 @@
 var db = require('../config/db');
 
 var Pengeluaran = {
-  // Ambil semua pengeluaran berdasarkan filter periode (YYYY-MM)
+  // Ambil semua pengeluaran berdasarkan filter periode (YYYY-MM) atau seluruhnya ('all')
   getAll: function(periode, callback) {
+    var hasPeriode = Boolean(periode && periode !== 'all');
     var sql = `
       SELECT 
         p.*, 
@@ -19,10 +20,11 @@ var Pengeluaran = {
         FROM admin
         GROUP BY id_admin
       ) v ON p.validated_by = v.id_admin
-      WHERE DATE_FORMAT(p.tanggal, '%Y-%m') = ? 
+      ${hasPeriode ? "WHERE DATE_FORMAT(p.tanggal, '%Y-%m') = ?" : ""}
       ORDER BY p.tanggal DESC, p.created_at DESC
     `;
-    db.query(sql, [periode], function(err, results) {
+    var params = hasPeriode ? [periode] : [];
+    db.query(sql, params, function(err, results) {
       if (err) return callback(err, null);
       callback(null, results);
     });

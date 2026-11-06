@@ -138,6 +138,83 @@ function KelolaAdminPage({ admin: currentAdmin }) {
     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  // Pagination
+  var [page, setPage] = useState(1);
+  var adminsPerPage = 10;
+  var totalPages = Math.max(1, Math.ceil(users.length / adminsPerPage));
+
+  useEffect(function () {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  var paginatedUsers = users.slice((page - 1) * adminsPerPage, page * adminsPerPage);
+
+  function renderPagination() {
+    if (totalPages <= 1) return null;
+
+    var pages = [];
+    for (var p = 1; p <= totalPages; p++) {
+      pages.push(p);
+    }
+
+    return (
+      <nav aria-label="Page navigation" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px', borderTop: '1px solid var(--border-color)', overflowX: 'auto' }}>
+        <ul className="pagination" style={{ display: 'flex', alignItems: 'center', minWidth: 'max-content', margin: 0, padding: 0, listStyle: 'none' }}>
+          <li className={'page-item' + (page === 1 ? ' disabled' : '')}>
+            <a
+              href="#"
+              className="admin-page-button page-link"
+              onClick={function (e) {
+                e.preventDefault();
+                if (page !== 1) setPage(Math.max(1, page - 1));
+              }}
+              aria-label="Previous"
+              aria-disabled={page === 1}
+              tabIndex={page === 1 ? -1 : undefined}
+            >
+              «
+            </a>
+          </li>
+          {pages.map(function (pageNumber) {
+            return (
+              <li key={pageNumber}>
+                <a
+                  href="#"
+                  className={'admin-page-button page-link' + (page === pageNumber ? ' active' : '')}
+                  onClick={function (e) {
+                    e.preventDefault();
+                    setPage(pageNumber);
+                  }}
+                  aria-label={'Halaman ' + pageNumber}
+                  aria-current={page === pageNumber ? 'page' : undefined}
+                >
+                  {pageNumber}
+                </a>
+              </li>
+            );
+          })}
+          <li className={'page-item' + (page === totalPages ? ' disabled' : '')}>
+            <a
+              href="#"
+              className="admin-page-button page-link"
+              onClick={function (e) {
+                e.preventDefault();
+                if (page !== totalPages) setPage(Math.min(totalPages, page + 1));
+              }}
+              aria-label="Next"
+              aria-disabled={page === totalPages}
+              tabIndex={page === totalPages ? -1 : undefined}
+            >
+              »
+            </a>
+          </li>
+        </ul>
+      </nav>
+    );
+  }
+
   return (
     <div style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
       <style>{`
@@ -222,6 +299,56 @@ function KelolaAdminPage({ admin: currentAdmin }) {
           background: var(--bg-hover);
           color: var(--primary);
         }
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+        .admin-page-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          width: 34px;
+          height: 32px;
+          border: 1px solid var(--border-color);
+          border-left: 0;
+          background: var(--bg-card);
+          color: var(--text-primary);
+          font-size: 0.95rem;
+          cursor: pointer;
+        }
+        .page-item:first-child .admin-page-button {
+          border-left: 1px solid var(--border-color);
+          border-radius: 6px 0 0 6px;
+        }
+        .page-item:last-child .admin-page-button {
+          border-radius: 0 6px 6px 0;
+        }
+        .admin-page-button:hover:not(:disabled) {
+          background: var(--bg-tertiary);
+        }
+        .admin-page-button.active {
+          background: #006876;
+          color: #ffffff;
+          border-color: #006876;
+        }
+        .admin-page-button.active:hover {
+          background: #006876;
+          color: #ffffff;
+          border-color: #006876;
+        }
+        .page-item.disabled .admin-page-button {
+          color: #006876;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
       `}</style>
 
       {/* Hero Banner */}
@@ -301,11 +428,12 @@ function KelolaAdminPage({ admin: currentAdmin }) {
                 </tr>
               </thead>
               <tbody>
-                {users.map(function (u, idx) {
+                {paginatedUsers.map(function (u, idx) {
                   var isSelf = currentAdmin && (currentAdmin.id === u.id_admin || currentAdmin.email === u.email);
+                  var rowNumber = (page - 1) * adminsPerPage + idx + 1;
                   return (
                     <tr key={u.id_admin}>
-                      <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{rowNumber}</td>
                       <td>
                         <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
                           {u.nama} {isSelf && <span style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 800 }}>(Anda)</span>}
@@ -368,6 +496,7 @@ function KelolaAdminPage({ admin: currentAdmin }) {
             </table>
           </div>
         )}
+        {renderPagination()}
       </div>
 
       {/* Modal Tambah Admin Baru */}

@@ -1,7 +1,7 @@
 var db = require('../config/db');
 
 var ReminderLog = {
-  // Ambil semua log pengiriman reminder
+  // Ambil semua log pengiriman invoice/reminder
   getAll: function (callback) {
     var sql = `
       SELECT r.*, p.nama, p.no_hp, p.email 
@@ -28,7 +28,7 @@ var ReminderLog = {
     });
   },
 
-  // Cek apakah hari ini pelanggan sudah menerima reminder
+  // Cek apakah hari ini pelanggan sudah menerima email
   hasBeenSentToday: function (id_pelanggan, callback) {
     var sql = `
       SELECT COUNT(*) as total 
@@ -40,6 +40,21 @@ var ReminderLog = {
     db.query(sql, [id_pelanggan], function (err, results) {
       if (err) return callback(err, null);
       callback(null, results[0].total > 0);
+    });
+  },
+
+  // Cek apakah invoice tagihan periode tertentu sudah pernah terkirim ke pelanggan
+  hasBeenSentForPeriod: function (id_pelanggan, periode, callback) {
+    var sql = `
+      SELECT COUNT(*) as total 
+      FROM reminder_log 
+      WHERE id_pelanggan = ? 
+        AND pesan LIKE ? 
+        AND status_kirim = 'terkirim'
+    `;
+    db.query(sql, [id_pelanggan, '%' + periode + '%'], function (err, results) {
+      if (err) return callback(err, null);
+      callback(null, results && results[0] && results[0].total > 0);
     });
   },
 

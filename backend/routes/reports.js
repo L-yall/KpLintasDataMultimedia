@@ -66,7 +66,7 @@ router.get('/summary', function (req, res) {
 
 /* GET /api/reports/details - Get financial transactions detail lists */
 router.get('/details', function (req, res) {
-  var { periode } = req.query;
+  var { periode, all_expenses } = req.query;
   if (!periode) {
     var today = new Date();
     var y = today.getFullYear();
@@ -87,7 +87,9 @@ router.get('/details', function (req, res) {
       return res.status(500).json({ success: false, message: 'Gagal mengambil detail pemasukan.' });
     }
 
-    Pengeluaran.getAll(periode, function (err, expenses) {
+    var expensePeriode = (all_expenses === 'true' || all_expenses === true) ? 'all' : periode;
+
+    Pengeluaran.getAll(expensePeriode, function (err, expenses) {
       if (err) {
         return res.status(500).json({ success: false, message: 'Gagal mengambil detail pengeluaran.' });
       }

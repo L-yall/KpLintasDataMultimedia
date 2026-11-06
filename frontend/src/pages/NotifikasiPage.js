@@ -18,10 +18,25 @@ function NotifikasiPage({ socket, admin }) {
   var [actionLoading, setActionLoading] = useState(false);
   var navigate = useNavigate();
   var location = useLocation();
-  var isSuperAdmin = admin && admin.role === 'superadmin';
+  var currentAdmin = admin || (function () {
+    try {
+      return JSON.parse(localStorage.getItem('admin') || '{}');
+    } catch (e) {
+      return {};
+    }
+  })();
+  var isSuperAdmin = currentAdmin && currentAdmin.role === 'superadmin';
   var unreadPaymentCount = notifs.filter(function (notif) {
     return notif.status_baca === 0 && notif.tipe !== 'registrasi_masuk';
   }).length;
+
+  function handleCloseModal() {
+    setViewNotif(null);
+    setViewMidtransDetail(null);
+    if (location.search.includes('notifId')) {
+      navigate('/dashboard/notifikasi', { replace: true });
+    }
+  }
 
   var token = localStorage.getItem('token');
   var headers = { Authorization: 'Bearer ' + token };
@@ -157,12 +172,14 @@ function NotifikasiPage({ socket, admin }) {
       socket.on('registrasi_updated', fetchNotifications);
       socket.on('pengeluaran_masuk', fetchNotifications);
       socket.on('pengeluaran_updated', fetchNotifications);
+      socket.on('notifikasi_updated', fetchNotifications);
       return function () {
         socket.off('pembayaran_masuk');
         socket.off('registrasi_masuk', fetchNotifications);
         socket.off('registrasi_updated', fetchNotifications);
         socket.off('pengeluaran_masuk', fetchNotifications);
         socket.off('pengeluaran_updated', fetchNotifications);
+        socket.off('notifikasi_updated', fetchNotifications);
       };
     }
   }, [socket]);
@@ -255,7 +272,7 @@ function NotifikasiPage({ socket, admin }) {
       <nav aria-label="Page navigation" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px', borderTop: '1px solid var(--border-color)', overflowX: 'auto' }}>
         <ul className="pagination" style={{ display: 'flex', alignItems: 'center', minWidth: 'max-content', margin: 0, padding: 0, listStyle: 'none' }}>
           <li className={'page-item' + (notifPage === 1 ? ' disabled' : '')}>
-            <a href="#" className="report-page-button page-link" onClick={function (e) { e.preventDefault(); if (notifPage !== 1) setNotifPage(Math.max(1, notifPage - 1)); }} aria-label="Previous" aria-disabled={notifPage === 1} tabIndex={notifPage === 1 ? -1 : undefined}><span aria-hidden="true">«</span><span className="sr-only">Previous</span></a>
+            <a href="#" className="report-page-button page-link" onClick={function (e) { e.preventDefault(); if (notifPage !== 1) setNotifPage(Math.max(1, notifPage - 1)); }} aria-label="Previous" aria-disabled={notifPage === 1} tabIndex={notifPage === 1 ? -1 : undefined}>«</a>
           </li>
           {pages.map(function (pageNumber) {
             return (
@@ -267,7 +284,7 @@ function NotifikasiPage({ socket, admin }) {
             );
           })}
           <li className={'page-item' + (notifPage === totalNotifPages ? ' disabled' : '')}>
-            <a href="#" className="report-page-button page-link" onClick={function (e) { e.preventDefault(); if (notifPage !== totalNotifPages) setNotifPage(Math.min(totalNotifPages, notifPage + 1)); }} aria-label="Next" aria-disabled={notifPage === totalNotifPages} tabIndex={notifPage === totalNotifPages ? -1 : undefined}><span aria-hidden="true">»</span><span className="sr-only">Next</span></a>
+            <a href="#" className="report-page-button page-link" onClick={function (e) { e.preventDefault(); if (notifPage !== totalNotifPages) setNotifPage(Math.min(totalNotifPages, notifPage + 1)); }} aria-label="Next" aria-disabled={notifPage === totalNotifPages} tabIndex={notifPage === totalNotifPages ? -1 : undefined}>»</a>
           </li>
         </ul>
       </nav>
@@ -284,6 +301,19 @@ function NotifikasiPage({ socket, admin }) {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  function getPeriodeColumnHeader() {
+    if (filterStatus === 'registrasi') {
+      return 'Paket';
+    }
+    if (filterStatus === 'pengeluaran') {
+      return 'Kategori';
+    }
+    if (filterStatus === 'manual' || filterStatus === 'midtrans') {
+      return 'Periode';
+    }
+    return isSuperAdmin ? 'Periode / Paket / Kategori' : 'Periode / Paket';
   }
 
   return (
@@ -414,12 +444,11 @@ function NotifikasiPage({ socket, admin }) {
                 <th style={{ width: '60px' }}>No</th>
                 <th>Metode</th>
                 <th>Nama Pelanggan</th>
-                <th>Periode</th>
+                <th>{getPeriodeColumnHeader()}</th>
                 <th>Nominal</th>
                 <th>Waktu Masuk</th>
-                {filterStatus !== 'midtrans' && <th>Detail</th>}
                 <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Aksi</th>
+                <th>Detail</th>
               </tr>
             </thead>
             <tbody>
@@ -446,33 +475,6 @@ function NotifikasiPage({ socket, admin }) {
                     <td>{isRegistration ? notif.paket : isExpense ? `${notif.kategori} (${notif.tipe_pengeluaran === 'fix' ? 'Fix' : 'Tidak Fix'})` : notif.periode}</td>
                     <td>{isRegistration ? '-' : 'Rp ' + Number(notif.nominal).toLocaleString('id-ID')}</td>
                     <td>{formatTanggal(notif.tanggal)}</td>
-                    {filterStatus !== 'midtrans' && (
-                      <td>
-                        {isRegistration ? (
-                          <button className="btn btn-secondary btn-sm" onClick={function () { navigate('/dashboard/registrasi'); }}>
-                            <TemplateIcon name="person_add" size={14} style={{ marginRight: '6px' }} /> Tinjau
-                          </button>
-                        ) : isExpense ? (
-                          <button className="btn btn-secondary btn-sm" onClick={function () { navigate('/dashboard/laporan'); }}>
-                            <TemplateIcon name="document" size={14} style={{ marginRight: '6px' }} /> Tinjau di Laporan
-                          </button>
-                        ) : metodeInfo.isOnline ? (
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={function () { handleMarkRead(notif); setViewMidtransDetail(notif); }}
-                          >
-                            <TemplateIcon name="document" size={14} style={{ marginRight: '6px' }} /> Transaksi Online
-                          </button>
-                        ) : (
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={function () { handleMarkRead(notif); setViewNotif(notif); }}
-                          >
-                            <TemplateIcon name="camera" size={14} style={{ marginRight: '6px' }} /> Lihat Bukti
-                          </button>
-                        )}
-                      </td>
-                    )}
                     <td>
                       <span
                         onClick={function () { if (!isRegistration && !isExpense) handleMarkRead(notif); }}
@@ -482,40 +484,47 @@ function NotifikasiPage({ socket, admin }) {
                           alignItems: 'center',
                           gap: '4px'
                         }}
-                        className={'status-badge ' + (isUnread ? 'merah' : 'abu')}
+                        className={'status-badge ' + (isRegistration ? 'biru' : isExpense ? 'kuning' : notif.status_pembayaran === 'pending' ? 'kuning' : notif.status_pembayaran === 'diterima' ? 'hijau' : notif.status_pembayaran === 'ditolak' ? 'merah' : isUnread ? 'merah' : 'abu')}
                       >
-                        {isRegistration ? 'Menunggu Tinjauan' : isExpense ? 'Menunggu Validasi' : isUnread ? 'Belum Dibaca' : 'Sudah Dibaca'}
+                        {isRegistration
+                        ? 'Menunggu Tinjauan'
+                        : isExpense
+                        ? 'Menunggu Validasi'
+                        : notif.status_pembayaran === 'pending'
+                        ? 'Menunggu Verifikasi'
+                        : notif.status_pembayaran === 'diterima'
+                        ? 'Disetujui'
+                        : notif.status_pembayaran === 'ditolak'
+                        ? 'Ditolak'
+                        : isUnread
+                        ? 'Belum Dibaca'
+                        : 'Sudah Dibaca'}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        {isUnread && !isRegistration && !isExpense && (
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={function () { handleMarkRead(notif); }}
-                          >
-                            Tandai Dibaca
-                          </button>
-                        )}
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={function () {
-                            if (isRegistration) {
-                              navigate('/dashboard/registrasi');
-                            } else if (isExpense) {
-                              navigate('/dashboard/laporan');
-                            } else if (metodeInfo.isOnline) {
-                              handleMarkRead(notif);
-                              setViewMidtransDetail(notif);
-                            } else {
-                              handleMarkRead(notif);
-                              setViewNotif(notif);
-                            }
-                          }}
-                        >
-                          {isRegistration ? 'Buka Antrean' : isExpense ? 'Validasi' : 'Lihat Detail'}
+                    <td>
+                      {isRegistration ? (
+                        <button className="btn btn-secondary btn-sm" onClick={function () { navigate('/dashboard/registrasi'); }}>
+                          <TemplateIcon name="person_add" size={14} style={{ marginRight: '6px' }} /> Tinjau
                         </button>
-                      </div>
+                      ) : isExpense ? (
+                        <button className="btn btn-secondary btn-sm" onClick={function () { if (isUnread) handleMarkRead(notif); navigate(`/dashboard/laporan?action=pengeluaran&t=${Date.now()}`); }}>
+                          <TemplateIcon name="document" size={14} style={{ marginRight: '6px' }} /> Validasi di Laporan
+                        </button>
+                      ) : metodeInfo.isOnline ? (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={function () { handleMarkRead(notif); setViewMidtransDetail(notif); }}
+                        >
+                          <TemplateIcon name="document" size={14} style={{ marginRight: '6px' }} /> Transaksi Online
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={function () { handleMarkRead(notif); setViewNotif(notif); }}
+                        >
+                          <TemplateIcon name="camera" size={14} style={{ marginRight: '6px' }} /> Lihat Bukti
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -530,12 +539,21 @@ function NotifikasiPage({ socket, admin }) {
       {viewNotif && (
         <Modal
           isOpen={viewNotif !== null}
-          onClose={function () { setViewNotif(null); }}
+          onClose={handleCloseModal}
           title={<><TemplateIcon name="camera" size={16} style={{ marginRight: '8px' }} /> Bukti Transfer - {viewNotif.nama_pelanggan || 'Pelanggan'}</>}
           footer={(
             <>
-              <button className="btn btn-secondary" onClick={function () { setViewNotif(null); }}>Batal</button>
+              <button className="btn btn-secondary" onClick={handleCloseModal}>Batal</button>
               {(isSuperAdmin || admin) && (
+                viewNotif.status_pembayaran === 'diterima' ? (
+                  <span className="status-badge hijau" style={{ padding: '8px 14px', fontSize: '0.85rem' }}>
+                    Pembayaran Telah Disetujui
+                  </span>
+                ) : viewNotif.status_pembayaran === 'ditolak' ? (
+                  <span className="status-badge merah" style={{ padding: '8px 14px', fontSize: '0.85rem' }}>
+                    Pembayaran Ditolak {viewNotif.alasan_tolak ? '(' + viewNotif.alasan_tolak + ')' : ''}
+                  </span>
+                ) : (
                 <>
                   <button
                     className="btn btn-danger"
@@ -583,6 +601,7 @@ function NotifikasiPage({ socket, admin }) {
                     Terima Pembayaran
                   </button>
                 </>
+                )
               )}
             </>
           )}

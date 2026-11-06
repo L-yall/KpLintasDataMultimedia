@@ -68,6 +68,39 @@ var uploadQris = multer({
   }
 });
 
+var uploadBankLogo = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, logoDir);
+    },
+    filename: function (req, file, cb) {
+      var ext = file.mimetype === 'image/png' ? '.png' : '.jpg';
+      cb(null, 'bank_' + req.params.id + '_' + Date.now() + ext);
+    }
+  }),
+  fileFilter: function (req, file, cb) {
+    var allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (allowedTypes.indexOf(file.mimetype) === -1) {
+      return cb(new Error('Format file tidak didukung. Gunakan PNG atau JPG.'), false);
+    }
+    cb(null, true);
+  },
+  limits: {
+    fileSize: 2 * 1024 * 1024
+  }
+});
+
+var removeBankLogo = function (logoUrl, id) {
+  if (!/^\d+$/.test(String(id))) return;
+  var filename = path.basename(logoUrl || '');
+  if (!new RegExp('^bank_' + id + '_\\d+\\.(png|jpg)$').test(filename)) return;
+  try {
+    fs.unlinkSync(path.join(logoDir, filename));
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error('[Pengaturan] Gagal menghapus logo rekening:', err.message);
+  }
+};
+
 /* GET /api/pengaturan/logo - Public endpoint (no auth required) */
 /* All pages (landing, portal, login, sidebar) need to read the current logo */
 router.get('/logo', function (req, res) {
@@ -371,20 +404,70 @@ router.put('/rekening/:id', function (req, res) {
   });
 });
 
+/* POST /api/pengaturan/rekening/:id/logo - Upload bank account logo */
+router.post('/rekening/:id/logo', function (req, res) {
+  var id = req.params.id;
+  if (!/^\d+$/.test(id)) {
+    return res.status(400).json({ success: false, message: 'ID rekening tidak valid.' });
+  }
+
+  db.query('SELECT logo_url FROM rekening_pembayaran WHERE id_rekening = ?', [id], function (findErr, rows) {
+    if (findErr) {
+      return res.status(500).json({ success: false, message: 'Database error: ' + findErr.message });
+    }
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Rekening pembayaran tidak ditemukan.' });
+    }
+
+    uploadBankLogo.single('logo')(req, res, function (uploadErr) {
+      if (uploadErr) {
+        var message = uploadErr.code === 'LIMIT_FILE_SIZE'
+          ? 'Ukuran file melebihi batas maksimal 2MB.'
+          : uploadErr.message || 'Gagal mengunggah logo bank.';
+        return res.status(400).json({ success: false, message: message });
+      }
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'File logo bank wajib diunggah.' });
+      }
+
+      var logoUrl = '/uploads/logo/' + req.file.filename;
+      db.query('UPDATE rekening_pembayaran SET logo_url = ? WHERE id_rekening = ?', [logoUrl, id], function (updateErr) {
+        if (updateErr) {
+          removeBankLogo(logoUrl, id);
+          return res.status(500).json({ success: false, message: 'Database error: ' + updateErr.message });
+        }
+
+        removeBankLogo(rows[0].logo_url, id);
+        res.json({
+          success: true,
+          message: 'Logo bank berhasil diunggah.',
+          data: { logo_url: logoUrl }
+        });
+      });
+    });
+  });
+});
+
 /* DELETE /api/pengaturan/rekening/:id - Delete bank account */
 router.delete('/rekening/:id', function (req, res) {
   var { id } = req.params;
-  var sql = 'DELETE FROM rekening_pembayaran WHERE id_rekening = ?';
-  db.query(sql, [id], function (err, result) {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+  db.query('SELECT logo_url FROM rekening_pembayaran WHERE id_rekening = ?', [id], function (findErr, rows) {
+    if (findErr) {
+      return res.status(500).json({ success: false, message: 'Database error: ' + findErr.message });
     }
-    if (result.affectedRows === 0) {
+    if (!rows || rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Rekening pembayaran tidak ditemukan.' });
     }
-    res.json({
-      success: true,
-      message: 'Rekening pembayaran berhasil dihapus!'
+
+    db.query('DELETE FROM rekening_pembayaran WHERE id_rekening = ?', [id], function (deleteErr) {
+      if (deleteErr) {
+        return res.status(500).json({ success: false, message: 'Database error: ' + deleteErr.message });
+      }
+      removeBankLogo(rows[0].logo_url, id);
+      res.json({
+        success: true,
+        message: 'Rekening pembayaran berhasil dihapus!'
+      });
     });
   });
 });
@@ -529,4 +612,3 @@ router.post('/test-email', async function (req, res) {
 });
 
 module.exports = router;
-

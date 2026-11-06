@@ -267,7 +267,7 @@ function PelangganTanpaPppoePage({ socket }) {
       <nav aria-label="Page navigation" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px', borderTop: '1px solid var(--border-color)', overflowX: 'auto' }}>
         <ul className="pagination" style={{ display: 'flex', alignItems: 'center', minWidth: 'max-content', margin: 0, padding: 0, listStyle: 'none' }}>
           <li className={'page-item' + (customerPage === 1 ? ' disabled' : '')}>
-            <a href="#" className="customer-page-button page-link" onClick={function (e) { e.preventDefault(); if (customerPage !== 1) setCustomerPage(Math.max(1, customerPage - 1)); }} aria-label="Previous" aria-disabled={customerPage === 1} tabIndex={customerPage === 1 ? -1 : undefined}><span aria-hidden="true">«</span><span className="sr-only">Previous</span></a>
+            <a href="#" className="customer-page-button page-link" onClick={function (e) { e.preventDefault(); if (customerPage !== 1) setCustomerPage(Math.max(1, customerPage - 1)); }} aria-label="Previous" aria-disabled={customerPage === 1} tabIndex={customerPage === 1 ? -1 : undefined}>«</a>
           </li>
           {pages.map(function (pageNumber) {
             return (
@@ -277,7 +277,7 @@ function PelangganTanpaPppoePage({ socket }) {
             );
           })}
           <li className={'page-item' + (customerPage === totalCustomerPages ? ' disabled' : '')}>
-            <a href="#" className="customer-page-button page-link" onClick={function (e) { e.preventDefault(); if (customerPage !== totalCustomerPages) setCustomerPage(Math.min(totalCustomerPages, customerPage + 1)); }} aria-label="Next" aria-disabled={customerPage === totalCustomerPages} tabIndex={customerPage === totalCustomerPages ? -1 : undefined}><span aria-hidden="true">»</span><span className="sr-only">Next</span></a>
+            <a href="#" className="customer-page-button page-link" onClick={function (e) { e.preventDefault(); if (customerPage !== totalCustomerPages) setCustomerPage(Math.min(totalCustomerPages, customerPage + 1)); }} aria-label="Next" aria-disabled={customerPage === totalCustomerPages} tabIndex={customerPage === totalCustomerPages ? -1 : undefined}>»</a>
           </li>
         </ul>
       </nav>

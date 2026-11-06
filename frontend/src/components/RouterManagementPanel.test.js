@@ -420,3 +420,37 @@ test('global settings saves no legacy MIKROTIK fields and preserves SMTP/gateway
   }), auth);
   expect(Object.keys(axios.post.mock.calls[0][1]).some(key => key.startsWith('MIKROTIK_'))).toBe(false);
 });
+
+test('paginates routers list to 10 items per page with navigation controls', async () => {
+  const twelveRouters = Array.from({ length: 12 }, (_, index) => ({
+    id_router: index + 1,
+    nama_router: `Router ${index + 1}`,
+    lokasi: `Lokasi ${index + 1}`,
+    host: `10.0.0.${index + 1}`,
+    port: 8728,
+    username: `user_${index + 1}`,
+    is_active: 1,
+    has_password: true,
+    jumlah_pelanggan: 1,
+    configured: true
+  }));
+  axios.get.mockResolvedValue(listResponse(twelveRouters));
+  renderPanel();
+  await screen.findByText('Router 1');
+  expect(screen.getByText('Router 10')).toBeInTheDocument();
+  expect(screen.queryByText('Router 11')).not.toBeInTheDocument();
+  expect(screen.queryByText('Router 12')).not.toBeInTheDocument();
+
+  const page2Btn = screen.getByRole('link', { name: 'Halaman 2' });
+  expect(page2Btn).toBeInTheDocument();
+
+  fireEvent.click(page2Btn);
+  expect(screen.queryByText('Router 1')).not.toBeInTheDocument();
+  expect(screen.getByText('Router 11')).toBeInTheDocument();
+  expect(screen.getByText('Router 12')).toBeInTheDocument();
+
+  const prevBtn = screen.getByLabelText('Previous');
+  fireEvent.click(prevBtn);
+  expect(screen.getByText('Router 1')).toBeInTheDocument();
+  expect(screen.queryByText('Router 11')).not.toBeInTheDocument();
+});

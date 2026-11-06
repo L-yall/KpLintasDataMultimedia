@@ -6,7 +6,7 @@ const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASS || '', 
-  database: process.env.DB_NAME || 'dashboard_isp'
+  database: process.env.DB_NAME || 'billing_pembayaran_isp'
 });
 
 pool.getConnection((err, connection) => {
@@ -16,7 +16,7 @@ pool.getConnection((err, connection) => {
       subtitle: 'Peringatan Koneksi Basis Data',
       color: 'yellow',
       items: [
-        { label: 'Database', value: process.env.DB_NAME || 'dashboard_isp' },
+        { label: 'Database', value: process.env.DB_NAME || 'billing_pembayaran_isp' },
         { label: 'Status', value: `Gagal Terhubung [${err.code || 'ETIMEDOUT'}]`, color: 'yellow' },
         { label: 'Solusi', value: 'Pastikan service MySQL di XAMPP / Laragon aktif' }
       ]
@@ -28,7 +28,7 @@ pool.getConnection((err, connection) => {
       color: 'cyan',
       items: [
         { label: 'Host & Port', value: `${process.env.DB_HOST || 'localhost'}:3306` },
-        { label: 'Nama Database', value: process.env.DB_NAME || 'dashboard_isp' },
+        { label: 'Nama Database', value: process.env.DB_NAME || 'billing_pembayaran_isp' },
         { label: 'Status Koneksi', value: 'Terhubung (Connected)', color: 'green' },
         { label: 'Struktur Tabel', value: 'Pengaturan, Rekening, & Tagihan Siap' }
       ]
@@ -50,6 +50,7 @@ pool.getConnection((err, connection) => {
         nama_bank VARCHAR(100) NOT NULL,
         nomor_rekening VARCHAR(50) NOT NULL,
         atas_nama VARCHAR(150) NOT NULL,
+        logo_url VARCHAR(255) DEFAULT NULL,
         is_active TINYINT(1) DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -72,6 +73,14 @@ pool.getConnection((err, connection) => {
           );
         }
       });
+    });
+
+    connection.query("SHOW COLUMNS FROM rekening_pembayaran LIKE 'logo_url'", (err, rows) => {
+      if (!err && rows && rows.length === 0) {
+        connection.query("ALTER TABLE rekening_pembayaran ADD COLUMN logo_url VARCHAR(255) DEFAULT NULL", (alterErr) => {
+          if (!alterErr) logger.info('DATABASE', '[Migration] Kolom logo_url berhasil ditambahkan pada rekening pembayaran.');
+        });
+      }
     });
 
     // Pengecekan kolom hidden_customer pada tabel pembayaran

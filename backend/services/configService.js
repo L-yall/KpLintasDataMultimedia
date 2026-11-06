@@ -158,7 +158,7 @@ var ConfigService = {
       APP_URL: this.get('APP_URL', ''),
 
       // Reminder Settings
-      REMINDER_DUE_DAYS: this.get('REMINDER_DUE_DAYS', '3'),
+      REMINDER_DUE_DAYS: this.get('REMINDER_DUE_DAYS', '14'),
       REMINDER_AUTO_SEND: this.get('REMINDER_AUTO_SEND', 'true'),
       REMINDER_WA_TEMPLATE: this.get('REMINDER_WA_TEMPLATE', 'Halo [Nama],\n\nIni adalah pengingat otomatis dari Lintas Data Multimedia.\nTagihan internet Anda untuk periode [Periode] sebesar Rp [Nominal] akan jatuh tempo pada [JatuhTempo].\n\nSilakan lakukan pembayaran agar layanan tidak terputus. Terima kasih.')
     };

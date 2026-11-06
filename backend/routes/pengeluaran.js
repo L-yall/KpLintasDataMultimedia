@@ -76,17 +76,18 @@ function validateExpenseDate(expenseDateStr) {
   return { valid: true };
 }
 
-/* GET /api/pengeluaran - List monthly expenses */
+/* GET /api/pengeluaran - List monthly or all expenses */
 router.get('/', function (req, res) {
-  var { periode } = req.query;
-  if (!periode) {
+  var { periode, all } = req.query;
+  var targetPeriode = (all === 'true' || periode === 'all') ? 'all' : (periode || null);
+  if (!targetPeriode) {
     var today = new Date();
     var y = today.getFullYear();
     var m = today.getMonth() + 1;
-    periode = y + '-' + (m < 10 ? '0' + m : m);
+    targetPeriode = y + '-' + (m < 10 ? '0' + m : m);
   }
 
-  Pengeluaran.getAll(periode, function (err, results) {
+  Pengeluaran.getAll(targetPeriode, function (err, results) {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error', error: err.message });
     }
@@ -120,8 +121,16 @@ router.get('/kategori-berkala', function (req, res) {
   });
 });
 
-/* POST /api/pengeluaran - Add new expense */
+/* POST /api/pengeluaran - Add new expense (Admin Operasional only) */
 router.post('/', function (req, res) {
+  // Super Admin tidak diizinkan mencatat pengeluaran (hanya memvalidasi pengeluaran)
+  if (req.adminRole === 'superadmin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Akses ditolak! Super Admin hanya bertugas memvalidasi pengeluaran. Pencatatan pengeluaran dilakukan oleh Admin Operasional.'
+    });
+  }
+
   uploadBukti.single('bukti_nota')(req, res, function (err) {
     if (err) {
       return res.status(400).json({ success: false, message: err.message || 'Gagal mengunggah bukti nota.' });

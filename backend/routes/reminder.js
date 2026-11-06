@@ -27,16 +27,25 @@ router.get('/logs', function(req, res) {
 /* POST /api/reminder/trigger-cron - Manually trigger billing check and reminder routing */
 router.post('/trigger-cron', async function(req, res) {
   try {
-    console.log('[API] Manual trigger of cron check initiated by admin');
-    await CronService.checkAndSendReminders();
+    console.log('[API] Manual invoice send initiated by admin');
+    var result = await CronService.sendInvoicesNow();
+    if (result.failed > 0) {
+      return res.status(502).json({
+        success: false,
+        message: `${result.sent} invoice terkirim, ${result.failed} gagal, dan ${result.skipped} dilewati.`,
+        data: result
+      });
+    }
     res.json({
       success: true,
-      message: 'Proses pengecekan tagihan dan pengiriman reminder Email berhasil dijalankan!'
+      message: result.total === 0
+        ? 'Tidak ada tagihan belum lunas untuk dikirim.'
+        : `${result.sent} invoice terkirim dan ${result.skipped} dilewati.`
     });
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: 'Gagal menjalankan proses reminder secara manual',
+      message: 'Gagal menjalankan proses pengiriman invoice tagihan secara manual',
       error: err.message
     });
   }
@@ -47,9 +56,9 @@ router.delete('/logs/:id', function(req, res) {
   var id = req.params.id;
   ReminderLog.delete(id, function(err, result) {
     if (err) {
-      return res.status(500).json({ success: false, message: 'Gagal menghapus log reminder', error: err.message });
+      return res.status(500).json({ success: false, message: 'Gagal menghapus log invoice tagihan', error: err.message });
     }
-    res.json({ success: true, message: 'Log reminder berhasil dihapus.' });
+    res.json({ success: true, message: 'Log invoice tagihan berhasil dihapus.' });
   });
 });
 
@@ -57,9 +66,9 @@ router.delete('/logs/:id', function(req, res) {
 router.delete('/logs', function(req, res) {
   ReminderLog.clearAll(function(err, result) {
     if (err) {
-      return res.status(500).json({ success: false, message: 'Gagal membersihkan log reminder', error: err.message });
+      return res.status(500).json({ success: false, message: 'Gagal membersihkan log invoice tagihan', error: err.message });
     }
-    res.json({ success: true, message: 'Semua log reminder berhasil dibersihkan.' });
+    res.json({ success: true, message: 'Semua log invoice tagihan berhasil dibersihkan.' });
   });
 });
 

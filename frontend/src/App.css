@@ -646,12 +646,14 @@
   box-shadow: 0 0 6px var(--status-merah);
 }
 
-.status-badge.abu {
+.status-badge.abu,
+.status-badge.abu_abu {
   background: var(--status-abu-bg);
   color: var(--status-abu);
 }
 
-.status-badge.abu::before {
+.status-badge.abu::before,
+.status-badge.abu_abu::before {
   background: var(--status-abu);
 }
 

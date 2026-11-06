@@ -8,7 +8,8 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
   var location = useLocation();
   var { logoUrl } = useLogo();
   var [profileOpen, setProfileOpen] = useState(false);
-  var [pendingCount, setPendingCount] = useState(0);
+  var [notifCount, setNotifCount] = useState(0);
+  var [pendingExpenseCount, setPendingExpenseCount] = useState(0);
   var [pendingRegistrationCount, setPendingRegistrationCount] = useState(0);
   var [unconfiguredPppoeCount, setUnconfiguredPppoeCount] = useState(0);
   var [pelangganOpen, setPelangganOpen] = useState(false);
@@ -25,14 +26,23 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
   var fetchBadges = function () {
     if (!token) return;
 
-    // Fetch pending payment verifications count
-    axios.get(API_BASE_URL + '/api/pembayaran/pending', { headers: headers })
+    // Fetch unread notifications and pending payment verifications count for Log Notifikasi
+    axios.get(API_BASE_URL + '/api/notifikasi', { headers: headers })
       .then(function (res) {
         if (res.data.success) {
-          setPendingCount(res.data.data.length);
+          var unread = res.data.data.filter(function (n) {
+            if (n.tipe === 'registrasi_masuk' || n.tipe === 'pengeluaran_masuk') return false;
+            return n.status_baca === 0 || n.status_pembayaran === 'pending';
+          });
+          setNotifCount(unread.length);
+
+          var pendingExpenses = res.data.data.filter(function (n) {
+            return n.tipe === 'pengeluaran_masuk';
+          });
+          setPendingExpenseCount(pendingExpenses.length);
         }
       })
-      .catch(function (err) { console.error('Sidebar error pending payment:', err); });
+      .catch(function (err) { console.error('Sidebar error notifikasi:', err); });
 
     axios.get(API_BASE_URL + '/api/pelanggan/registrasi/pending', { headers: headers })
       .then(function (res) {
@@ -55,19 +65,21 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
   // WebSocket real-time updates for counts
   useEffect(function () {
     if (socket) {
-      socket.on('pembayaran_masuk', function () {
-        fetchBadges();
-      });
-      socket.on('pelanggan_updated', function () {
-        fetchBadges();
-      });
+      socket.on('pembayaran_masuk', fetchBadges);
+      socket.on('pelanggan_updated', fetchBadges);
       socket.on('registrasi_masuk', fetchBadges);
       socket.on('registrasi_updated', fetchBadges);
+      socket.on('pengeluaran_masuk', fetchBadges);
+      socket.on('pengeluaran_updated', fetchBadges);
+      socket.on('notifikasi_updated', fetchBadges);
       return function () {
         socket.off('pembayaran_masuk');
         socket.off('pelanggan_updated');
         socket.off('registrasi_masuk', fetchBadges);
         socket.off('registrasi_updated', fetchBadges);
+        socket.off('pengeluaran_masuk', fetchBadges);
+        socket.off('pengeluaran_updated', fetchBadges);
+        socket.off('notifikasi_updated', fetchBadges);
       };
     }
   }, [socket]);
@@ -94,7 +106,6 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
         { path: '/dashboard/tagihan', label: 'Tagihan', icon: 'receipt_long' },
         {
           path: '/dashboard/pembayaran', label: 'Pembayaran', icon: 'payments',
-          badge: pendingCount,
           subItems: [
             { path: '/dashboard/pembayaran?type=manual', label: 'Transfer Manual' },
             { path: '/dashboard/pembayaran?type=duitku', label: 'Duitku Gateway' },
@@ -110,9 +121,9 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
       section: 'Monitoring',
       items: [
         { path: '/dashboard/mikrotik', label: 'Status Jaringan', icon: 'router' },
-        { path: '/dashboard/reminder-logs', label: 'Reminder Log', icon: 'mail' },
-        { path: '/dashboard/notifikasi', label: 'Log Notifikasi', icon: 'notifications' },
-        // { path: '/dashboard/reminder-logs', label: 'Reminder Log', icon: 'mail' },
+        { path: '/dashboard/invoice-tagihan', label: 'Invoice Tagihan', icon: 'mail' },
+        { path: '/dashboard/notifikasi', label: 'Log Notifikasi', icon: 'notifications', badge: notifCount },
+        // { path: '/dashboard/invoice-tagihan', label: 'Reminder Log', icon: 'mail' },
         // ...(!isSuperAdmin ? [
         //    { path: '/dashboard/mikrotik', label: 'Status Jaringan', icon: 'router' },
         // ] : [])
@@ -121,7 +132,7 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
     {
       section: 'Laporan',
       items: [
-        { path: '/dashboard/laporan', label: 'Laporan Keuangan', icon: 'bar_chart' }
+        { path: '/dashboard/laporan', label: 'Laporan Keuangan', icon: 'bar_chart', badge: pendingExpenseCount }
       ]
     },
     {
@@ -530,7 +541,7 @@ function Sidebar({ admin, onLogout, socket, collapsed }) {
                         top: collapsed ? '4px' : 'auto',
                         right: collapsed ? '4px' : 'auto',
                         marginLeft: collapsed ? '0' : 'auto',
-                        background: item.icon === 'notifications' ? 'var(--primary)' : 'var(--status-merah)',
+                        background: 'var(--status-merah)',
                         color: '#ffffff',
                         fontSize: '0.68rem',
                         fontWeight: '700',

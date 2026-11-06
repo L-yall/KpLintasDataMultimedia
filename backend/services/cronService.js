@@ -7,6 +7,7 @@ var PdfService = require('./pdfService');
 var SocketService = require('./socket');
 var MikrotikService = require('./mikrotik');
 var BillingService = require('./billingService');
+var ConfigService = require('./configService');
 var logger = require('../utils/logger');
 
 // Helper to calculate difference in days between two dates
@@ -21,11 +22,12 @@ var CronService = {
   start: function() {
     logger.box({
       title: 'CRON JOB & AUTOMATION SERVICE',
-      subtitle: 'Evaluator Tagihan, Auto-Isolir & Reminder',
+      subtitle: 'Evaluator Tagihan, Auto-Isolir & Invoice Tagihan (H-14)',
       color: 'cyan',
       items: [
         { label: 'Status Service', value: 'Aktif & Siap', color: 'green' },
         { label: 'Jadwal Otomatis', value: 'Setiap Hari Pukul 07:00 WIB' },
+        { label: 'Jadwal Invoice', value: 'H-14 Sebelum Jatuh Tempo' },
         { label: 'Zona Waktu', value: 'Asia/Jakarta (WIB)' },
         { label: 'Otomasi Fitur', value: 'Isolir PPPoE & Lampiran PDF Invoice' }
       ]
@@ -45,6 +47,45 @@ var CronService = {
       BillingService.ensureActiveBills();
       this.checkAndSendReminders();
     }, 2500);
+  },
+
+  sendInvoicesNow: async function() {
+    var unpaidBills = await new Promise(function(resolve, reject) {
+      Tagihan.getUnpaid(function(err, bills) {
+        if (err) return reject(err);
+        resolve(bills);
+      });
+    });
+    var summary = {
+      total: unpaidBills.length,
+      sent: 0,
+      skipped: 0,
+      failed: 0,
+      errors: []
+    };
+    var today = new Date();
+
+    for (var i = 0; i < unpaidBills.length; i++) {
+      var bill = unpaidBills[i];
+      var result = await this.processEmailReminder(
+        bill,
+        getDaysDifference(new Date(bill.due_date), today)
+      );
+
+      if (result.status === 'sent') {
+        summary.sent++;
+      } else if (result.status === 'skipped') {
+        summary.skipped++;
+      } else {
+        summary.failed++;
+        summary.errors.push({
+          email: bill.email || null,
+          message: result.error
+        });
+      }
+    }
+
+    return summary;
   },
 
   checkAndSendReminders: async function() {
@@ -83,6 +124,8 @@ var CronService = {
       logger.info('CRON', `Mengevaluasi ${unpaidBills.length} tagihan aktif belum lunas...`);
     }
 
+    var dueDaysConfig = parseInt(ConfigService.get('REMINDER_DUE_DAYS', '14'), 10) || 14;
+
     for (var i = 0; i < unpaidBills.length; i++) {
       var bill = unpaidBills[i];
       var dueDate = new Date(bill.due_date);
@@ -115,12 +158,33 @@ var CronService = {
           }
         }
       } else if (daysDiff >= 0 && daysDiff <= 3) {
-        // Due in 0 to 3 days (hari-H atau 0-3 hari sebelum jatuh tempo)
+        // Due in 0 to 3 days (mendekati jatuh tempo)
         newStatus = 'kuning';
-        shouldSendReminder = true;
       } else {
         // Far from due date
         newStatus = 'hijau';
+      }
+
+      // Evaluasi jadwal pengiriman Invoice Tagihan (H-14 jatuh tempo)
+      if (daysDiff >= 0) {
+        if (daysDiff === dueDaysConfig) {
+          // Tepat pada H-14 sebelum jatuh tempo
+          shouldSendReminder = true;
+        } else if (daysDiff < dueDaysConfig) {
+          // Cek apakah invoice tagihan periode ini sudah pernah terkirim ke pelanggan
+          var alreadySentPeriod = await new Promise(function(resolve) {
+            ReminderLog.hasBeenSentForPeriod(bill.id_pelanggan, bill.periode, function(err, sent) {
+              resolve(!err && sent);
+            });
+          });
+          if (!alreadySentPeriod) {
+            // Belum pernah dikirim untuk periode tagihan ini
+            shouldSendReminder = true;
+          } else if (daysDiff === 0) {
+            // Pengingat khusus hari-H jatuh tempo
+            shouldSendReminder = true;
+          }
+        }
       }
 
       // 1. Update customer status if changed
@@ -144,7 +208,7 @@ var CronService = {
         });
       }
 
-      // 2. Send Email Reminder if shouldSendReminder is true
+      // 2. Send Email Invoice/Reminder if shouldSendReminder is true
       if (shouldSendReminder) {
         // Mengirimkan data daysDiff agar pesan email bisa dibedakan
         await this.processEmailReminder(bill, daysDiff);
@@ -171,89 +235,98 @@ var CronService = {
 
     // Check if customer has email
     if (!email) {
-      console.log(`[Cron Service] Pelanggan ${name} tidak memiliki email. Skipping reminder.`);
-      return;
+      console.log(`[Cron Service] Pelanggan ${name} tidak memiliki email. Skipping reminder/invoice.`);
+      return { status: 'skipped', reason: 'Pelanggan tidak memiliki email.' };
     }
 
-    return new Promise((resolve) => {
-      // Fungsi ini akan mengecek tabel reminder_log
-      ReminderLog.hasBeenSentToday(idPelanggan, async (err, alreadySent) => {
-        if (err) {
-          console.error('[Cron Service] DB check failed for reminder log:', err.message);
-          resolve();
-          return;
-        }
-
-        // Mencegah spam jika cron tereksekusi 2x di hari yang sama
-        if (alreadySent) {
-          console.log(`[Cron Service] Reminder already sent today to ${name} (${email}). Skipping.`);
-          resolve();
-          return;
-        }
-
-        // Menyusun isi pesan secara dinamis (untuk logging)
-        var message = `Halo ${name},\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n`;
-
-        if (daysDiff < 0) {
-            message += `🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode ${periode} sebesar *Rp ${nominal}* TELAH LEWAT JATUH TEMPO pada tanggal ${dueDateString}.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\n`;
-        } else if (daysDiff === 0) {
-            message += `⚠️ *JATUH TEMPO HARI INI* ⚠️\nTagihan internet Anda untuk periode ${periode} sebesar *Rp ${nominal}* telah jatuh tempo pada hari ini (${dueDateString}).\n\n`;
-        } else {
-            message += `Tagihan internet Anda untuk periode ${periode} sebesar *Rp ${nominal}* akan jatuh tempo dalam *${daysDiff} hari* (${dueDateString}).\n\n`;
-        }
-
-        message += `Silakan lakukan pembayaran dan konfirmasi melalui portal kami:\n${paymentUrl}\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.`;
-
-        // Generate PDF Invoice for reminder (isPaid = false)
-        var pdfBuffer = null;
-        try {
-          pdfBuffer = await PdfService.generateInvoicePdf({
-            id_tagihan: bill.id_tagihan,
-            periode: bill.periode,
-            nominal: bill.nominal,
-            status: bill.status,
-            due_date: bill.due_date,
-            created_at: bill.created_at || new Date(),
-            nama: name,
-            email: email,
-            no_hp: bill.no_hp || '-',
-            alamat: bill.alamat || '-',
-            paket: bill.paket || '-'
-          }, false);
-        } catch (pdfErr) {
-          console.error('[Cron Service] Failed to generate PDF invoice:', pdfErr.message);
-        }
-
-        // Send via Email with PDF attachment
-        var result = await EmailService.sendReminderEmail(email, {
-          nama: name,
-          periode: periode,
-          nominal: nominal,
-          dueDateString: dueDateString,
-          paymentUrl: paymentUrl,
-          daysDiff: daysDiff,
-          paket: bill.paket || '-',
-          idPelanggan: idPelanggan,
-          idTagihan: bill.id_tagihan,
-          alamat: bill.alamat || '-'
-        }, pdfBuffer);
-
-        // Record in reminder_log dengan datetime (Terkirim masuk database)
-        ReminderLog.create({
-          id_pelanggan: idPelanggan,
-          status_kirim: result.success ? 'terkirim' : 'gagal',
-          pesan: message,
-          tanggal_kirim: new Date()
-        }, function(logErr) {
-          if (logErr) {
-            logger.error('CRON', `Gagal mencatat log reminder untuk ${name}: ${logErr.message}`);
-          } else {
-            logger.success('CRON', `Reminder tagihan berhasil dikirim & dicatat untuk ${name}`);
-          }
-          resolve();
-        });
+    var alreadySent = await new Promise(function(resolve) {
+      ReminderLog.hasBeenSentToday(idPelanggan, function(err, sent) {
+        resolve({ error: err, sent: sent });
       });
     });
+    if (alreadySent.error) {
+      logger.error('CRON', `Gagal memeriksa log invoice tagihan untuk ${name}: ${alreadySent.error.message}`);
+      return { status: 'failed', error: alreadySent.error.message };
+    }
+
+    // Mencegah spam jika cron terpicu lebih dari sekali pada hari yang sama.
+    if (alreadySent.sent) {
+      console.log(`[Cron Service] Reminder/Invoice already sent today to ${name} (${email}). Skipping.`);
+      return { status: 'skipped', reason: 'Invoice sudah dikirim hari ini.' };
+    }
+
+    var message = `Halo ${name},\n\nIni adalah pesan otomatis dari ESP Lintas Data Multimedia.\n\n`;
+
+    if (daysDiff < 0) {
+      message += `🚨 *PEMBERITAHUAN TUNGGAKAN* 🚨\nTagihan internet Anda untuk periode ${periode} sebesar *Rp ${nominal}* TELAH LEWAT JATUH TEMPO pada tanggal ${dueDateString}.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tidak terputus secara otomatis.\n\n`;
+    } else if (daysDiff === 0) {
+      message += `⚠️ *JATUH TEMPO HARI INI* ⚠️\nTagihan internet Anda untuk periode ${periode} sebesar *Rp ${nominal}* telah jatuh tempo pada hari ini (${dueDateString}).\n\n`;
+    } else {
+      message += `📄 *INVOICE TAGIHAN INTERNET* 📄\nInvoice tagihan internet Anda untuk periode ${periode} sebesar *Rp ${nominal}* telah diterbitkan (Jatuh tempo pada ${dueDateString}, ${daysDiff} hari lagi).\n\n`;
+    }
+
+    message += `Silakan lakukan pembayaran dan konfirmasi melalui portal kami:\n${paymentUrl}\n\nAbaikan pesan ini jika Anda sudah melakukan pembayaran. Terima kasih.`;
+
+    var pdfBuffer = null;
+    try {
+      pdfBuffer = await PdfService.generateInvoicePdf({
+        id_tagihan: bill.id_tagihan,
+        periode: bill.periode,
+        nominal: bill.nominal,
+        status: bill.status,
+        due_date: bill.due_date,
+        created_at: bill.created_at || new Date(),
+        nama: name,
+        email: email,
+        no_hp: bill.no_hp || '-',
+        alamat: bill.alamat || '-',
+        paket: bill.paket || '-'
+      }, false);
+    } catch (pdfErr) {
+      console.error('[Cron Service] Failed to generate PDF invoice:', pdfErr.message);
+    }
+
+    var result;
+    try {
+      result = await EmailService.sendReminderEmail(email, {
+        nama: name,
+        periode: periode,
+        nominal: nominal,
+        dueDateString: dueDateString,
+        paymentUrl: paymentUrl,
+        daysDiff: daysDiff,
+        paket: bill.paket || '-',
+        idPelanggan: idPelanggan,
+        idTagihan: bill.id_tagihan,
+        alamat: bill.alamat || '-'
+      }, pdfBuffer);
+    } catch (emailErr) {
+      result = { success: false, error: emailErr.message };
+    }
+
+    var logError = await new Promise(function(resolve) {
+      ReminderLog.create({
+        id_pelanggan: idPelanggan,
+        status_kirim: result.success ? 'terkirim' : 'gagal',
+        pesan: message,
+        tanggal_kirim: new Date()
+      }, function(err) {
+        resolve(err || null);
+      });
+    });
+
+    if (logError) {
+      logger.error('CRON', `Gagal mencatat log invoice tagihan untuk ${name}: ${logError.message}`);
+      return { status: 'failed', error: logError.message };
+    }
+
+    if (!result.success) {
+      logger.error('CRON', `Gagal mengirim invoice tagihan untuk ${name}: ${result.error || 'Kesalahan tidak diketahui'}`);
+      return { status: 'failed', error: result.error || 'Pengiriman email gagal.' };
+    }
+
+    logger.success('CRON', `Invoice tagihan berhasil dikirim & dicatat untuk ${name}`);
+    return { status: 'sent' };
   }
 };
 

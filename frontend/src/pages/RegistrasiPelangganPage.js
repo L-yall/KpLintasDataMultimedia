@@ -17,8 +17,18 @@ function RegistrasiPelangganPage({ socket }) {
   var [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
   var [actionLoading, setActionLoading] = useState(false);
   var [error, setError] = useState('');
+  var [page, setPage] = useState(1);
 
   var headers = { Authorization: 'Bearer ' + localStorage.getItem('token') };
+  var registrationsPerPage = 10;
+  var totalPages = Math.max(1, Math.ceil(registrations.length / registrationsPerPage));
+  var paginatedRegistrations = registrations.slice((page - 1) * registrationsPerPage, page * registrationsPerPage);
+
+  useEffect(function () {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   var fetchRegistrations = useCallback(async function () {
     try {
@@ -121,8 +131,87 @@ function RegistrasiPelangganPage({ socket }) {
     return number ? 'https://wa.me/' + number : '';
   }
 
+  function renderPagination() {
+    if (totalPages <= 1) return null;
+
+    var pages = [];
+    for (var p = 1; p <= totalPages; p++) pages.push(p);
+
+    return (
+      <nav aria-label="Page navigation" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px', borderTop: '1px solid var(--border-color)', overflowX: 'auto' }}>
+        <ul className="pagination" style={{ display: 'flex', alignItems: 'center', minWidth: 'max-content', margin: 0, padding: 0, listStyle: 'none' }}>
+          <li className={'page-item' + (page === 1 ? ' disabled' : '')}>
+            <a href="#" className="registrasi-page-button page-link" onClick={function (e) { e.preventDefault(); if (page !== 1) setPage(Math.max(1, page - 1)); }} aria-label="Previous" aria-disabled={page === 1} tabIndex={page === 1 ? -1 : undefined}>«</a>
+          </li>
+          {pages.map(function (pageNumber) {
+            return (
+              <li key={pageNumber}>
+                <a href="#" className={'registrasi-page-button page-link' + (page === pageNumber ? ' active' : '')} onClick={function (e) { e.preventDefault(); setPage(pageNumber); }} aria-label={'Halaman ' + pageNumber} aria-current={page === pageNumber ? 'page' : undefined}>{pageNumber}</a>
+              </li>
+            );
+          })}
+          <li className={'page-item' + (page === totalPages ? ' disabled' : '')}>
+            <a href="#" className="registrasi-page-button page-link" onClick={function (e) { e.preventDefault(); if (page !== totalPages) setPage(Math.min(totalPages, page + 1)); }} aria-label="Next" aria-disabled={page === totalPages} tabIndex={page === totalPages ? -1 : undefined}>»</a>
+          </li>
+        </ul>
+      </nav>
+    );
+  }
+
   return (
     <div>
+      <style>{`
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+        .registrasi-page-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          width: 34px;
+          height: 32px;
+          border: 1px solid var(--border-color);
+          border-left: 0;
+          background: var(--bg-card);
+          color: var(--text-primary);
+          font-size: 0.95rem;
+          cursor: pointer;
+        }
+        .page-item:first-child .registrasi-page-button {
+          border-left: 1px solid var(--border-color);
+          border-radius: 6px 0 0 6px;
+        }
+        .page-item:last-child .registrasi-page-button {
+          border-radius: 0 6px 6px 0;
+        }
+        .registrasi-page-button:hover:not(:disabled) {
+          background: var(--bg-tertiary);
+        }
+        .registrasi-page-button.active {
+          background: #006876;
+          color: #ffffff;
+          border-color: #006876;
+        }
+        .registrasi-page-button.active:hover {
+          background: #006876;
+          color: #ffffff;
+          border-color: #006876;
+        }
+        .page-item.disabled .registrasi-page-button {
+          color: #006876;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+      `}</style>
       <div className="page-header">
         <div>
           <h1>Pendaftaran Pelanggan</h1>
@@ -151,6 +240,7 @@ function RegistrasiPelangganPage({ socket }) {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>No</th>
                   <th>Nama</th>
                   <th>Kontak</th>
                   <th>Paket</th>
@@ -160,9 +250,10 @@ function RegistrasiPelangganPage({ socket }) {
                 </tr>
               </thead>
               <tbody>
-                {registrations.map(function (registration) {
+                {paginatedRegistrations.map(function (registration, idx) {
                   return (
                     <tr key={registration.id_pelanggan}>
+                      <td style={{ color: 'var(--text-muted)' }}>{(page - 1) * registrationsPerPage + idx + 1}</td>
                       <td>
                         <div style={{ fontWeight: 700 }}>{registration.nama}</div>
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>NIK {registration.nik}</div>
@@ -194,6 +285,7 @@ function RegistrasiPelangganPage({ socket }) {
                 })}
               </tbody>
             </table>
+            {renderPagination()}
           </div>
         )}
       </div>

@@ -331,7 +331,7 @@ function TagihanPage({ socket, admin }) {
       }}>
         <ul className="pagination" style={{ display: 'flex', alignItems: 'center', minWidth: 'max-content', margin: 0, padding: 0, listStyle: 'none' }}>
           <li className={'page-item' + (currentPage === 1 ? ' disabled' : '')}>
-            <a href="#" className="tagihan-page-button page-link" onClick={function (e) { e.preventDefault(); if (currentPage !== 1) setCurrentPage(Math.max(1, currentPage - 1)); }} aria-label="Previous" aria-disabled={currentPage === 1} tabIndex={currentPage === 1 ? -1 : undefined}><span aria-hidden="true">«</span><span className="sr-only">Previous</span></a>
+            <a href="#" className="tagihan-page-button page-link" onClick={function (e) { e.preventDefault(); if (currentPage !== 1) setCurrentPage(Math.max(1, currentPage - 1)); }} aria-label="Previous" aria-disabled={currentPage === 1} tabIndex={currentPage === 1 ? -1 : undefined}>«</a>
           </li>
           {pages.map(function (pageNumber) {
             return (
@@ -343,7 +343,7 @@ function TagihanPage({ socket, admin }) {
             );
           })}
           <li className={'page-item' + (currentPage === totalPages ? ' disabled' : '')}>
-            <a href="#" className="tagihan-page-button page-link" onClick={function (e) { e.preventDefault(); if (currentPage !== totalPages) setCurrentPage(Math.min(totalPages, currentPage + 1)); }} aria-label="Next" aria-disabled={currentPage === totalPages} tabIndex={currentPage === totalPages ? -1 : undefined}><span aria-hidden="true">»</span><span className="sr-only">Next</span></a>
+            <a href="#" className="tagihan-page-button page-link" onClick={function (e) { e.preventDefault(); if (currentPage !== totalPages) setCurrentPage(Math.min(totalPages, currentPage + 1)); }} aria-label="Next" aria-disabled={currentPage === totalPages} tabIndex={currentPage === totalPages ? -1 : undefined}>»</a>
           </li>
         </ul>
       </nav>

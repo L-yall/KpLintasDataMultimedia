@@ -81,10 +81,12 @@ function PengaturanPage({ admin } = {}) {
     data: { id: null, nama_bank: '', nomor_rekening: '', atas_nama: 'ESP Lintas Data Multimedia', is_active: 1 }
   });
   var [savingRekening, setSavingRekening] = useState(false);
+  var [rekeningLogoFile, setRekeningLogoFile] = useState(null);
+  var [rekeningLogoPreview, setRekeningLogoPreview] = useState(null);
 
   // Reminder settings state
   var [reminder, setReminder] = useState({
-    dueDays: '3',
+    dueDays: '14',
     waTemplate: 'Halo [Nama],\n\nIni adalah pengingat otomatis dari Lintas Data Multimedia.\nTagihan internet Anda untuk periode [Periode] sebesar Rp [Nominal] akan jatuh tempo pada [JatuhTempo].\n\nSilakan lakukan pembayaran agar layanan tidak terputus. Terima kasih.',
     autoSend: true
   });
@@ -155,7 +157,7 @@ function PengaturanPage({ admin } = {}) {
           setManualPaymentEnabled(cfg.MANUAL_PAYMENT_ENABLED !== 'false');
 
           setReminder({
-            dueDays: cfg.REMINDER_DUE_DAYS || '3',
+            dueDays: cfg.REMINDER_DUE_DAYS || '14',
             autoSend: cfg.REMINDER_AUTO_SEND === 'true',
             waTemplate: cfg.REMINDER_WA_TEMPLATE || ''
           });
@@ -376,6 +378,8 @@ function PengaturanPage({ admin } = {}) {
 
   // Rekening Modal & CRUD Handlers
   var handleOpenAddRekening = function () {
+    setRekeningLogoFile(null);
+    setRekeningLogoPreview(null);
     setRekeningModal({
       open: true,
       mode: 'add',
@@ -384,6 +388,8 @@ function PengaturanPage({ admin } = {}) {
   };
 
   var handleOpenEditRekening = function (rek) {
+    setRekeningLogoFile(null);
+    setRekeningLogoPreview(null);
     setRekeningModal({
       open: true,
       mode: 'edit',
@@ -398,6 +404,8 @@ function PengaturanPage({ admin } = {}) {
   };
 
   var handleCloseRekeningModal = function () {
+    setRekeningLogoFile(null);
+    setRekeningLogoPreview(null);
     setRekeningModal({
       open: false,
       mode: 'add',
@@ -432,10 +440,34 @@ function PengaturanPage({ admin } = {}) {
       headers: { Authorization: 'Bearer ' + token }
     }).then(function (res) {
       if (res.data.success) {
-        setSuccessMsg(res.data.message || (isEdit ? 'Rekening berhasil diperbarui!' : 'Rekening berhasil ditambahkan!'));
-        setTimeout(function () { setSuccessMsg(''); }, 4000);
-        handleCloseRekeningModal();
-        fetchRekening();
+        var savedId = isEdit ? id : res.data.data.id;
+        var saveSuccess = function () {
+          setSuccessMsg(res.data.message || (isEdit ? 'Rekening berhasil diperbarui!' : 'Rekening berhasil ditambahkan!'));
+          setTimeout(function () { setSuccessMsg(''); }, 4000);
+          handleCloseRekeningModal();
+          fetchRekening();
+        };
+
+        if (rekeningLogoFile) {
+          var formData = new FormData();
+          formData.append('logo', rekeningLogoFile);
+          return axios.post(API_BASE_URL + '/api/pengaturan/rekening/' + savedId + '/logo', formData, {
+            headers: {
+              Authorization: 'Bearer ' + token,
+              'Content-Type': 'multipart/form-data'
+            }
+          }).then(saveSuccess).catch(function (err) {
+            setRekeningModal({
+              open: true,
+              mode: 'edit',
+              data: { id: savedId, nama_bank: nama_bank.trim(), nomor_rekening: nomor_rekening.trim(), atas_nama: atas_nama.trim(), is_active: is_active }
+            });
+            var msg = (err.response && err.response.data && err.response.data.message) || 'Gagal mengunggah logo bank.';
+            showAlert('Data rekening tersimpan, tetapi logo gagal diunggah: ' + msg, { tone: 'error' });
+          });
+        }
+
+        saveSuccess();
       }
     }).catch(function (err) {
       var msg = (err.response && err.response.data && err.response.data.message) || 'Gagal menyimpan rekening.';
@@ -705,7 +737,7 @@ function PengaturanPage({ admin } = {}) {
             { id: 'duitku', label: 'Duitku Gateway', icon: 'account_balance_wallet' },
             { id: 'manual', label: 'Pembayaran Manual', icon: 'payments' },
             { id: 'paket', label: 'Paket Layanan', icon: 'inventory_2' },
-            { id: 'reminder', label: 'Pengingat Tagihan', icon: 'notifications' }
+            { id: 'reminder', label: 'Invoice Tagihan', icon: 'mail' }
 
           ].map(function (tab) {
             var isActive = activeTab === tab.id;
@@ -1361,18 +1393,27 @@ function PengaturanPage({ admin } = {}) {
                             >
                               <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                  <span style={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: '800',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                    color: 'var(--primary)',
-                                    background: 'rgba(0, 104, 118, 0.08)',
-                                    padding: '3px 8px',
-                                    borderRadius: '4px'
-                                  }}>
-                                    {rek.nama_bank}
-                                  </span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {rek.logo_url && (
+                                      <img
+                                        src={API_BASE_URL + rek.logo_url}
+                                        alt={'Logo ' + rek.nama_bank}
+                                        style={{ width: '36px', height: '30px', objectFit: 'contain' }}
+                                      />
+                                    )}
+                                    <span style={{
+                                      fontSize: '0.75rem',
+                                      fontWeight: '800',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                      color: 'var(--primary)',
+                                      background: 'rgba(0, 104, 118, 0.08)',
+                                      padding: '3px 8px',
+                                      borderRadius: '4px'
+                                    }}>
+                                      {rek.nama_bank}
+                                    </span>
+                                  </div>
                                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', margin: 0 }} title="Ubah status aktif">
                                     <input
                                       type="checkbox"
@@ -1426,13 +1467,13 @@ function PengaturanPage({ admin } = {}) {
               {/* 7. REMINDER & TEMPLATE TAB */}
               {activeTab === 'reminder' && (
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '6px' }}>Reminder & Pengingat Tagihan</h3>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '6px' }}>Invoice Tagihan & Pengingat</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '24px' }}>
-                    Konfigurasi waktu jatuh tempo dan template pesan penagihan otomatis via Email/WhatsApp.
+                    Konfigurasi jadwal pengiriman invoice tagihan (default H-14) dan template pesan penagihan otomatis via Email/WhatsApp.
                   </p>
 
                   <div className="form-group" style={{ marginBottom: '20px' }}>
-                    <label>Batas Kirim Reminder (Hari sebelum jatuh tempo) *</label>
+                    <label>Jadwal Kirim Invoice Tagihan (Hari sebelum jatuh tempo) *</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <input
                         type="number"
@@ -1440,7 +1481,7 @@ function PengaturanPage({ admin } = {}) {
                         style={{ width: '100px' }}
                         onChange={function (e) { setReminder({ ...reminder, dueDays: e.target.value }); }}
                         min="1"
-                        max="10"
+                        max="31"
                         required
                       />
                       <span style={{ fontSize: '0.88rem', fontWeight: '600' }}>Hari sebelum tanggal jatuh tempo</span>
@@ -1448,7 +1489,7 @@ function PengaturanPage({ admin } = {}) {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: '20px' }}>
-                    <label>Pesan Reminder Otomatis</label>
+                    <label>Template Pesan Invoice Tagihan</label>
                     <textarea
                       rows="6"
                       value={reminder.waTemplate}
@@ -1471,7 +1512,7 @@ function PengaturanPage({ admin } = {}) {
                   }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>Pengiriman Otomatis Harian</span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Aktifkan sistem cron untuk mengirim reminder secara otomatis setiap jam 08:00 pagi.</span>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Aktifkan sistem cron untuk mengirim invoice tagihan dan pengingat secara otomatis setiap hari pukul 07:00 WIB.</span>
                     </div>
                     <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '24px', margin: 0 }}>
                       <input
@@ -1592,6 +1633,49 @@ function PengaturanPage({ admin } = {}) {
                   }}
                   style={{ width: '100%' }}
                 />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: '700', marginBottom: '6px' }}>
+                  Logo Bank (opsional)
+                </label>
+                {(rekeningLogoPreview || (rekeningModal.mode === 'edit' && rekeningList.find(function (rek) {
+                  return rek.id === rekeningModal.data.id && rek.logo_url;
+                }))) && (
+                  <img
+                    src={rekeningLogoPreview || (API_BASE_URL + rekeningList.find(function (rek) {
+                      return rek.id === rekeningModal.data.id && rek.logo_url;
+                    }).logo_url)}
+                    alt="Preview logo bank"
+                    style={{ display: 'block', width: '120px', height: '64px', objectFit: 'contain', marginBottom: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px' }}
+                  />
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={function (e) {
+                    var file = e.target.files && e.target.files[0];
+                    if (!file) return;
+                    if (['image/png', 'image/jpeg', 'image/jpg'].indexOf(file.type) === -1) {
+                      showAlert('Format file tidak didukung. Gunakan PNG atau JPG.', { tone: 'error' });
+                      e.target.value = '';
+                      return;
+                    }
+                    if (file.size > 2 * 1024 * 1024) {
+                      showAlert('Ukuran file melebihi batas maksimal 2MB.', { tone: 'error' });
+                      e.target.value = '';
+                      return;
+                    }
+                    setRekeningLogoFile(file);
+                    var reader = new FileReader();
+                    reader.onloadend = function () { setRekeningLogoPreview(reader.result); };
+                    reader.readAsDataURL(file);
+                  }}
+                  style={{ width: '100%' }}
+                />
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Format PNG atau JPG, maksimal 2MB. Logo akan ditampilkan kepada pelanggan.
+                </div>
               </div>
 
               <div className="form-group" style={{ marginBottom: '16px' }}>
